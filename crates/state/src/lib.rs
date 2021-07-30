@@ -17,21 +17,6 @@ pub type Context = [u8; 32];
 
 type Result<T, B> = std::result::Result<T, GlobalStateError<<B as DbBackend>::Error>>;
 
-#[derive(Clone, Debug, Default)]
-struct Blake3StdHasher(blake3::Hasher);
-
-impl std::hash::Hasher for Blake3StdHasher {
-    fn write(&mut self, bytes: &[u8]) {
-        self.0.update(bytes);
-    }
-
-    fn finish(&self) -> u64 {
-        let mut hash = [0; 8];
-        self.0.finalize_xof().fill(&mut hash);
-        u64::from_be_bytes(hash)
-    }
-}
-
 const NULL_HASH: [u8; 32] = [0; 32];
 
 /// * https://www.programmersought.com/article/33363860077/
@@ -59,132 +44,11 @@ fn dumb_longest_prefix(a: &[u8], b: &[u8]) -> usize {
     a.iter().zip(b).take_while(|(a, b)| a == b).count()
 }
 
-/// A collection of fields that we need when splitting a [`TrieNode::Leaf`]
-/// into a [`TrieNode::Branch`] with two [`TrieNode::Leaf`]'s (i.e. adding a
-/// [`TrieNode::Leaf`]).
-///
-/// # Examples
-///
-/// Adding a `00110100` key:
-///
-/// ```text
-/// B: 00110...
-///   0. L: 000
-///   1. L: 111
-/// ```
-///
-/// Result:
-///
-/// ```text
-/// B: 00110...
-///   0. L: 000
-///   1. B: 1...
-///     0. L: 00
-///     1. L: 11
-/// ```
-struct SplitLeafIntoTwo<'a> {
-    old_hash: &'a [u8; 32],
-    old_value: &'a [u8],
-    new_hash: &'a [u8; 32],
-    new_value: &'a [u8],
-    prefix_len_before_old_leaf: usize,
-    common_prefix_len_in_new_branch: usize,
-}
-
-impl<'a> SplitLeafIntoTwo<'a> {
-    fn is_update(&self) -> bool {
-        // If we have a full match, that means that we're updating
-        // a value rather than inserting a new one.
-        self.old_hash == self.new_hash
-    }
-
-    fn branch_prefix(&self) -> &'a [u8] {
-        &self.old_hash[self.prefix_len_before_old_leaf..][..self.common_prefix_len_in_new_branch]
-    }
-
-    fn old_leaf(&self) -> TrieNode<'a> {
-        TrieNode::Leaf {
-            prefix: &[],
-            value: self.old_value,
-        }
-    }
-
-    fn new_leaf(&self) -> TrieNode<'a> {
-        TrieNode::Leaf {
-            prefix: &[],
-            value: self.new_value,
-        }
-    }
-
-    fn is_insert(&self) -> bool {
-        !self.is_update()
-    }
-}
-
-/// # Examples
-///
-/// Adding a `00110110` key:
-///
-/// ```text
-/// B: 00110...
-///   0. L: 000
-///   1. B: 10...
-///     0. L: 0
-///     1. L: 1
-/// ```
-///
-/// Result:
-///
-/// ```text
-/// B: 00110...
-///   0. L: 000
-///   1. B: 1...
-///     0. B: 0...
-///       0. L: 0
-///       1. L: 1
-///     1. L: 10
-/// ```
-struct AddLeafAfterBranch<'a> {
-    old_branch: TrieNode<'a>,
-    old_branch_hash: &'a [u8; 32],
-    new_leaf_hash: &'a [u8; 32],
-    new_leaf_value: &'a [u8],
-    prefix: usize,
-}
-
-impl<'a> AddLeafAfterBranch<'a> {
-    fn new_leaf(&self) -> TrieNode {
-        TrieNode::Leaf {
-            prefix: &[],
-            value: self.new_leaf_value,
-        }
-    }
-
-    fn old_branch(&self) -> TrieNode {
-        match self.old_branch {
-            TrieNode::Branch {
-                children_hashes,
-                prefix,
-            } => TrieNode::Branch {
-                children_hashes,
-                prefix,
-            },
-            _ => panic!(),
-        }
-    }
-
-    fn new_branch(&self, old_branch_hash: &'a [u8; 32], new_leaf_hash: &'a [u8; 32]) -> TrieNode {
-        TrieNode::Branch {
-            children_hashes: [old_branch_hash, new_leaf_hash],
-            prefix: &[],
-        }
-    }
-}
-
 impl<B> GlobalState<B>
 where
     B: backend::DbBackend,
 {
+    /// Creates a new [`GlobalState`] persisted by `backend`.
     pub fn new(backend: B) -> Self {
         Self {
             backend,
@@ -288,7 +152,7 @@ where
                             new_leaf_hash: hash,
                             new_leaf_value: value,
                             prefix: common_prefix_len,
-                        });
+                        })?;
                     }
                 }
                 TrieNode::Leaf {
@@ -302,7 +166,7 @@ where
                         new_value: value,
                         prefix_len_before_old_leaf: hash.len() - hash_leftover.len(),
                         common_prefix_len_in_new_branch: 0,
-                    });
+                    })?;
                 }
             }
 
@@ -375,34 +239,157 @@ where
         }
     }
 
-    pub fn commit(&mut self) -> [u8; 32] {
+    pub fn commit(&mut self) -> Result<[u8; 32], B> {
+        self.checkpoint()?;
+        Ok(self.current())
+    }
+
+    /// Persists all dirty changes from memory to disk.
+    pub fn checkpoint(&mut self) -> Result<(), B> {
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
-        //for change in dirty_changes {
-        //    self.upsert(&change.0, &change.1).expect("Error inserting");
-        //}
-        self.current()
+        for change in dirty_changes {
+            self.upsert(&change.0, &change.1)?;
+        }
+        Ok(())
     }
 
-    pub fn checkpoint(&mut self) {
-        unimplemented!()
+    /// Returns the current root hash in the form of a [`Context`].
+    pub fn current(&self) -> Context {
+        self.root
     }
 
-    pub fn current(&self) -> [u8; 32] {
-        unimplemented!("Root hash")
+    /// Returns the current root hash in the form of a [`Context`].
+    pub fn rewind(&mut self, context: &Context) -> Result<(), B> {
+        if self.dirty_changes.is_empty() {
+            self.root = *context;
+            Ok(())
+        } else {
+            Err(GlobalStateError::DirtyChanges)
+        }
     }
 
-    pub fn rewind(&mut self, context: &Context) {
-        // Delete *all* work from future [`Context`]'s.
-    }
-
+    /// Erases all dirty changes from memory. Persisted data is left untouched.
     pub fn rollback(&mut self) {
         self.dirty_changes.clear();
     }
 }
 
-pub enum Item {
-    Template { code_hash: Hash },
-    Account { balance: u64, storage_hash: Hash },
+/// A collection of fields that we need when splitting a [`TrieNode::Leaf`]
+/// into a [`TrieNode::Branch`] with two [`TrieNode::Leaf`]'s (i.e. adding a
+/// [`TrieNode::Leaf`]).
+///
+/// # Examples
+///
+/// Adding a `00110100` key:
+///
+/// ```text
+/// B: 00110...
+///   0. L: 000
+///   1. L: 111
+/// ```
+///
+/// Result:
+///
+/// ```text
+/// B: 00110...
+///   0. L: 000
+///   1. B: 1...
+///     0. L: 00
+///     1. L: 11
+/// ```
+struct SplitLeafIntoTwo<'a> {
+    old_hash: &'a [u8; 32],
+    old_value: &'a [u8],
+    new_hash: &'a [u8; 32],
+    new_value: &'a [u8],
+    prefix_len_before_old_leaf: usize,
+    common_prefix_len_in_new_branch: usize,
+}
+
+impl<'a> SplitLeafIntoTwo<'a> {
+    fn is_update(&self) -> bool {
+        // If we have a full match, that means that we're updating
+        // a value rather than inserting a new one.
+        self.old_hash == self.new_hash
+    }
+
+    fn branch_prefix(&self) -> &'a [u8] {
+        &self.old_hash[self.prefix_len_before_old_leaf..][..self.common_prefix_len_in_new_branch]
+    }
+
+    fn old_leaf(&self) -> TrieNode<'a> {
+        TrieNode::Leaf {
+            prefix: &[],
+            value: self.old_value,
+        }
+    }
+
+    fn new_leaf(&self) -> TrieNode<'a> {
+        TrieNode::Leaf {
+            prefix: &[],
+            value: self.new_value,
+        }
+    }
+}
+
+/// # Examples
+///
+/// Adding a `00110110` key:
+///
+/// ```text
+/// B: 00110...
+///   0. L: 000
+///   1. B: 10...
+///     0. L: 0
+///     1. L: 1
+/// ```
+///
+/// Result:
+///
+/// ```text
+/// B: 00110...
+///   0. L: 000
+///   1. B: 1...
+///     0. B: 0...
+///       0. L: 0
+///       1. L: 1
+///     1. L: 10
+/// ```
+struct AddLeafAfterBranch<'a> {
+    old_branch: TrieNode<'a>,
+    old_branch_hash: &'a [u8; 32],
+    new_leaf_hash: &'a [u8; 32],
+    new_leaf_value: &'a [u8],
+    prefix: usize,
+}
+
+impl<'a> AddLeafAfterBranch<'a> {
+    fn new_leaf(&self) -> TrieNode {
+        TrieNode::Leaf {
+            prefix: &[],
+            value: self.new_leaf_value,
+        }
+    }
+
+    fn old_branch(&self) -> TrieNode {
+        match self.old_branch {
+            TrieNode::Branch {
+                children_hashes,
+                prefix,
+            } => TrieNode::Branch {
+                children_hashes,
+                prefix,
+            },
+            _ => panic!(),
+        }
+    }
+
+    fn new_branch(&self, old_branch_hash: &'a [u8; 32], new_leaf_hash: &'a [u8; 32]) -> TrieNode {
+        TrieNode::Branch {
+            children_hashes: [old_branch_hash, new_leaf_hash],
+            prefix: &[],
+        }
+    }
 }
 
 #[cfg(test)]
@@ -433,5 +420,22 @@ mod test {
     #[quickcheck]
     fn root_hash_changes_after_inserts(key: Vec<u8>, value: Vec<u8>) -> bool {
         true // TODO
+    }
+
+    #[quickcheck]
+    fn rewind_succeeds_when_empty(bytes: Vec<u8>) -> bool {
+        let context = Blake3Hasher::hash(&bytes);
+        let mut gs = GlobalState::new(HashMap::new());
+
+        gs.rewind(&context).is_ok()
+    }
+
+    #[quickcheck]
+    fn rewind_fails_after_insert(bytes: Vec<u8>, key: Vec<u8>, value: Vec<u8>) -> bool {
+        let context = Blake3Hasher::hash(&bytes);
+        let mut gs = GlobalState::new(HashMap::new());
+        gs.upsert(&key, &value).unwrap();
+
+        gs.rewind(&context).is_err()
     }
 }

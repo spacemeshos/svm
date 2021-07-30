@@ -5,8 +5,10 @@ pub enum GlobalStateError<E>
 where
     E: Debug,
 {
-    #[error("Invalid item")]
+    #[error("Invalid item.")]
     InvalidItem,
+    #[error("Please commit dirty changes or rollback to avoid data loss.")]
+    DirtyChanges,
     #[error("Hash collision. Make sure that you're not using the hash of a known item.")]
     Collision,
     #[error(

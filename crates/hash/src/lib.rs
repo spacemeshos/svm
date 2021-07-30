@@ -64,3 +64,18 @@ impl Default for DefaultHasher {
         }
     }
 }
+
+#[derive(Clone, Debug, Default)]
+pub struct Blake3StdHasher(blake3::Hasher);
+
+impl std::hash::Hasher for Blake3StdHasher {
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.update(bytes);
+    }
+
+    fn finish(&self) -> u64 {
+        let mut hash = [0; 8];
+        self.0.finalize_xof().fill(&mut hash);
+        u64::from_be_bytes(hash)
+    }
+}
