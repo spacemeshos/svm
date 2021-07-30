@@ -3,6 +3,7 @@ mod error;
 mod trie_node;
 
 use blake3::Hash;
+use svm_hash::{Blake3Hasher, Hasher};
 
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -49,13 +50,135 @@ where
     B: DbBackend,
 {
     backend: B,
-    dirty_changes: HashMap<[u8; 32], [u8; 32], Blake3StdHasher>,
-    current_context: Context,
+    root: Context,
+    dirty_changes: HashMap<[u8; 32], [u8; 32]>,
 }
 
 #[inline]
 fn dumb_longest_prefix(a: &[u8], b: &[u8]) -> usize {
     a.iter().zip(b).take_while(|(a, b)| a == b).count()
+}
+
+/// A collection of fields that we need when splitting a [`TrieNode::Leaf`]
+/// into a [`TrieNode::Branch`] with two [`TrieNode::Leaf`]'s (i.e. adding a
+/// [`TrieNode::Leaf`]).
+///
+/// # Examples
+///
+/// Adding a `00110100` key:
+///
+/// ```text
+/// B: 00110...
+///   0. L: 000
+///   1. L: 111
+/// ```
+///
+/// Result:
+///
+/// ```text
+/// B: 00110...
+///   0. L: 000
+///   1. B: 1...
+///     0. L: 00
+///     1. L: 11
+/// ```
+struct SplitLeafIntoTwo<'a> {
+    old_hash: &'a [u8; 32],
+    old_value: &'a [u8],
+    new_hash: &'a [u8; 32],
+    new_value: &'a [u8],
+    prefix_len_before_old_leaf: usize,
+    common_prefix_len_in_new_branch: usize,
+}
+
+impl<'a> SplitLeafIntoTwo<'a> {
+    fn is_update(&self) -> bool {
+        // If we have a full match, that means that we're updating
+        // a value rather than inserting a new one.
+        self.old_hash == self.new_hash
+    }
+
+    fn branch_prefix(&self) -> &'a [u8] {
+        &self.old_hash[self.prefix_len_before_old_leaf..][..self.common_prefix_len_in_new_branch]
+    }
+
+    fn old_leaf(&self) -> TrieNode<'a> {
+        TrieNode::Leaf {
+            prefix: &[],
+            value: self.old_value,
+        }
+    }
+
+    fn new_leaf(&self) -> TrieNode<'a> {
+        TrieNode::Leaf {
+            prefix: &[],
+            value: self.new_value,
+        }
+    }
+
+    fn is_insert(&self) -> bool {
+        !self.is_update()
+    }
+}
+
+/// # Examples
+///
+/// Adding a `00110110` key:
+///
+/// ```text
+/// B: 00110...
+///   0. L: 000
+///   1. B: 10...
+///     0. L: 0
+///     1. L: 1
+/// ```
+///
+/// Result:
+///
+/// ```text
+/// B: 00110...
+///   0. L: 000
+///   1. B: 1...
+///     0. B: 0...
+///       0. L: 0
+///       1. L: 1
+///     1. L: 10
+/// ```
+struct AddLeafAfterBranch<'a> {
+    old_branch: TrieNode<'a>,
+    old_branch_hash: &'a [u8; 32],
+    new_leaf_hash: &'a [u8; 32],
+    new_leaf_value: &'a [u8],
+    prefix: usize,
+}
+
+impl<'a> AddLeafAfterBranch<'a> {
+    fn new_leaf(&self) -> TrieNode {
+        TrieNode::Leaf {
+            prefix: &[],
+            value: self.new_leaf_value,
+        }
+    }
+
+    fn old_branch(&self) -> TrieNode {
+        match self.old_branch {
+            TrieNode::Branch {
+                children_hashes,
+                prefix,
+            } => TrieNode::Branch {
+                children_hashes,
+                prefix,
+            },
+            _ => panic!(),
+        }
+    }
+
+    fn new_branch(&self, old_branch_hash: &'a [u8; 32], new_leaf_hash: &'a [u8; 32]) -> TrieNode {
+        TrieNode::Branch {
+            children_hashes: [old_branch_hash, new_leaf_hash],
+            prefix: &[],
+        }
+    }
 }
 
 impl<B> GlobalState<B>
@@ -65,27 +188,20 @@ where
     pub fn new(backend: B) -> Self {
         Self {
             backend,
-            dirty_changes: HashMap::with_hasher(Blake3StdHasher::default()),
-            current_context: [0; 32],
+            dirty_changes: HashMap::new(),
+            root: [0; 32],
         }
     }
 
-    pub fn get(&mut self, context: &Context, key: &[u8]) -> Result<Option<Vec<u8>>, B> {
-        let hash = blake3::hash(key);
-        self.get_hash(context, hash.as_bytes())
-    }
-
-    pub fn get_hash(&mut self, context: &Context, hash: &[u8]) -> Result<Option<Vec<u8>>, B> {
-        assert!(hash.len() == 32, "Invalid hash length. Must be 32 bytes.");
-
-        let mut node_hash = &*context;
-        let mut hash_leftover = hash;
+    pub fn get_hash(&mut self, hash: &[u8; 32]) -> Result<Option<Vec<u8>>, B> {
+        let mut node_hash = self.root;
+        let mut hash_leftover = &hash[..];
         let mut i = 0;
 
         while i < 256 {
             let node_bytes = self
                 .backend
-                .get(node_hash)
+                .get(&node_hash[..])
                 .unwrap()
                 .ok_or(GlobalStateError::InvalidItem)?;
             let node = TrieNode::decode(&node_bytes).unwrap();
@@ -93,24 +209,16 @@ where
             match node {
                 TrieNode::Branch {
                     prefix,
-                    children_hashes: [child_l_hash, child_r_hash],
+                    children_hashes,
                 } => {
-                    // The current branch node is only valid for nodes that have
-                    // a specific common prefix. Anything else results in an
-                    // unsuccessful search.
-                    if hash_leftover.starts_with(prefix) && hash_leftover != prefix {
+                    if hash_leftover.starts_with(prefix) {
                         // Let's discard the part of the prefix that we just
-                        // matched against.
+                        // matched against and keep searching.
                         hash_leftover = &hash_leftover[prefix.len()..];
+                        node_hash = *children_hashes[hash_leftover[0] as usize];
+                        hash_leftover = &hash_leftover[1..];
                     } else {
                         return Ok(None);
-                    }
-
-                    // Let's keep on searching.
-                    if hash_leftover[0] == 0 {
-                        node_hash = child_l_hash.try_into().unwrap();
-                    } else {
-                        node_hash = child_r_hash.try_into().unwrap();
                     }
                 }
                 TrieNode::Leaf { prefix, value } => {
@@ -128,74 +236,73 @@ where
             i += 1;
         }
 
-        Ok(None)
+        Err(GlobalStateError::Cyclic)
     }
 
-    /// Sets the `value` of `key` within a [`Context`]. Different [`Context`]'s
-    /// will give different mappings.
-    pub fn upsert(
-        &mut self,
-        context: &Context,
-        key: &[u8],
-        value: &[u8],
-    ) -> Result<Option<Vec<u8>>, B> {
+    /// Sets the `value` of `key`.
+    pub fn upsert(&mut self, key: &[u8], value: &[u8]) -> Result<Option<Vec<u8>>, B> {
         let hash = blake3::hash(key);
-        self.upsert_hash(context, hash.as_bytes(), value)
+
+        if self.root == NULL_HASH {
+            self.root = *hash.as_bytes();
+        }
+
+        self.upsert_hash(hash.as_bytes(), value)
     }
 
-    pub fn upsert_hash(
-        &mut self,
-        context: &Context,
-        hash: &[u8; 32],
-        value: &[u8],
-    ) -> Result<Option<Vec<u8>>, B> {
-        struct UpsertDetails<'a> {
-            hash: &'a [u8; 32],
-            value: &'a [u8],
-        };
+    pub fn upsert_hash(&mut self, hash: &[u8; 32], value: &[u8]) -> Result<Option<Vec<u8>>, B> {
+        if self.root == NULL_HASH {
+            let leaf = TrieNode::Leaf {
+                prefix: hash,
+                value,
+            };
+            let hash = leaf.hash::<Blake3Hasher>();
+            self.upsert_node(leaf, &hash)?;
+            return Ok(None);
+        }
 
-        let mut node_hash = &*context;
-        let mut hash_leftover = hash;
+        let mut node_hash = self.root;
+        let hash_leftover = hash;
         let mut i = 0;
         let mut walk = vec![];
 
         while i < 256 {
-            let node_bytes = self
-                .backend
-                .get(node_hash)
-                .unwrap()
-                .ok_or(GlobalStateError::InvalidItem)?;
-            let node = TrieNode::decode(&node_bytes).unwrap();
+            let node_bytes_vec = self.get(&node_hash)?.ok_or(GlobalStateError::InvalidItem)?;
+            let node_bytes = &node_bytes_vec[..];
+            let node = TrieNode::decode(node_bytes).unwrap();
             walk.push(node_hash.to_vec());
 
             match node {
                 TrieNode::Branch {
                     prefix,
-                    children_hashes: [child_l_hash, child_r_hash],
+                    children_hashes,
                 } => {
-                    if hash_leftover.starts_with(prefix) && hash_leftover != prefix {
-                        self.update_branch();
+                    let common_prefix_len = dumb_longest_prefix(hash_leftover, prefix);
+
+                    if common_prefix_len == prefix.len() {
+                        node_hash = *children_hashes[hash_leftover[0] as usize];
                     } else {
-                        return Ok(None);
-                    }
-                    if hash_leftover[0] == 0 {
-                        node_hash = child_l_hash.try_into().unwrap();
-                    } else {
-                        node_hash = child_r_hash.try_into().unwrap();
+                        self.update_branch(AddLeafAfterBranch {
+                            old_branch: node,
+                            old_branch_hash: &node_hash,
+                            new_leaf_hash: hash,
+                            new_leaf_value: value,
+                            prefix: common_prefix_len,
+                        });
                     }
                 }
                 TrieNode::Leaf {
                     prefix,
                     value: leaf_value,
                 } => {
-                    self.update_leaf(
-                        node_hash,
-                        leaf_value,
-                        hash.try_into().unwrap(),
-                        value,
-                        prefix,
-                        hash_leftover,
-                    );
+                    self.update_leaf(SplitLeafIntoTwo {
+                        old_hash: &node_hash,
+                        old_value: leaf_value,
+                        new_hash: hash.try_into().unwrap(),
+                        new_value: value,
+                        prefix_len_before_old_leaf: hash.len() - hash_leftover.len(),
+                        common_prefix_len_in_new_branch: 0,
+                    });
                 }
             }
 
@@ -203,80 +310,66 @@ where
         }
 
         for node_hash in walk.iter().rev() {
-            let old_value = self.backend.get(&node_hash).unwrap().unwrap();
+            let old_value = self
+                .get(&node_hash[..].try_into().unwrap())
+                .unwrap()
+                .unwrap();
         }
 
         return Err(GlobalStateError::Cyclic);
     }
 
-    fn update_branch(
-        &mut self,
-        context: &Context,
-        prefix_len_before_branch: usize,
-        common_prefix_in_branch: usize,
-        hash_of_branch_node: &[u8; 32],
-        branch_node: &TrieNode,
-        leaf_hash: &[u8; 32],
-        leaf_value: &[u8],
-    ) -> Result<(), B> {
-        debug_assert_eq!(hash_of_branch_node, branch_node.hash());
-
-        let (prefix, children_hashes) = if let TrieNode::Branch {
-            prefix,
-            children_hashes,
-        } = branch_node
-        {
-            (prefix, children_hashes)
+    pub fn get(&self, hash: &[u8; 32]) -> Result<Option<Vec<u8>>, B> {
+        if let Some(value) = self.dirty_changes.get(hash) {
+            Ok(Some(value.to_vec()))
         } else {
-            panic!("Non-branch node");
-        };
+            self.backend
+                .get(hash)
+                .map_err(|e| GlobalStateError::Backend(e))
+        }
+    }
 
-        let hash_leftover = &leaf_hash[prefix_len_before_branch..];
-        let common_prefix = &prefix[..common_prefix_in_branch];
+    fn update_branch(&mut self, details: AddLeafAfterBranch) -> Result<(), B> {
+        let leaf = details.new_leaf();
+        let leaf_hash = leaf.hash::<Blake3Hasher>();
+        let old_branch = details.old_branch();
+        let new_branch = details.new_branch(details.old_branch_hash, &leaf_hash);
 
-        let new_branch_node = TrieNode::Branch {
-            prefix: common_prefix,
-            children_hashes: [hash_of_old_branch_node, &[0; 32]],
-        };
-
-        let leaf = TrieNode::Leaf {
-            prefix: hash_leftover,
-            value: leaf_value,
-        };
-
-        self.backend
-            .upsert(leaf_hash, &leaf.encode())
-            .map_err(|e| GlobalStateError::Backend(e))?;
+        self.upsert_node(old_branch, details.old_branch_hash)?;
+        self.upsert_node(leaf, details.new_leaf_hash)?;
+        self.upsert_node(new_branch, details.old_branch_hash)?;
 
         Ok(())
     }
 
-    fn update_leaf(
-        &mut self,
-        leaf_hash: &[u8; 32],
-        leaf_value: &[u8],
-        new_hash: &[u8; 32],
-        new_value: &[u8],
-        prefix: &[u8],
-        hash_leftover: &[u8],
-    ) -> Result<Option<Vec<u8>>, B> {
-        debug_assert_eq!(prefix.len(), hash_leftover.len());
+    fn upsert_node(&mut self, node: TrieNode, hash: &[u8; 32]) -> Result<(), B> {
+        self.upsert(hash, &node.encode())?;
+        Ok(())
+    }
 
-        // If we have a full match, that means that we're updating
-        // a value rather than inserting a new one.
-        let is_update = hash_leftover == prefix;
-
-        if is_update {
-            let old_value = leaf_value.to_vec();
-            self.backend.upsert(new_hash, new_value).unwrap();
+    fn update_leaf(&mut self, details: SplitLeafIntoTwo) -> Result<Option<Vec<u8>>, B> {
+        if details.is_update() {
+            let old_value = details.new_value.to_vec();
+            self.backend
+                .upsert(details.old_hash, details.new_value)
+                .unwrap();
             return Ok(Some(old_value));
         } else {
-            let common_prefix_len = dumb_longest_prefix(leaf_hash, new_hash);
-            let common_prefix = &prefix[..common_prefix_len];
-            let new_branch_node = TrieNode::Branch {
-                prefix: common_prefix,
-                children_hashes: [&[0; 32], &[0; 32]],
+            self.upsert_node(details.old_leaf(), details.old_hash)
+                .unwrap();
+            self.upsert_node(details.new_leaf(), details.new_hash)
+                .unwrap();
+
+            let branch = TrieNode::Branch {
+                prefix: details.branch_prefix(),
+                children_hashes: [
+                    &details.old_leaf().hash::<Blake3Hasher>(),
+                    &details.new_leaf().hash::<Blake3Hasher>(),
+                ],
             };
+
+            self.upsert_node(branch, &branch.hash::<Blake3Hasher>())
+                .unwrap();
 
             return Ok(None);
         }
@@ -284,9 +377,9 @@ where
 
     pub fn commit(&mut self) -> [u8; 32] {
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
-        for change in dirty_changes {
-            self.upsert(&change.0, &change.1).expect("Error inserting");
-        }
+        //for change in dirty_changes {
+        //    self.upsert(&change.0, &change.1).expect("Error inserting");
+        //}
         self.current()
     }
 
@@ -319,13 +412,22 @@ mod test {
     use super::*;
 
     #[quickcheck]
-    fn insert_then_get(key: Vec<u8>, value: Vec<u8>) -> bool {
-        let trie = &mut Trie::<_, Blake3Hasher>::new(HashMap::default());
-        println!("After inserting root, tree is {:?}", trie.backend);
-        assert!(trie.upsert(&key, &value).unwrap().is_none());
-        println!("After inserting root and node ,tree is {:?}", trie.backend);
+    fn insert_then_get(items: Vec<(String, String)>) -> bool {
+        let mut gs = GlobalState::new(HashMap::new());
 
-        trie.get(&key).unwrap() == Some(value)
+        for (key, value) in items.iter() {
+            gs.upsert(key.as_bytes(), value.as_bytes()).unwrap();
+        }
+
+        for (key, value) in items {
+            if gs.get(key.as_bytes().try_into().unwrap()).unwrap()
+                != Some(value.as_bytes().to_vec())
+            {
+                return false;
+            }
+        }
+
+        true
     }
 
     #[quickcheck]

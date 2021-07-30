@@ -11,4 +11,5 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-tiny-keccak = "1.4.2"
+blake3 = "1"
+tiny-keccak = { version = "2", features = ["keccak"] }

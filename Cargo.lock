@@ -1676,7 +1676,7 @@ dependencies = [
  "svm-storage",
  "svm-types",
  "thiserror",
- "tiny-keccak",
+ "tiny-keccak 1.5.0",
  "tracing",
  "tracing-subscriber",
  "wasmer",
@@ -1786,7 +1786,8 @@ dependencies = [
 name = "svm-hash"
 version = "0.0.0"
 dependencies = [
- "tiny-keccak",
+ "blake3 1.0.0",
+ "tiny-keccak 2.0.2",
 ]
 
 [[package]]
@@ -2087,6 +2088,15 @@ name = "tiny-keccak"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d8a021c69bb74a44ccedb824a046447e2c84a01df9e5c20779750acb38e11b2"
+dependencies = [
+ "crunchy",
+]
+
+[[package]]
+name = "tiny-keccak"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
 dependencies = [
  "crunchy",
 ]
