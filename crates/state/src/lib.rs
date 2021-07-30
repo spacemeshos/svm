@@ -2,16 +2,14 @@ mod backend;
 mod error;
 mod trie_node;
 
-use blake3::Hash;
 use svm_hash::{Blake3Hasher, Hasher};
 
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-use trie_node::TrieNode;
-
 pub use backend::DbBackend;
 pub use error::GlobalStateError;
+use trie_node::TrieNode;
 
 pub type Context = [u8; 32];
 
@@ -36,12 +34,7 @@ where
 {
     backend: B,
     root: Context,
-    dirty_changes: HashMap<[u8; 32], [u8; 32]>,
-}
-
-#[inline]
-fn dumb_longest_prefix(a: &[u8], b: &[u8]) -> usize {
-    a.iter().zip(b).take_while(|(a, b)| a == b).count()
+    dirty_changes: HashMap<[u8; 32], Vec<u8>>,
 }
 
 impl<B> GlobalState<B>
@@ -57,64 +50,43 @@ where
         }
     }
 
-    pub fn get_hash(&mut self, hash: &[u8; 32]) -> Result<Option<Vec<u8>>, B> {
-        let mut node_hash = self.root;
-        let mut hash_leftover = &hash[..];
-        let mut i = 0;
-
-        while i < 256 {
-            let node_bytes = self
-                .backend
-                .get(&node_hash[..])
-                .unwrap()
-                .ok_or(GlobalStateError::InvalidItem)?;
-            let node = TrieNode::decode(&node_bytes).unwrap();
-
-            match node {
-                TrieNode::Branch {
-                    prefix,
-                    children_hashes,
-                } => {
-                    if hash_leftover.starts_with(prefix) {
-                        // Let's discard the part of the prefix that we just
-                        // matched against and keep searching.
-                        hash_leftover = &hash_leftover[prefix.len()..];
-                        node_hash = *children_hashes[hash_leftover[0] as usize];
-                        hash_leftover = &hash_leftover[1..];
-                    } else {
-                        return Ok(None);
-                    }
-                }
-                TrieNode::Leaf { prefix, value } => {
-                    // After we finally reach a leaf, there's not much left to
-                    // do. Either the remaining prefix matches and we have a
-                    // successful match, or we don't.
-                    if hash_leftover == prefix {
-                        return Ok(Some(value.to_vec()));
-                    } else {
-                        return Ok(None);
-                    }
-                }
-            }
-
-            i += 1;
-        }
-
-        Err(GlobalStateError::Cyclic)
+    /// Fetches the value associated with `key`, once hashed with Blake3.
+    pub fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>, B> {
+        let hash = Blake3Hasher::hash(key);
+        self.get_by_hash(&hash)
     }
 
-    /// Sets the `value` of `key`.
-    pub fn upsert(&mut self, key: &[u8], value: &[u8]) -> Result<Option<Vec<u8>>, B> {
-        let hash = blake3::hash(key);
-
-        if self.root == NULL_HASH {
-            self.root = *hash.as_bytes();
+    /// Fetches the value associated with a Blake3 `hash`.
+    pub fn get_by_hash(&self, hash: &[u8; 32]) -> Result<Option<Vec<u8>>, B> {
+        if let Some(value) = self.dirty_changes.get(hash) {
+            Ok(Some(value.to_vec()))
+        } else {
+            self.backend.get(hash)
         }
-
-        self.upsert_hash(hash.as_bytes(), value)
     }
 
-    pub fn upsert_hash(&mut self, hash: &[u8; 32], value: &[u8]) -> Result<Option<Vec<u8>>, B> {
+    /// Sets the `value` associated with `key`, once hashed with Blake3.
+    pub fn upsert<V>(&mut self, key: &[u8], value: V)
+    where
+        V: Into<Vec<u8>>,
+    {
+        let hash = Blake3Hasher::hash(key);
+        self.upsert_by_hash(hash, value);
+    }
+
+    /// Sets the `value` associated with a Blake3 `hash`.
+    pub fn upsert_by_hash<V>(&mut self, hash: [u8; 32], value: V)
+    where
+        V: Into<Vec<u8>>,
+    {
+        self.dirty_changes.entry(hash).or_insert(value.into());
+    }
+
+    pub fn persist_operation(
+        &mut self,
+        hash: &[u8; 32],
+        value: &[u8],
+    ) -> Result<Option<Vec<u8>>, B> {
         if self.root == NULL_HASH {
             let leaf = TrieNode::Leaf {
                 prefix: hash,
@@ -134,7 +106,7 @@ where
             let node_bytes_vec = self.get(&node_hash)?.ok_or(GlobalStateError::InvalidItem)?;
             let node_bytes = &node_bytes_vec[..];
             let node = TrieNode::decode(node_bytes).unwrap();
-            walk.push(node_hash.to_vec());
+            walk.push(node_hash);
 
             match node {
                 TrieNode::Branch {
@@ -174,23 +146,10 @@ where
         }
 
         for node_hash in walk.iter().rev() {
-            let old_value = self
-                .get(&node_hash[..].try_into().unwrap())
-                .unwrap()
-                .unwrap();
+            let old_value = self.get_by_hash(node_hash).unwrap().unwrap();
         }
 
         return Err(GlobalStateError::Cyclic);
-    }
-
-    pub fn get(&self, hash: &[u8; 32]) -> Result<Option<Vec<u8>>, B> {
-        if let Some(value) = self.dirty_changes.get(hash) {
-            Ok(Some(value.to_vec()))
-        } else {
-            self.backend
-                .get(hash)
-                .map_err(|e| GlobalStateError::Backend(e))
-        }
     }
 
     fn update_branch(&mut self, details: AddLeafAfterBranch) -> Result<(), B> {
@@ -199,15 +158,12 @@ where
         let old_branch = details.old_branch();
         let new_branch = details.new_branch(details.old_branch_hash, &leaf_hash);
 
-        self.upsert_node(old_branch, details.old_branch_hash)?;
-        self.upsert_node(leaf, details.new_leaf_hash)?;
-        self.upsert_node(new_branch, details.old_branch_hash)?;
+        self.backend
+            .upsert(details.old_branch_hash, &old_branch.encode())?;
+        self.backend.upsert(details.new_leaf_hash, &leaf.encode())?;
+        self.backend
+            .upsert(details.old_branch_hash, &new_branch.encode())?;
 
-        Ok(())
-    }
-
-    fn upsert_node(&mut self, node: TrieNode, hash: &[u8; 32]) -> Result<(), B> {
-        self.upsert(hash, &node.encode())?;
         Ok(())
     }
 
@@ -239,6 +195,11 @@ where
         }
     }
 
+    fn upsert_node(&mut self, node: TrieNode, hash: &[u8; 32]) -> Result<(), B> {
+        self.backend.upsert(hash, &node.encode())?;
+        Ok(())
+    }
+
     pub fn commit(&mut self) -> Result<[u8; 32], B> {
         self.checkpoint()?;
         Ok(self.current())
@@ -248,7 +209,7 @@ where
     pub fn checkpoint(&mut self) -> Result<(), B> {
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
         for change in dirty_changes {
-            self.upsert(&change.0, &change.1)?;
+            self.persist_operation(&change.0, &change.1)?;
         }
         Ok(())
     }
@@ -392,6 +353,11 @@ impl<'a> AddLeafAfterBranch<'a> {
     }
 }
 
+#[inline]
+fn dumb_longest_prefix(a: &[u8], b: &[u8]) -> usize {
+    a.iter().zip(b).take_while(|(a, b)| a == b).count()
+}
+
 #[cfg(test)]
 mod test {
     use quickcheck_macros::quickcheck;
@@ -403,13 +369,12 @@ mod test {
         let mut gs = GlobalState::new(HashMap::new());
 
         for (key, value) in items.iter() {
-            gs.upsert(key.as_bytes(), value.as_bytes()).unwrap();
+            gs.upsert(key.as_bytes(), value.as_bytes());
         }
 
         for (key, value) in items {
-            if gs.get(key.as_bytes().try_into().unwrap()).unwrap()
-                != Some(value.as_bytes().to_vec())
-            {
+            let expected = Some(value.as_bytes().to_vec());
+            if !matches!(gs.get(key.as_bytes().try_into().unwrap()), expected) {
                 return false;
             }
         }
@@ -420,6 +385,12 @@ mod test {
     #[quickcheck]
     fn root_hash_changes_after_inserts(key: Vec<u8>, value: Vec<u8>) -> bool {
         true // TODO
+    }
+
+    #[quickcheck]
+    fn get_fails_on_empty_global_state(key: Vec<u8>) -> bool {
+        let gs = GlobalState::new(HashMap::new());
+        matches!(gs.get(&key), Ok(None))
     }
 
     #[quickcheck]
@@ -434,7 +405,7 @@ mod test {
     fn rewind_fails_after_insert(bytes: Vec<u8>, key: Vec<u8>, value: Vec<u8>) -> bool {
         let context = Blake3Hasher::hash(&bytes);
         let mut gs = GlobalState::new(HashMap::new());
-        gs.upsert(&key, &value).unwrap();
+        gs.upsert(&key, value);
 
         gs.rewind(&context).is_err()
     }
