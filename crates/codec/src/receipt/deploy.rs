@@ -1,17 +1,18 @@
-//! Encoding of a binary [`DeployReceipt`].
+//!  ## `Deploy Template` Receipt Binary Format Version 0
 //!
 //!  On success (`is_success = 1`)
 //!
+//!  ```text
 //!  +-----------------------------------------------------------------------+
 //!  |          |             |             |                    |           |
 //!  | tx type  |   version   |  is_success | template `Address` | gas_used  |
 //!  | (1 byte) |  (2 bytes)  |  (1 byte)   |     (20 bytes)     | (8 bytes) |
-//!  +          |             |             |                    |           |
+//!  |          |             |             |                    |           |
 //!  +-----------------------------------------------------------------------+
+//!  ```
 //!
-//!  On success (`is_success = 0`)
+//!  On Error (`is_success = 0`)
 //!  See [error.rs][./error.rs]
-//!
 
 use std::io::Cursor;
 
