@@ -117,8 +117,8 @@ fn encode_init_state(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
 fn encode_returndata(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
-    let bytes = receipt.returndata();
-    returndata::encode(&bytes, w);
+    let data = receipt.returndata();
+    returndata::encode(&data, w);
 }
 
 #[cfg(test)]
