@@ -160,9 +160,10 @@ impl GlobalState {
         let signature = &signature[..];
         sqlx::query!(
             r#"
-                INSERT INTO "commits" ("signature")
-                VALUES (?1)
+                INSERT INTO "commits" ("id", "signature")
+                VALUES (?1, ?2)
             "#,
+            self.next_commit_id,
             signature
         )
         .execute(&self.sqlite)
@@ -172,6 +173,7 @@ impl GlobalState {
 
     pub async fn commit(&mut self) -> Result<Commit> {
         let commit = self.checkpoint().await?;
+        self.next_commit_id += 1;
         self.create_commit(commit).await?;
         Ok(commit)
     }
@@ -235,7 +237,7 @@ impl GlobalState {
             signature_bytes,
             self.next_commit_id
         )
-        .fetch_one(&self.sqlite)
+        .execute(&self.sqlite)
         .await?;
 
         Ok(signature)
@@ -311,24 +313,15 @@ mod test {
         let mut gs = GlobalState::in_memory().await.unwrap();
 
         gs.upsert(b"foo", "bar").await;
-        println!("PROVAAAAAA");
-        println!("PROVAAAAAA");
-        println!("PROVAAAAAA");
-        println!("PROVAAAAAA");
-        println!("PROVAAAAAA");
-        println!("PROVAAAAAA");
         let commit_1 = gs.commit().await.unwrap();
-        println!("PROVAAAAAA AIUTO {:?}", commit_1);
 
         gs.upsert(b"foo", "spam").await;
         let commit_2 = gs.commit().await.unwrap();
-        println!("PROVAAAAAA AIUTO {:?}", commit_2);
 
         gs.upsert(b"foo", "bar").await;
         let commit_3 = gs.commit().await.unwrap();
-        println!("PROVAAAAAA AIUTO {:?}", commit_3);
 
-        commit_1 != commit_2 && commit_2 == commit_3
+        commit_1 != commit_2 && commit_1 == commit_3
     }
 
     #[quickcheck_async::tokio]
