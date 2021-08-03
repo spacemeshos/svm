@@ -1,10 +1,7 @@
 use std::fmt::Debug;
 
 #[derive(Debug, Clone, thiserror::Error)]
-pub enum GlobalStateError<E>
-where
-    E: Debug,
-{
+pub enum GlobalStateError {
     #[error("Invalid item.")]
     InvalidItem,
     #[error("Please commit dirty changes or rollback to avoid data loss.")]
@@ -15,6 +12,4 @@ where
         "Possible self-reference at the database layer. We couldn't reach the leaf fast enough."
     )]
     Cyclic,
-    #[error("Backend I/O error: {0:?}.")]
-    Backend(E),
 }

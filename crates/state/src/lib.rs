@@ -1,21 +1,20 @@
-mod backend;
 mod error;
 mod trie_node;
 
 use svm_hash::{Blake3Hasher, Hasher};
 
-use std::collections::HashMap;
-use std::convert::TryInto;
+use sqlx::SqlitePool;
 
-pub use backend::DbBackend;
+use std::collections::HashMap;
+
 pub use error::GlobalStateError;
 use trie_node::TrieNode;
 
-pub type Context = [u8; 32];
+pub type Commit = [u8; 32];
 
-type Result<T, B> = std::result::Result<T, GlobalStateError<<B as DbBackend>::Error>>;
+const SQL_SCHEMA: &str = include_str!("resources/gs-schema.sql");
 
-const NULL_HASH: [u8; 32] = [0; 32];
+type Result<T> = std::result::Result<T, GlobalStateError>;
 
 /// * https://www.programmersought.com/article/33363860077/
 /// * https://www.youtube.com/watch?v=oEpY4NkkeYQ
@@ -28,201 +27,230 @@ const NULL_HASH: [u8; 32] = [0; 32];
 ///   * 'b': balance
 ///   * 'n': nonce
 ///   * 'a': address
-pub struct GlobalState<B>
-where
-    B: DbBackend,
-{
-    backend: B,
-    root: Context,
+pub struct GlobalState {
+    sqlite: SqlitePool,
+    commit: Option<Commit>,
     dirty_changes: HashMap<[u8; 32], Vec<u8>>,
 }
 
-impl<B> GlobalState<B>
-where
-    B: backend::DbBackend,
-{
-    /// Creates a new [`GlobalState`] persisted by `backend`.
-    pub fn new(backend: B) -> Self {
-        Self {
-            backend,
+struct MerkelizationWalk {}
+
+impl GlobalState {
+    /// Creates a new [`GlobalState`] persisted by the given SQLite and Redis
+    /// instances. Initially, the
+    pub async fn new(_redis_uri: &str, sqlite_uri: &str) -> Self {
+        let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await.unwrap();
+        let gs = Self {
+            sqlite,
             dirty_changes: HashMap::new(),
-            root: [0; 32],
-        }
+            commit: None,
+        };
+        gs.initialize().await;
+        gs
+    }
+
+    pub async fn in_memory() -> Self {
+        let sqlite = sqlx::SqlitePool::connect(":memory:").await.unwrap();
+        sqlx::query(SQL_SCHEMA).execute(&sqlite).await.unwrap();
+
+        let gs = Self {
+            sqlite,
+            dirty_changes: HashMap::new(),
+            commit: None,
+        };
+        gs.initialize().await;
+        gs
+    }
+
+    async fn initialize(&self) {
+        sqlx::query!(
+            r#"
+                INSERT INTO "commits" ("id", "hash")
+                VALUES
+                    (1, NULL)
+            "#
+        )
+        .execute(&self.sqlite)
+        .await
+        .unwrap();
     }
 
     /// Fetches the value associated with `key`, once hashed with Blake3.
-    pub fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>, B> {
+    pub async fn get(&self, key: &[u8], commit: Option<&Commit>) -> Result<Option<Vec<u8>>> {
         let hash = Blake3Hasher::hash(key);
-        self.get_by_hash(&hash)
+        self.get_by_hash(&hash, commit).await
+    }
+
+    async fn commit_id(&self, commit: &Commit) -> i64 {
+        let commit = &commit[..];
+        let record = sqlx::query!(
+            r#"
+                SELECT "id"
+                FROM "commits"
+                WHERE "hash" = ?1
+                "#,
+            commit
+        )
+        .fetch_one(&self.sqlite)
+        .await
+        .unwrap();
+        record.id
+    }
+
+    async fn next_commit_id(&self) -> i64 {
+        let max_id = sqlx::query!(
+            r#"
+                SELECT "id"
+                FROM "commits"
+                ORDER BY "id" DESC
+                LIMIT 1
+            "#
+        )
+        .fetch_one(&self.sqlite)
+        .await
+        .unwrap();
+        max_id.id
     }
 
     /// Fetches the value associated with a Blake3 `hash`.
-    pub fn get_by_hash(&self, hash: &[u8; 32]) -> Result<Option<Vec<u8>>, B> {
-        if let Some(value) = self.dirty_changes.get(hash) {
+    pub async fn get_by_hash(
+        &self,
+        hash: &[u8; 32],
+        commit: Option<&Commit>,
+    ) -> Result<Option<Vec<u8>>> {
+        if let Some(commit) = commit {
+            let hash = &hash[..];
+            let commit_hash = &commit[..];
+            let value_opt: Option<Vec<u8>> = sqlx::query!(
+                r#"
+                    SELECT "value"
+                    FROM "values"
+                    WHERE
+                        "commit_id" <= (
+                            SELECT "id"
+                            FROM "commits"
+                            WHERE "hash" = ?1
+                        )
+                        AND
+                        "key_hash" = ?2
+                    ORDER BY "id" DESC LIMIT 1
+                "#,
+                commit_hash,
+                hash,
+            )
+            .fetch_optional(&self.sqlite)
+            .await
+            .unwrap()
+            .map(|x| x.value);
+            Ok(value_opt)
+        } else if let Some(value) = self.dirty_changes.get(hash) {
             Ok(Some(value.to_vec()))
         } else {
-            self.backend.get(hash)
+            let hash = &hash[..];
+            let value: Option<Vec<u8>> = sqlx::query!(
+                r#"
+                    SELECT "value"
+                    FROM "values"
+                    WHERE
+                        "commit_id" = (
+                            SELECT MAX("id")
+                            FROM "commits"
+                        )
+                        AND
+                        "key_hash" = ?1
+                    LIMIT 1
+                "#,
+                hash,
+            )
+            .fetch_optional(&self.sqlite)
+            .await
+            .unwrap()
+            .map(|record| record.value);
+            Ok(value)
         }
     }
 
     /// Sets the `value` associated with `key`, once hashed with Blake3.
-    pub fn upsert<V>(&mut self, key: &[u8], value: V)
+    pub async fn upsert<V>(&mut self, key: &[u8], value: V)
     where
         V: Into<Vec<u8>>,
     {
         let hash = Blake3Hasher::hash(key);
-        self.upsert_by_hash(hash, value);
+        self.upsert_by_hash(hash, value).await;
     }
 
     /// Sets the `value` associated with a Blake3 `hash`.
-    pub fn upsert_by_hash<V>(&mut self, hash: [u8; 32], value: V)
+    pub async fn upsert_by_hash<V>(&mut self, hash: [u8; 32], value: V)
     where
         V: Into<Vec<u8>>,
     {
         self.dirty_changes.entry(hash).or_insert(value.into());
     }
 
-    pub fn persist_operation(
-        &mut self,
-        hash: &[u8; 32],
-        value: &[u8],
-    ) -> Result<Option<Vec<u8>>, B> {
-        if self.root == NULL_HASH {
-            let leaf = TrieNode::Leaf {
-                prefix: hash,
-                value,
-            };
-            let hash = leaf.hash::<Blake3Hasher>();
-            self.upsert_node(leaf, &hash)?;
-            return Ok(None);
-        }
-
-        let mut node_hash = self.root;
-        let hash_leftover = hash;
-        let mut i = 0;
-        let mut walk = vec![];
-
-        while i < 256 {
-            let node_bytes_vec = self.get(&node_hash)?.ok_or(GlobalStateError::InvalidItem)?;
-            let node_bytes = &node_bytes_vec[..];
-            let node = TrieNode::decode(node_bytes).unwrap();
-            walk.push(node_hash);
-
-            match node {
-                TrieNode::Branch {
-                    prefix,
-                    children_hashes,
-                } => {
-                    let common_prefix_len = dumb_longest_prefix(hash_leftover, prefix);
-
-                    if common_prefix_len == prefix.len() {
-                        node_hash = *children_hashes[hash_leftover[0] as usize];
-                    } else {
-                        self.update_branch(AddLeafAfterBranch {
-                            old_branch: node,
-                            old_branch_hash: &node_hash,
-                            new_leaf_hash: hash,
-                            new_leaf_value: value,
-                            prefix: common_prefix_len,
-                        })?;
-                    }
-                }
-                TrieNode::Leaf {
-                    prefix,
-                    value: leaf_value,
-                } => {
-                    self.update_leaf(SplitLeafIntoTwo {
-                        old_hash: &node_hash,
-                        old_value: leaf_value,
-                        new_hash: hash.try_into().unwrap(),
-                        new_value: value,
-                        prefix_len_before_old_leaf: hash.len() - hash_leftover.len(),
-                        common_prefix_len_in_new_branch: 0,
-                    })?;
-                }
-            }
-
-            i += 1;
-        }
-
-        for node_hash in walk.iter().rev() {
-            let old_value = self.get_by_hash(node_hash).unwrap().unwrap();
-        }
-
-        return Err(GlobalStateError::Cyclic);
+    pub async fn merkelize(&self) -> Option<Commit> {
+        None
     }
 
-    fn update_branch(&mut self, details: AddLeafAfterBranch) -> Result<(), B> {
-        let leaf = details.new_leaf();
-        let leaf_hash = leaf.hash::<Blake3Hasher>();
-        let old_branch = details.old_branch();
-        let new_branch = details.new_branch(details.old_branch_hash, &leaf_hash);
-
-        self.backend
-            .upsert(details.old_branch_hash, &old_branch.encode())?;
-        self.backend.upsert(details.new_leaf_hash, &leaf.encode())?;
-        self.backend
-            .upsert(details.old_branch_hash, &new_branch.encode())?;
-
-        Ok(())
+    pub async fn commit(&mut self) -> Result<[u8; 32]> {
+        self.checkpoint().await?;
+        let commit_id = self.next_commit_id().await;
+        let commit_hash = [0; 32]; // FIXME
+        sqlx::query!(
+            r#"
+                INSERT INTO "commits" ("id", "hash")
+                VALUES (?1, NULL)
+            "#,
+            commit_id,
+        )
+        .execute(&self.sqlite)
+        .await
+        .unwrap();
+        Ok(commit_hash)
     }
 
-    fn update_leaf(&mut self, details: SplitLeafIntoTwo) -> Result<Option<Vec<u8>>, B> {
-        if details.is_update() {
-            let old_value = details.new_value.to_vec();
-            self.backend
-                .upsert(details.old_hash, details.new_value)
-                .unwrap();
-            return Ok(Some(old_value));
-        } else {
-            self.upsert_node(details.old_leaf(), details.old_hash)
-                .unwrap();
-            self.upsert_node(details.new_leaf(), details.new_hash)
-                .unwrap();
-
-            let branch = TrieNode::Branch {
-                prefix: details.branch_prefix(),
-                children_hashes: [
-                    &details.old_leaf().hash::<Blake3Hasher>(),
-                    &details.new_leaf().hash::<Blake3Hasher>(),
-                ],
-            };
-
-            self.upsert_node(branch, &branch.hash::<Blake3Hasher>())
-                .unwrap();
-
-            return Ok(None);
-        }
-    }
-
-    fn upsert_node(&mut self, node: TrieNode, hash: &[u8; 32]) -> Result<(), B> {
-        self.backend.upsert(hash, &node.encode())?;
-        Ok(())
-    }
-
-    pub fn commit(&mut self) -> Result<[u8; 32], B> {
-        self.checkpoint()?;
-        Ok(self.current())
-    }
-
-    /// Persists all dirty changes from memory to disk.
-    pub fn checkpoint(&mut self) -> Result<(), B> {
+    /// Persists all dirty changes from memory to disk. Even though persisted to
+    /// disk, they still don't belong to any commit; look into
+    /// [`GlobalState::commit`].
+    pub async fn checkpoint(&mut self) -> Result<()> {
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
+        let commit_id = self.next_commit_id().await;
+
         for change in dirty_changes {
-            self.persist_operation(&change.0, &change.1)?;
+            let key_hash = &change.0[..];
+            let value = &change.1[..];
+
+            let num_rows_affected = sqlx::query!(
+                r#"
+                    INSERT INTO "values" ("commit_id", "key_hash", "value")
+                    VALUES (?1, ?2, ?3)
+                "#,
+                commit_id,
+                key_hash,
+                value
+            )
+            .execute(&self.sqlite)
+            .await
+            .unwrap()
+            .rows_affected();
+
+            assert_eq!(num_rows_affected, 1);
         }
+
         Ok(())
     }
 
-    /// Returns the current root hash in the form of a [`Context`].
-    pub fn current(&self) -> Context {
-        self.root
+    /// Returns the current root hash in the form of a [`Commit`].
+    pub fn current(&self) -> Option<Commit> {
+        self.commit
     }
 
-    /// Returns the current root hash in the form of a [`Context`].
-    pub fn rewind(&mut self, context: &Context) -> Result<(), B> {
+    /// Returns the current root hash in the form of a [`Commit`].
+    ///
+    /// It returns an error in case there's any dirty changes: you must
+    /// [`rollback`](GlobalState::rollback) first.
+    pub async fn rewind(&mut self, commit: &Commit) -> Result<()> {
         if self.dirty_changes.is_empty() {
-            self.root = *context;
+            self.commit = Some(*commit);
             Ok(())
         } else {
             Err(GlobalStateError::DirtyChanges)
@@ -360,21 +388,19 @@ fn dumb_longest_prefix(a: &[u8], b: &[u8]) -> usize {
 
 #[cfg(test)]
 mod test {
-    use quickcheck_macros::quickcheck;
-
     use super::*;
 
-    #[quickcheck]
-    fn insert_then_get(items: Vec<(String, String)>) -> bool {
-        let mut gs = GlobalState::new(HashMap::new());
+    #[quickcheck_async::tokio]
+    async fn retrieval_after_dirty_changes(items: HashMap<String, String>) -> bool {
+        let mut gs = GlobalState::in_memory().await;
 
         for (key, value) in items.iter() {
-            gs.upsert(key.as_bytes(), value.as_bytes());
+            gs.upsert(key.as_bytes(), value.as_bytes()).await;
         }
 
         for (key, value) in items {
-            let expected = Some(value.as_bytes().to_vec());
-            if !matches!(gs.get(key.as_bytes().try_into().unwrap()), expected) {
+            let stored_value = gs.get(key.as_bytes(), None).await.unwrap().unwrap();
+            if stored_value != value.as_bytes() {
                 return false;
             }
         }
@@ -382,31 +408,54 @@ mod test {
         true
     }
 
-    #[quickcheck]
-    fn root_hash_changes_after_inserts(key: Vec<u8>, value: Vec<u8>) -> bool {
+    #[quickcheck_async::tokio]
+    async fn retrieval_after_checkpoint(items: HashMap<String, String>) -> bool {
+        let mut gs = GlobalState::in_memory().await;
+
+        assert_eq!(gs.next_commit_id().await, 1);
+        for (key, value) in items.iter().filter(|kv| !kv.0.is_empty()) {
+            gs.upsert(key.as_bytes(), value.as_bytes()).await;
+        }
+
+        gs.checkpoint().await.unwrap();
+        assert_eq!(gs.next_commit_id().await, 1);
+
+        for (key, value) in items.iter().filter(|kv| !kv.0.is_empty()) {
+            let stored_value = gs.get(key.as_bytes(), None).await.unwrap().unwrap();
+            println!("VALUES {:?} {:?} {:?}", key, value, stored_value);
+            if stored_value != value.as_bytes() {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    #[quickcheck_async::tokio]
+    async fn root_hash_changes_after_inserts(key: Vec<u8>, value: Vec<u8>) -> bool {
         true // TODO
     }
 
-    #[quickcheck]
-    fn get_fails_on_empty_global_state(key: Vec<u8>) -> bool {
-        let gs = GlobalState::new(HashMap::new());
-        matches!(gs.get(&key), Ok(None))
+    #[quickcheck_async::tokio]
+    async fn get_fails_on_empty_global_state(key: Vec<u8>) -> bool {
+        let mut gs = GlobalState::in_memory().await;
+        matches!(gs.get(&key, None).await, Ok(None))
     }
 
-    #[quickcheck]
-    fn rewind_succeeds_when_empty(bytes: Vec<u8>) -> bool {
+    #[quickcheck_async::tokio]
+    async fn rewind_succeeds_when_empty(bytes: Vec<u8>) -> bool {
         let context = Blake3Hasher::hash(&bytes);
-        let mut gs = GlobalState::new(HashMap::new());
+        let mut gs = GlobalState::in_memory().await;
 
-        gs.rewind(&context).is_ok()
+        gs.rewind(&context).await.is_ok()
     }
 
-    #[quickcheck]
-    fn rewind_fails_after_insert(bytes: Vec<u8>, key: Vec<u8>, value: Vec<u8>) -> bool {
+    #[quickcheck_async::tokio]
+    async fn rewind_fails_after_insert(bytes: Vec<u8>, key: Vec<u8>, value: Vec<u8>) -> bool {
         let context = Blake3Hasher::hash(&bytes);
-        let mut gs = GlobalState::new(HashMap::new());
-        gs.upsert(&key, value);
+        let mut gs = GlobalState::in_memory().await;
+        gs.upsert(&key, value).await;
 
-        gs.rewind(&context).is_err()
+        gs.rewind(&context).await.is_err()
     }
 }

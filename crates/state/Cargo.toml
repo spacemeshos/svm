@@ -8,12 +8,17 @@ publish = false
 
 [dependencies]
 anyhow = "1"
-bitvec = "0.22"
 blake3 = "1"
-thiserror = "1"
-svm-hash = { path = "../hash" }
+funty = "=1.1.0"
+futures = "0.3"
+redis = { version = "0.21", features = ["tokio-comp"] }
 rocksdb = { version = "0.15", default-features = false }
+sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite"] }
+svm-hash = { path = "../hash" }
+thiserror = "1"
 
 [dev-dependencies]
 quickcheck = "1"
+quickcheck_async = "0.1"
 quickcheck_macros = "1"
+tokio = { version = "1", features = ["rt", "macros"] }
