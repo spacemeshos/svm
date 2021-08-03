@@ -27,7 +27,7 @@ pub fn encode_calldata(json: &str) -> Result<Json, JsonError> {
     Ok(EncodedData { data: calldata }.to_json())
 }
 
-pub fn decode_raw_calldata(data: &[u8]) -> Result<Json, JsonError> {
+pub fn decode_raw_input(data: &[u8]) -> Result<Json, JsonError> {
     let calldata = CallData::new(data);
     Ok(calldata_to_json(calldata))
 }

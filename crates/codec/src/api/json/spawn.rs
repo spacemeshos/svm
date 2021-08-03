@@ -56,7 +56,7 @@ impl JsonSerdeUtils for DecodedSpawn {}
 impl From<SpawnAccount> for DecodedSpawn {
     fn from(spawn: SpawnAccount) -> Self {
         let template_addr = TemplateAddrWrapper(spawn.template_addr().clone());
-        let decoded_calldata = super::calldata::decode_raw_calldata(&spawn.calldata).unwrap();
+        let decoded_calldata = super::calldata::decode_raw_input(&spawn.calldata).unwrap();
 
         Self {
             version: spawn.version,

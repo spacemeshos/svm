@@ -5,7 +5,7 @@ use std::io::Cursor;
 
 use svm_types::Transaction;
 
-use super::calldata::{decode_raw_calldata, DecodedCallData};
+use super::calldata::{decode_raw_input, DecodedCallData};
 use super::serde_types::*;
 use crate::api::json::{JsonError, JsonSerdeUtils};
 
@@ -63,11 +63,9 @@ pub fn decode_call(json: &str) -> Result<Json, JsonError> {
     let encoded_call = EncodedData::from_json_str(json)?;
     let tx = {
         let mut cursor = Cursor::new(&encoded_call.data.0[..]);
+
         crate::call::decode_call(&mut cursor).unwrap()
     };
-
-    // let verifydata = json::bytes_to_str(&tx.verifydata);
-    // let verifydata = json::decode_calldata(&json!({ "calldata": verifydata }))?;
 
     Ok(DecodedCall::from(tx).to_json())
 }
@@ -77,7 +75,7 @@ struct DecodedCall {
     version: u16,
     target: AddressWrapper,
     func_name: String,
-    // verifydata: String,
+    verifydata: EncodedOrDecodedCalldata,
     calldata: EncodedOrDecodedCalldata,
 }
 
@@ -86,10 +84,12 @@ impl JsonSerdeUtils for DecodedCall {}
 impl From<DecodedCall> for Transaction {
     fn from(decoded: DecodedCall) -> Self {
         let target = decoded.target.into();
+
         Transaction {
             version: decoded.version,
             func_name: decoded.func_name,
             target,
+            verifydata: decoded.verifydata.encode(),
             calldata: decoded.calldata.encode(),
         }
     }
@@ -101,8 +101,12 @@ impl From<Transaction> for DecodedCall {
             version: tx.version,
             target: AddressWrapper::from(&tx.target),
             func_name: tx.func_name.clone(),
+            verifydata: EncodedOrDecodedCalldata::Decoded(
+                DecodedCallData::new(&decode_raw_input(tx.verifydata()).unwrap().to_string())
+                    .unwrap(),
+            ),
             calldata: EncodedOrDecodedCalldata::Decoded(
-                DecodedCallData::new(&decode_raw_calldata(&tx.calldata).unwrap().to_string())
+                DecodedCallData::new(&decode_raw_input(tx.calldata()).unwrap().to_string())
                     .unwrap(),
             ),
         }
@@ -243,8 +247,8 @@ mod tests {
             "version": 0,
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
-            // "verifydata": verifydata["calldata"],
-            "calldata": calldata["data"],
+            "verifydata": verifydata["verifydata"],
+            "calldata": calldata["calldata"],
         })
         .to_string();
 
@@ -257,10 +261,10 @@ mod tests {
                 "version": 0,
                 "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
                 "func_name": "do_something",
-                // "verifydata": {
-                //     "abi": ["bool", "i8"],
-                //     "data": [true, 3]
-                // },
+                "verifydata": {
+                    "abi": ["bool", "i8"],
+                    "data": [true, 3]
+                },
                 "calldata": {
                     "abi": ["i32", "i64"],
                     "data": [10, 20]

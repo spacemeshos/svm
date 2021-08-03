@@ -9,7 +9,7 @@ pub struct CallBuilder {
     version: Option<u16>,
     target: Option<Address>,
     func_name: Option<String>,
-    // verifydata: Option<Vec<u8>>,
+    verifydata: Option<Vec<u8>>,
     calldata: Option<Vec<u8>>,
 }
 
@@ -26,14 +26,14 @@ pub struct CallBuilder {
 /// let target = Address::of("@target").into();
 ///
 /// let func_name = "do_work";
-/// // let verifydata = vec![0x10, 0x20, 0x30];
+/// let verifydata = vec![0x10, 0x20, 0x30];
 /// let calldata = vec![0x10, 0x20, 0x30];
 ///
 /// let bytes = CallBuilder::new()
 ///            .with_version(0)
 ///            .with_target(&target)
 ///            .with_func(func_name)
-///            // .with_verifydata(&verifydata)
+///            .with_verifydata(&verifydata)
 ///            .with_calldata(&calldata)
 ///            .build();
 ///
@@ -43,7 +43,7 @@ pub struct CallBuilder {
 ///                  version: 0,
 ///                  target,
 ///                  func_name: func_name.to_string(),
-///                  // verifydata,
+///                  verifydata,
 ///                  calldata,
 ///                };
 ///
@@ -58,7 +58,7 @@ impl CallBuilder {
             version: None,
             target: None,
             func_name: None,
-            // verifydata: None,
+            verifydata: None,
             calldata: None,
         }
     }
@@ -78,10 +78,10 @@ impl CallBuilder {
         self
     }
 
-    // pub fn with_verifydata(mut self, verifydata: &[u8]) -> Self {
-    //     self.verifydata = Some(verifydata.to_vec());
-    //     self
-    // }
+    pub fn with_verifydata(mut self, verifydata: &[u8]) -> Self {
+        self.verifydata = Some(verifydata.to_vec());
+        self
+    }
 
     pub fn with_calldata(mut self, calldata: &[u8]) -> Self {
         self.calldata = Some(calldata.to_vec());
@@ -93,10 +93,10 @@ impl CallBuilder {
         let target = self.target.unwrap();
         let func_name = self.func_name.unwrap();
 
-        // let verifydata = match self.verifydata {
-        //     None => vec![],
-        //     Some(verifydata) => verifydata.to_vec(),
-        // };
+        let verifydata = match self.verifydata {
+            None => vec![],
+            Some(verifydata) => verifydata.to_vec(),
+        };
 
         let calldata = match self.calldata {
             None => vec![],
@@ -107,7 +107,7 @@ impl CallBuilder {
             version,
             target,
             func_name,
-            // verifydata,
+            verifydata,
             calldata,
         };
 

@@ -31,15 +31,15 @@ impl FuncEnv {
         storage: AccountStorage,
         envelope: &Envelope,
         context: &Context,
-        template_addr: &TemplateAddr,
-        target_addr: &Address,
+        template_addr: TemplateAddr,
+        target_addr: Address,
     ) -> Self {
         let inner = Inner::new(storage);
 
         Self {
             inner: Rc::new(RefCell::new(inner)),
-            template_addr: template_addr.clone(),
-            target_addr: target_addr.clone(),
+            template_addr: template_addr,
+            target_addr: target_addr,
             envelope: envelope.clone(),
             context: context.clone(),
         }
@@ -51,8 +51,8 @@ impl FuncEnv {
         storage: AccountStorage,
         envelope: &Envelope,
         context: &Context,
-        template_addr: &TemplateAddr,
-        target_addr: &Address,
+        template_addr: TemplateAddr,
+        target_addr: Address,
     ) -> Self {
         let func_env = Self::new(storage, envelope, context, template_addr, target_addr);
         func_env.borrow_mut().set_memory(memory);
