@@ -47,9 +47,10 @@ pub use api::{
     svm_validate_call,
 
     // Transactions Execution
-    svm_call,
     svm_deploy,
     svm_spawn,
+    svm_verify,
+    svm_call,
 
     // Destroy
     svm_runtime_destroy,

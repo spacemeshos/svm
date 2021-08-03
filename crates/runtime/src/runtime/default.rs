@@ -199,7 +199,7 @@ where
         let mut out = if call.func_input.len() > 0 {
             self.call_with_alloc(&instance, func_env, call.func_input, &func, &[])?
         } else {
-            self.call(&instance, func_env, &func, &[])?
+            self.wasmer_call(&instance, func_env, &func, &[])?
         };
 
         let logs = out.take_logs();
@@ -241,7 +241,7 @@ where
         let wasm_ptr = out.returns();
         self.set_calldata(env, calldata, wasm_ptr);
 
-        self.call(instance, env, func, params)
+        self.wasmer_call(instance, env, func, params)
     }
 
     fn call_alloc(&self, instance: &Instance, env: &FuncEnv, size: usize) -> Result<WasmPtr<u8>> {
@@ -256,7 +256,7 @@ where
         let func = func.unwrap();
         let params: [wasmer::Val; 1] = [(size as i32).into()];
 
-        let out = self.call(instance, env, &func, &params)?;
+        let out = self.wasmer_call(instance, env, &func, &params)?;
         let out = out.map(|rets| {
             let ret = &rets[0];
             let offset = ret.i32().unwrap() as u32;
@@ -267,7 +267,7 @@ where
         Ok(out)
     }
 
-    fn call<Args, Rets>(
+    fn wasmer_call<Args, Rets>(
         &self,
         instance: &Instance,
         env: &FuncEnv,
@@ -474,6 +474,11 @@ where
         template: &Template,
         env: &FuncEnv,
     ) -> std::result::Result<(), Failure> {
+        // TODO: validate there is enough gas for running the `Transaction`.
+        // * verify
+        // * call
+        // * other factors
+
         let spawning = call.within_spawn;
         let ctor = template.is_ctor(call.func_name);
 
