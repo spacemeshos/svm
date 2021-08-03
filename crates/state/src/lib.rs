@@ -5,16 +5,26 @@ use svm_hash::{Blake3Hasher, Hasher};
 
 use sqlx::SqlitePool;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::TryInto};
 
 pub use error::GlobalStateError;
-use trie_node::TrieNode;
 
 pub type Commit = [u8; 32];
 
-const SQL_SCHEMA: &str = include_str!("resources/gs-schema.sql");
+const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
+
+fn empty_commit_signature() -> [u8; 32] {
+    [0; 32]
+}
 
 type Result<T> = std::result::Result<T, GlobalStateError>;
+
+fn hash_key_value_pair(key_hash: &[u8; 32], value: &[u8]) -> [u8; 32] {
+    let mut hasher = Blake3Hasher::default();
+    hasher.update(key_hash);
+    hasher.update(value);
+    hasher.finalize()
+}
 
 /// * https://www.programmersought.com/article/33363860077/
 /// * https://www.youtube.com/watch?v=oEpY4NkkeYQ
@@ -31,48 +41,36 @@ pub struct GlobalState {
     sqlite: SqlitePool,
     commit: Option<Commit>,
     dirty_changes: HashMap<[u8; 32], Vec<u8>>,
+    dirty_changes_signature: Commit,
 }
-
-struct MerkelizationWalk {}
 
 impl GlobalState {
     /// Creates a new [`GlobalState`] persisted by the given SQLite and Redis
     /// instances. Initially, the
-    pub async fn new(_redis_uri: &str, sqlite_uri: &str) -> Self {
-        let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await.unwrap();
-        let gs = Self {
+    pub async fn new(_redis_uri: &str, sqlite_uri: &str) -> Result<Self> {
+        let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await?;
+        let mut gs = Self {
             sqlite,
             dirty_changes: HashMap::new(),
             commit: None,
+            dirty_changes_signature: empty_commit_signature(),
         };
-        gs.initialize().await;
-        gs
+        gs.create_commit(empty_commit_signature()).await?;
+        Ok(gs)
     }
 
-    pub async fn in_memory() -> Self {
-        let sqlite = sqlx::SqlitePool::connect(":memory:").await.unwrap();
-        sqlx::query(SQL_SCHEMA).execute(&sqlite).await.unwrap();
+    pub async fn in_memory() -> Result<Self> {
+        let sqlite = sqlx::SqlitePool::connect(":memory:").await?;
+        sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
 
-        let gs = Self {
+        let mut gs = Self {
             sqlite,
             dirty_changes: HashMap::new(),
             commit: None,
+            dirty_changes_signature: empty_commit_signature(),
         };
-        gs.initialize().await;
-        gs
-    }
-
-    async fn initialize(&self) {
-        sqlx::query!(
-            r#"
-                INSERT INTO "commits" ("id", "hash")
-                VALUES
-                    (1, NULL)
-            "#
-        )
-        .execute(&self.sqlite)
-        .await
-        .unwrap();
+        gs.create_commit(empty_commit_signature()).await?;
+        Ok(gs)
     }
 
     /// Fetches the value associated with `key`, once hashed with Blake3.
@@ -81,46 +79,16 @@ impl GlobalState {
         self.get_by_hash(&hash, commit).await
     }
 
-    async fn commit_id(&self, commit: &Commit) -> i64 {
-        let commit = &commit[..];
-        let record = sqlx::query!(
-            r#"
-                SELECT "id"
-                FROM "commits"
-                WHERE "hash" = ?1
-                "#,
-            commit
-        )
-        .fetch_one(&self.sqlite)
-        .await
-        .unwrap();
-        record.id
-    }
-
-    async fn next_commit_id(&self) -> i64 {
-        let max_id = sqlx::query!(
-            r#"
-                SELECT "id"
-                FROM "commits"
-                ORDER BY "id" DESC
-                LIMIT 1
-            "#
-        )
-        .fetch_one(&self.sqlite)
-        .await
-        .unwrap();
-        max_id.id
-    }
-
     /// Fetches the value associated with a Blake3 `hash`.
     pub async fn get_by_hash(
         &self,
         hash: &[u8; 32],
         commit: Option<&Commit>,
     ) -> Result<Option<Vec<u8>>> {
+        // We are given an explicit [`Commit`], so we must add that condition.
         if let Some(commit) = commit {
             let hash = &hash[..];
-            let commit_hash = &commit[..];
+            let commit = &commit[..];
             let value_opt: Option<Vec<u8>> = sqlx::query!(
                 r#"
                     SELECT "value"
@@ -129,42 +97,36 @@ impl GlobalState {
                         "commit_id" <= (
                             SELECT "id"
                             FROM "commits"
-                            WHERE "hash" = ?1
+                            WHERE "signature" = ?1
                         )
                         AND
                         "key_hash" = ?2
-                    ORDER BY "id" DESC LIMIT 1
                 "#,
-                commit_hash,
+                commit,
                 hash,
             )
             .fetch_optional(&self.sqlite)
-            .await
-            .unwrap()
+            .await?
             .map(|x| x.value);
             Ok(value_opt)
         } else if let Some(value) = self.dirty_changes.get(hash) {
             Ok(Some(value.to_vec()))
         } else {
+            // No explicit [`Commit`]! We simply must fetch the last record,
+            // which is the most recent one.
             let hash = &hash[..];
             let value: Option<Vec<u8>> = sqlx::query!(
                 r#"
                     SELECT "value"
                     FROM "values"
-                    WHERE
-                        "commit_id" = (
-                            SELECT MAX("id")
-                            FROM "commits"
-                        )
-                        AND
-                        "key_hash" = ?1
+                    WHERE "key_hash" = ?1
+                    ORDER BY "id" DESC
                     LIMIT 1
                 "#,
                 hash,
             )
             .fetch_optional(&self.sqlite)
-            .await
-            .unwrap()
+            .await?
             .map(|record| record.value);
             Ok(value)
         }
@@ -184,36 +146,95 @@ impl GlobalState {
     where
         V: Into<Vec<u8>>,
     {
-        self.dirty_changes.entry(hash).or_insert(value.into());
+        use std::collections::hash_map::Entry;
+
+        let value = value.into();
+        match self.dirty_changes.entry(hash) {
+            Entry::Occupied(mut e) => {
+                self.dirty_changes_signature
+                    .iter_mut()
+                    .zip(hash_key_value_pair(&hash, e.get()))
+                    .for_each(|(x1, x2)| *x1 ^= x2);
+                self.dirty_changes_signature
+                    .iter_mut()
+                    .zip(hash_key_value_pair(&hash, &value))
+                    .for_each(|(x1, x2)| *x1 ^= x2);
+                e.insert(value);
+            }
+            Entry::Vacant(e) => {
+                self.dirty_changes_signature
+                    .iter_mut()
+                    .zip(hash_key_value_pair(&hash, &value))
+                    .for_each(|(x1, x2)| *x1 ^= x2);
+                e.insert(value);
+            }
+        }
     }
 
     pub async fn merkelize(&self) -> Option<Commit> {
         None
     }
 
-    pub async fn commit(&mut self) -> Result<[u8; 32]> {
-        self.checkpoint().await?;
-        let commit_id = self.next_commit_id().await;
-        let commit_hash = [0; 32]; // FIXME
+    /// Creates a new [`Commit`] with the given signature.
+    async fn create_commit(&mut self, signature: Commit) -> Result<()> {
+        let signature = &signature[..];
         sqlx::query!(
             r#"
-                INSERT INTO "commits" ("id", "hash")
-                VALUES (?1, NULL)
+                INSERT INTO "commits" ("signature")
+                VALUES (?1)
             "#,
-            commit_id,
+            signature
         )
         .execute(&self.sqlite)
-        .await
-        .unwrap();
-        Ok(commit_hash)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn commit(&mut self) -> Result<Commit> {
+        let commit = self.checkpoint().await?;
+        self.create_commit(commit).await?;
+        Ok(commit)
     }
 
     /// Persists all dirty changes from memory to disk. Even though persisted to
     /// disk, they still don't belong to any commit; look into
     /// [`GlobalState::commit`].
-    pub async fn checkpoint(&mut self) -> Result<()> {
+    pub async fn checkpoint(&mut self) -> Result<Commit> {
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
-        let commit_id = self.next_commit_id().await;
+
+        let previous_commit_signature = sqlx::query!(
+            r#"
+                SELECT "signature"
+                FROM "commits"
+                WHERE "id" = (
+                    SELECT MAX("id")
+                    FROM "commits"
+                )
+            "#
+        )
+        .fetch_one(&self.sqlite)
+        .await?
+        .signature;
+
+        let new_commit_signature: Vec<u8> = previous_commit_signature
+            .iter()
+            .zip(self.dirty_changes_signature)
+            .map(|(byte_1, byte_2)| byte_1 ^ byte_2)
+            .collect();
+
+        sqlx::query!(
+            r#"
+                UPDATE "commits"
+                SET "signature" = ?1
+                WHERE "id" = (
+                    SELECT MAX("id")
+                    FROM "commits"
+                )
+            "#,
+            new_commit_signature
+        )
+        .execute(&self.sqlite)
+        .await?;
 
         for change in dirty_changes {
             let key_hash = &change.0[..];
@@ -222,21 +243,21 @@ impl GlobalState {
             let num_rows_affected = sqlx::query!(
                 r#"
                     INSERT INTO "values" ("commit_id", "key_hash", "value")
-                    VALUES (?1, ?2, ?3)
+                    VALUES ((SELECT MAX("id") FROM "commits"), ?1, ?2)
                 "#,
-                commit_id,
                 key_hash,
                 value
             )
             .execute(&self.sqlite)
-            .await
-            .unwrap()
+            .await?
             .rows_affected();
 
             assert_eq!(num_rows_affected, 1);
         }
 
-        Ok(())
+        self.dirty_changes_signature = empty_commit_signature();
+
+        Ok(new_commit_signature.try_into().unwrap())
     }
 
     /// Returns the current root hash in the form of a [`Commit`].
@@ -263,136 +284,13 @@ impl GlobalState {
     }
 }
 
-/// A collection of fields that we need when splitting a [`TrieNode::Leaf`]
-/// into a [`TrieNode::Branch`] with two [`TrieNode::Leaf`]'s (i.e. adding a
-/// [`TrieNode::Leaf`]).
-///
-/// # Examples
-///
-/// Adding a `00110100` key:
-///
-/// ```text
-/// B: 00110...
-///   0. L: 000
-///   1. L: 111
-/// ```
-///
-/// Result:
-///
-/// ```text
-/// B: 00110...
-///   0. L: 000
-///   1. B: 1...
-///     0. L: 00
-///     1. L: 11
-/// ```
-struct SplitLeafIntoTwo<'a> {
-    old_hash: &'a [u8; 32],
-    old_value: &'a [u8],
-    new_hash: &'a [u8; 32],
-    new_value: &'a [u8],
-    prefix_len_before_old_leaf: usize,
-    common_prefix_len_in_new_branch: usize,
-}
-
-impl<'a> SplitLeafIntoTwo<'a> {
-    fn is_update(&self) -> bool {
-        // If we have a full match, that means that we're updating
-        // a value rather than inserting a new one.
-        self.old_hash == self.new_hash
-    }
-
-    fn branch_prefix(&self) -> &'a [u8] {
-        &self.old_hash[self.prefix_len_before_old_leaf..][..self.common_prefix_len_in_new_branch]
-    }
-
-    fn old_leaf(&self) -> TrieNode<'a> {
-        TrieNode::Leaf {
-            prefix: &[],
-            value: self.old_value,
-        }
-    }
-
-    fn new_leaf(&self) -> TrieNode<'a> {
-        TrieNode::Leaf {
-            prefix: &[],
-            value: self.new_value,
-        }
-    }
-}
-
-/// # Examples
-///
-/// Adding a `00110110` key:
-///
-/// ```text
-/// B: 00110...
-///   0. L: 000
-///   1. B: 10...
-///     0. L: 0
-///     1. L: 1
-/// ```
-///
-/// Result:
-///
-/// ```text
-/// B: 00110...
-///   0. L: 000
-///   1. B: 1...
-///     0. B: 0...
-///       0. L: 0
-///       1. L: 1
-///     1. L: 10
-/// ```
-struct AddLeafAfterBranch<'a> {
-    old_branch: TrieNode<'a>,
-    old_branch_hash: &'a [u8; 32],
-    new_leaf_hash: &'a [u8; 32],
-    new_leaf_value: &'a [u8],
-    prefix: usize,
-}
-
-impl<'a> AddLeafAfterBranch<'a> {
-    fn new_leaf(&self) -> TrieNode {
-        TrieNode::Leaf {
-            prefix: &[],
-            value: self.new_leaf_value,
-        }
-    }
-
-    fn old_branch(&self) -> TrieNode {
-        match self.old_branch {
-            TrieNode::Branch {
-                children_hashes,
-                prefix,
-            } => TrieNode::Branch {
-                children_hashes,
-                prefix,
-            },
-            _ => panic!(),
-        }
-    }
-
-    fn new_branch(&self, old_branch_hash: &'a [u8; 32], new_leaf_hash: &'a [u8; 32]) -> TrieNode {
-        TrieNode::Branch {
-            children_hashes: [old_branch_hash, new_leaf_hash],
-            prefix: &[],
-        }
-    }
-}
-
-#[inline]
-fn dumb_longest_prefix(a: &[u8], b: &[u8]) -> usize {
-    a.iter().zip(b).take_while(|(a, b)| a == b).count()
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[quickcheck_async::tokio]
     async fn retrieval_after_dirty_changes(items: HashMap<String, String>) -> bool {
-        let mut gs = GlobalState::in_memory().await;
+        let mut gs = GlobalState::in_memory().await.unwrap();
 
         for (key, value) in items.iter() {
             gs.upsert(key.as_bytes(), value.as_bytes()).await;
@@ -410,19 +308,16 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn retrieval_after_checkpoint(items: HashMap<String, String>) -> bool {
-        let mut gs = GlobalState::in_memory().await;
+        let mut gs = GlobalState::in_memory().await.unwrap();
 
-        assert_eq!(gs.next_commit_id().await, 1);
         for (key, value) in items.iter().filter(|kv| !kv.0.is_empty()) {
             gs.upsert(key.as_bytes(), value.as_bytes()).await;
         }
 
         gs.checkpoint().await.unwrap();
-        assert_eq!(gs.next_commit_id().await, 1);
 
         for (key, value) in items.iter().filter(|kv| !kv.0.is_empty()) {
             let stored_value = gs.get(key.as_bytes(), None).await.unwrap().unwrap();
-            println!("VALUES {:?} {:?} {:?}", key, value, stored_value);
             if stored_value != value.as_bytes() {
                 return false;
             }
@@ -432,20 +327,40 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
-    async fn root_hash_changes_after_inserts(key: Vec<u8>, value: Vec<u8>) -> bool {
-        true // TODO
+    async fn root_signature_changes_after_inserts() -> bool {
+        let mut gs = GlobalState::in_memory().await.unwrap();
+
+        gs.upsert(b"foo", "bar").await;
+        println!("PROVAAAAAA");
+        println!("PROVAAAAAA");
+        println!("PROVAAAAAA");
+        println!("PROVAAAAAA");
+        println!("PROVAAAAAA");
+        println!("PROVAAAAAA");
+        let commit_1 = gs.commit().await.unwrap();
+        println!("PROVAAAAAA AIUTO {:?}", commit_1);
+
+        gs.upsert(b"foo", "spam").await;
+        let commit_2 = gs.commit().await.unwrap();
+        println!("PROVAAAAAA AIUTO {:?}", commit_2);
+
+        gs.upsert(b"foo", "bar").await;
+        let commit_3 = gs.commit().await.unwrap();
+        println!("PROVAAAAAA AIUTO {:?}", commit_3);
+
+        commit_1 != commit_2 && commit_2 == commit_3
     }
 
     #[quickcheck_async::tokio]
     async fn get_fails_on_empty_global_state(key: Vec<u8>) -> bool {
-        let mut gs = GlobalState::in_memory().await;
+        let gs = GlobalState::in_memory().await.unwrap();
         matches!(gs.get(&key, None).await, Ok(None))
     }
 
     #[quickcheck_async::tokio]
     async fn rewind_succeeds_when_empty(bytes: Vec<u8>) -> bool {
         let context = Blake3Hasher::hash(&bytes);
-        let mut gs = GlobalState::in_memory().await;
+        let mut gs = GlobalState::in_memory().await.unwrap();
 
         gs.rewind(&context).await.is_ok()
     }
@@ -453,9 +368,9 @@ mod test {
     #[quickcheck_async::tokio]
     async fn rewind_fails_after_insert(bytes: Vec<u8>, key: Vec<u8>, value: Vec<u8>) -> bool {
         let context = Blake3Hasher::hash(&bytes);
-        let mut gs = GlobalState::in_memory().await;
-        gs.upsert(&key, value).await;
+        let mut gs = GlobalState::in_memory().await.unwrap();
 
+        gs.upsert(&key, value).await;
         gs.rewind(&context).await.is_err()
     }
 }
