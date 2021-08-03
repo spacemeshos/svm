@@ -117,7 +117,6 @@ where
         &mut self,
         spawn: &ExtSpawn,
         target: Address,
-        gas_used: Gas,
         gas_left: Gas,
         envelope: &Envelope,
         context: &Context,
@@ -131,8 +130,7 @@ where
             template,
             target: target.clone(),
             within_spawn: true,
-            gas_used,
-            gas_left,
+            gas_limit: gas_left,
             envelope,
             context,
         };
@@ -191,7 +189,7 @@ where
     {
         self.validate_call(call, template, func_env)?;
 
-        let module = self.compile_template(store, func_env, &template, call.gas_left)?;
+        let module = self.compile_template(store, func_env, &template, call.gas_limit)?;
         let instance = self.instantiate(func_env, &module, import_object)?;
 
         self.set_memory(func_env, &instance);
@@ -514,8 +512,7 @@ where
                 target: target.clone(),
                 template,
                 state: context.state(),
-                gas_used: Gas::with(0),
-                gas_left: envelope.gas_limit(),
+                gas_limit: envelope.gas_limit(),
                 within_spawn: false,
                 envelope,
                 context,
@@ -736,21 +733,22 @@ where
                 let target = self.env.compute_account_addr(&spawn);
 
                 self.env.store_account(&account, &target);
-                let gas_used = payload_price.into();
-
-                self.call_ctor(&spawn, target, gas_used, gas_left, envelope, context)
+                self.call_ctor(&spawn, target, gas_left, envelope, context)
             }
             Err(..) => SpawnReceipt::new_oog(Vec::new()),
         }
     }
 
-    fn verify(
-        &self,
-        _envelope: &Envelope,
-        _message: &[u8],
-        _context: &Context,
-    ) -> std::result::Result<bool, RuntimeError> {
-        todo!("https://github.com/spacemeshos/svm/issues/248")
+    fn verify(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
+        let tx = self
+            .env
+            .parse_call(message)
+            .expect("Should have called `validate_call` first");
+
+        let call = self.build_call(&tx, envelope, context, "svm_verify", tx.verifydata());
+
+        // TODO: override the `call.gas_limit` with `VERIFY_MAX_GAS`
+        self.exec_call::<(), ()>(&call)
     }
 
     fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
