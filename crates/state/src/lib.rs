@@ -1,21 +1,17 @@
 mod error;
 mod trie_node;
 
-use svm_hash::{Blake3Hasher, Hasher};
-
 use sqlx::SqlitePool;
 
 use std::{collections::HashMap, convert::TryInto};
+
+use svm_hash::{Blake3Hasher, Hasher};
 
 pub use error::GlobalStateError;
 
 pub type Commit = [u8; 32];
 
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
-
-fn empty_commit_signature() -> [u8; 32] {
-    [0; 32]
-}
 
 type Result<T> = std::result::Result<T, GlobalStateError>;
 
@@ -25,6 +21,14 @@ fn hash_key_value_pair(key_hash: &[u8; 32], value: &[u8]) -> [u8; 32] {
     hasher.update(value);
     hasher.finalize()
 }
+
+fn xor_signature(sig_1: &mut [u8; 32], sig_2: &[u8; 32]) {
+    for (a, b) in sig_1.iter_mut().zip(sig_2) {
+        *a ^= *b;
+    }
+}
+
+const ZERO_SIGNATURE: [u8; 32] = [0; 32];
 
 /// * https://www.programmersought.com/article/33363860077/
 /// * https://www.youtube.com/watch?v=oEpY4NkkeYQ
@@ -39,9 +43,8 @@ fn hash_key_value_pair(key_hash: &[u8; 32], value: &[u8]) -> [u8; 32] {
 ///   * 'a': address
 pub struct GlobalState {
     sqlite: SqlitePool,
-    commit: Option<Commit>,
+    next_commit_id: i64,
     dirty_changes: HashMap<[u8; 32], Vec<u8>>,
-    dirty_changes_signature: Commit,
 }
 
 impl GlobalState {
@@ -52,10 +55,9 @@ impl GlobalState {
         let mut gs = Self {
             sqlite,
             dirty_changes: HashMap::new(),
-            commit: None,
-            dirty_changes_signature: empty_commit_signature(),
+            next_commit_id: 1,
         };
-        gs.create_commit(empty_commit_signature()).await?;
+        gs.create_commit(ZERO_SIGNATURE).await?;
         Ok(gs)
     }
 
@@ -66,10 +68,9 @@ impl GlobalState {
         let mut gs = Self {
             sqlite,
             dirty_changes: HashMap::new(),
-            commit: None,
-            dirty_changes_signature: empty_commit_signature(),
+            next_commit_id: 1,
         };
-        gs.create_commit(empty_commit_signature()).await?;
+        gs.create_commit(ZERO_SIGNATURE).await?;
         Ok(gs)
     }
 
@@ -146,29 +147,8 @@ impl GlobalState {
     where
         V: Into<Vec<u8>>,
     {
-        use std::collections::hash_map::Entry;
-
         let value = value.into();
-        match self.dirty_changes.entry(hash) {
-            Entry::Occupied(mut e) => {
-                self.dirty_changes_signature
-                    .iter_mut()
-                    .zip(hash_key_value_pair(&hash, e.get()))
-                    .for_each(|(x1, x2)| *x1 ^= x2);
-                self.dirty_changes_signature
-                    .iter_mut()
-                    .zip(hash_key_value_pair(&hash, &value))
-                    .for_each(|(x1, x2)| *x1 ^= x2);
-                e.insert(value);
-            }
-            Entry::Vacant(e) => {
-                self.dirty_changes_signature
-                    .iter_mut()
-                    .zip(hash_key_value_pair(&hash, &value))
-                    .for_each(|(x1, x2)| *x1 ^= x2);
-                e.insert(value);
-            }
-        }
+        self.dirty_changes.entry(hash).or_insert(value);
     }
 
     pub async fn merkelize(&self) -> Option<Commit> {
@@ -202,76 +182,76 @@ impl GlobalState {
     pub async fn checkpoint(&mut self) -> Result<Commit> {
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
 
-        let previous_commit_signature = sqlx::query!(
+        let mut signature = [0; 32];
+
+        for change in dirty_changes {
+            let old_value: Option<Vec<u8>> = self.get_by_hash(&change.0, None).await?;
+            if let Some(old_value) = old_value {
+                xor_signature(&mut signature, &hash_key_value_pair(&change.0, &old_value));
+            }
+            xor_signature(&mut signature, &hash_key_value_pair(&change.0, &change.1));
+
+            let key_hash = &change.0[..];
+            let value = &change.1[..];
+            sqlx::query!(
+                r#"
+                    INSERT INTO "values" ("commit_id", "key_hash", "value")
+                    VALUES (?1, ?2, ?3)
+                "#,
+                self.next_commit_id,
+                key_hash,
+                value
+            )
+            .execute(&self.sqlite)
+            .await?;
+        }
+
+        self.update_commit_signature(&signature).await
+    }
+
+    async fn update_commit_signature(&mut self, partial_signature: &[u8; 32]) -> Result<Commit> {
+        let old_signature_vec: Vec<u8> = sqlx::query!(
             r#"
                 SELECT "signature"
                 FROM "commits"
-                WHERE "id" = (
-                    SELECT MAX("id")
-                    FROM "commits"
-                )
-            "#
+                WHERE "id" = ?1
+            "#,
+            self.next_commit_id
         )
         .fetch_one(&self.sqlite)
         .await?
         .signature;
 
-        let new_commit_signature: Vec<u8> = previous_commit_signature
-            .iter()
-            .zip(self.dirty_changes_signature)
-            .map(|(byte_1, byte_2)| byte_1 ^ byte_2)
-            .collect();
+        let mut signature: [u8; 32] = old_signature_vec.try_into().unwrap();
+        xor_signature(&mut signature, partial_signature);
+        let signature_bytes = &signature[..];
 
         sqlx::query!(
             r#"
                 UPDATE "commits"
                 SET "signature" = ?1
-                WHERE "id" = (
-                    SELECT MAX("id")
-                    FROM "commits"
-                )
+                WHERE "id" = ?2
             "#,
-            new_commit_signature
+            signature_bytes,
+            self.next_commit_id
         )
-        .execute(&self.sqlite)
+        .fetch_one(&self.sqlite)
         .await?;
 
-        for change in dirty_changes {
-            let key_hash = &change.0[..];
-            let value = &change.1[..];
-
-            let num_rows_affected = sqlx::query!(
-                r#"
-                    INSERT INTO "values" ("commit_id", "key_hash", "value")
-                    VALUES ((SELECT MAX("id") FROM "commits"), ?1, ?2)
-                "#,
-                key_hash,
-                value
-            )
-            .execute(&self.sqlite)
-            .await?
-            .rows_affected();
-
-            assert_eq!(num_rows_affected, 1);
-        }
-
-        self.dirty_changes_signature = empty_commit_signature();
-
-        Ok(new_commit_signature.try_into().unwrap())
+        Ok(signature)
     }
 
     /// Returns the current root hash in the form of a [`Commit`].
-    pub fn current(&self) -> Option<Commit> {
-        self.commit
+    pub fn current(&self) -> Commit {
+        unimplemented!()
     }
 
     /// Returns the current root hash in the form of a [`Commit`].
     ///
     /// It returns an error in case there's any dirty changes: you must
     /// [`rollback`](GlobalState::rollback) first.
-    pub async fn rewind(&mut self, commit: &Commit) -> Result<()> {
+    pub async fn rewind(&mut self, _commit: &Commit) -> Result<()> {
         if self.dirty_changes.is_empty() {
-            self.commit = Some(*commit);
             Ok(())
         } else {
             Err(GlobalStateError::DirtyChanges)
