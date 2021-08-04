@@ -28,6 +28,8 @@ fn xor_signature(sig_1: &mut [u8; 32], sig_2: &[u8; 32]) {
 
 const ZERO_SIGNATURE: [u8; 32] = [0; 32];
 
+/// Some external resources:
+///
 /// * https://www.programmersought.com/article/33363860077/
 /// * https://www.youtube.com/watch?v=oEpY4NkkeYQ
 ///
@@ -46,19 +48,49 @@ pub struct GlobalState {
 }
 
 impl GlobalState {
-    /// Creates a new [`GlobalState`] persisted by the given SQLite and Redis
-    /// instances. Initially, the
-    pub async fn new(_redis_uri: &str, sqlite_uri: &str) -> Result<Self> {
+    /// Creates a new [`GlobalState`] persisted by the given SQLite instance.
+    pub async fn new(sqlite_uri: &str) -> Result<Self> {
         let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await?;
         let mut gs = Self {
             sqlite,
             dirty_changes: HashMap::new(),
             next_commit_id: 1,
         };
-        gs.create_commit(ZERO_SIGNATURE).await?;
+        gs.initialize().await?;
         Ok(gs)
     }
 
+    pub async fn initialize(&mut self) -> Result<()> {
+        // When initializing the database, we must look for the most recent
+        // commit. If not present, that means the database is pristine and we
+        // must create a new commit with an empty signature.
+        let max_commit_id: Option<i64> = sqlx::query!(
+            r#"
+                SELECT "id"
+                FROM "commits"
+                ORDER BY "id" DESC
+                LIMIT 1
+            "#
+        )
+        .fetch_optional(&self.sqlite)
+        .await?
+        .map(|record| record.id);
+
+        match max_commit_id {
+            Some(id) => {
+                self.next_commit_id = id;
+            }
+            None => {
+                self.next_commit_id = 1;
+                self.create_commit(ZERO_SIGNATURE).await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Creates a new, empty [`GlobalState`] with no persisted state at all. All
+    /// state will be kept in an in-memory SQLite database.
     pub async fn in_memory() -> Result<Self> {
         let sqlite = sqlx::SqlitePool::connect(":memory:").await?;
         sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
@@ -68,17 +100,20 @@ impl GlobalState {
             dirty_changes: HashMap::new(),
             next_commit_id: 1,
         };
-        gs.create_commit(ZERO_SIGNATURE).await?;
+        gs.initialize().await?;
         Ok(gs)
     }
 
-    /// Fetches the value associated with `key`, once hashed with Blake3.
+    /// Fetches the value associated with the Blake3 hash of `key`. See
+    /// [`GlobalState::get_by_hash`] for more information.
     pub async fn get(&self, key: &[u8], commit: Option<&Commit>) -> Result<Option<Vec<u8>>> {
         let hash = Blake3Hasher::hash(key);
         self.get_by_hash(&hash, commit).await
     }
 
-    /// Fetches the value associated with a Blake3 `hash`.
+    /// Fetches the value associated with a Blake3 `hash`. If `commit`
+    /// is `None`, the most recent value will be returned; otherwise, only the
+    /// values present at the time of `commit` would be considered.
     pub async fn get_by_hash(
         &self,
         hash: &[u8; 32],
@@ -131,7 +166,8 @@ impl GlobalState {
         }
     }
 
-    /// Sets the `value` associated with `key`, once hashed with Blake3.
+    /// Sets the `value` associated with the Blake3 hash of `key`. See
+    /// [`GlobalState::upsert_by_hash`] for more information.
     pub async fn upsert<V>(&mut self, key: &[u8], value: V)
     where
         V: Into<Vec<u8>>,
@@ -140,7 +176,7 @@ impl GlobalState {
         self.upsert_by_hash(hash, value).await;
     }
 
-    /// Sets the `value` associated with a Blake3 `hash`.
+    /// Sets the `value` associated with a Blake3 `hash`. This change will be "dirty" until
     pub async fn upsert_by_hash<V>(&mut self, hash: [u8; 32], value: V)
     where
         V: Into<Vec<u8>>,
@@ -209,20 +245,23 @@ impl GlobalState {
         self.update_commit_signature(&signature).await
     }
 
-    async fn update_commit_signature(&mut self, partial_signature: &[u8; 32]) -> Result<Commit> {
-        let old_signature_vec: Vec<u8> = sqlx::query!(
+    async fn commit_signature(&self, commit_id: i64) -> Result<Commit> {
+        let bytes = sqlx::query!(
             r#"
                 SELECT "signature"
                 FROM "commits"
                 WHERE "id" = ?1
             "#,
-            self.next_commit_id
+            commit_id
         )
         .fetch_one(&self.sqlite)
         .await?
         .signature;
+        Ok(bytes.try_into().unwrap())
+    }
 
-        let mut signature: [u8; 32] = old_signature_vec.try_into().unwrap();
+    async fn update_commit_signature(&mut self, partial_signature: &[u8; 32]) -> Result<Commit> {
+        let mut signature: [u8; 32] = self.commit_signature(self.next_commit_id).await?;
         xor_signature(&mut signature, partial_signature);
         let signature_bytes = &signature[..];
 
@@ -241,9 +280,10 @@ impl GlobalState {
         Ok(signature)
     }
 
-    /// Returns the current root hash in the form of a [`Commit`].
-    pub fn current(&self) -> Commit {
-        unimplemented!()
+    /// Returns the [`Commit`] signature of the last ever checkpoint; i.e.
+    /// persisted changes without dirty changes.
+    pub async fn current(&self) -> Result<Commit> {
+        self.commit_signature(self.next_commit_id).await
     }
 
     /// Returns the current root hash in the form of a [`Commit`].
