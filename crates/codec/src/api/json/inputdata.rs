@@ -326,8 +326,8 @@ mod tests {
         ($abi:expr, $data:expr) => {{
             let json = json!({"abi": $abi, "data": $data });
 
-            let encoded = encode_calldata(&json.to_string()).unwrap();
-            let decoded = decode_calldata(&encoded.to_string()).unwrap();
+            let encoded = encode_inputdata(&json.to_string()).unwrap();
+            let decoded = decode_inputdata(&encoded.to_string()).unwrap();
 
             assert_eq!(decoded, json);
         }}

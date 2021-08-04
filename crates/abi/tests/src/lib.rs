@@ -8,7 +8,7 @@
 
 #[cfg(test)]
 mod tests {
-    use svm_abi_decoder::InputData;
+    use svm_abi_decoder::CallData;
     use svm_abi_encoder::Encoder;
 
     use svm_sdk_std::{Option, Vec};
@@ -294,7 +294,7 @@ mod tests {
         let mut buf = Vec::with_capacity(1000);
         a.encode(&mut buf);
 
-        let mut calldata = InputData::new(as_static!(buf));
+        let mut calldata = CallData::new(as_static!(buf));
         let a_ = calldata.next().unwrap().into();
 
         assert_eq!(a, a_);
@@ -307,7 +307,7 @@ mod tests {
         let mut buf = Vec::with_capacity(1000);
         a.encode(&mut buf);
 
-        let mut calldata = InputData::new(as_static!(buf));
+        let mut calldata = CallData::new(as_static!(buf));
         let a_ = calldata.next_1();
 
         assert_eq!(a, a_);
@@ -323,7 +323,7 @@ mod tests {
         a.encode(&mut buf);
         b.encode(&mut buf);
 
-        let mut calldata = InputData::new(as_static!(buf));
+        let mut calldata = CallData::new(as_static!(buf));
         let (a_, b_) = calldata.next_2();
 
         assert_eq!(a, a_);
@@ -342,7 +342,7 @@ mod tests {
         b.encode(&mut buf);
         c.encode(&mut buf);
 
-        let mut calldata = InputData::new(as_static!(buf));
+        let mut calldata = CallData::new(as_static!(buf));
         let (a_, b_, c_) = calldata.next_3();
 
         assert_eq!(a, a_);
@@ -364,7 +364,7 @@ mod tests {
         c.encode(&mut buf);
         d.encode(&mut buf);
 
-        let mut calldata = InputData::new(as_static!(buf));
+        let mut calldata = CallData::new(as_static!(buf));
         let (a_, b_, c_, d_): (u32, i16, bool, [u8; 2]) = calldata.next_4();
 
         assert_eq!(a, a_);
@@ -389,7 +389,7 @@ mod tests {
         d.encode(&mut buf);
         e.encode(&mut buf);
 
-        let mut calldata = InputData::new(as_static!(buf));
+        let mut calldata = CallData::new(as_static!(buf));
         let (a_, b_, c_, d_, e_): (u32, i16, bool, [u8; 2], [u16; 3]) = calldata.next_5();
 
         assert_eq!(a, a_);
@@ -417,7 +417,7 @@ mod tests {
         e.encode(&mut buf);
         f.encode(&mut buf);
 
-        let mut calldata = InputData::new(as_static!(buf));
+        let mut calldata = CallData::new(as_static!(buf));
         let (a_, b_, c_, d_, e_, f_): (u32, i16, bool, [u8; 2], [u16; 3], Amount) =
             calldata.next_6();
 
