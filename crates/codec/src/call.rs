@@ -20,7 +20,7 @@ use svm_types::{Address, Transaction};
 
 use std::io::Cursor;
 
-use crate::{calldata, version};
+use crate::{inputdata, version};
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a binary [`Transaction`]
@@ -40,8 +40,8 @@ pub fn decode_call(cursor: &mut Cursor<&[u8]>) -> Result<Transaction, ParseError
     let version = decode_version(cursor)?;
     let target = decode_target(cursor)?;
     let func_name = decode_func(cursor)?;
-    let verifydata = calldata::decode_calldata(cursor)?;
-    let calldata = calldata::decode_calldata(cursor)?;
+    let verifydata = inputdata::decode_inputdata(cursor)?;
+    let calldata = inputdata::decode_inputdata(cursor)?;
 
     let tx = Transaction {
         version,
@@ -73,12 +73,12 @@ fn encode_func(tx: &Transaction, w: &mut Vec<u8>) {
 
 fn encode_verifydata(tx: &Transaction, w: &mut Vec<u8>) {
     let verifydata = tx.verifydata();
-    calldata::encode_calldata(verifydata, w)
+    inputdata::encode_inputdata(verifydata, w)
 }
 
 fn encode_calldata(tx: &Transaction, w: &mut Vec<u8>) {
     let calldata = tx.calldata();
-    calldata::encode_calldata(calldata, w)
+    inputdata::encode_inputdata(calldata, w)
 }
 
 /// Decoders

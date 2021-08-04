@@ -1,7 +1,7 @@
 //! JSON API
 
 mod call;
-mod calldata;
+mod inputdata;
 mod deploy;
 mod error;
 mod receipt;
@@ -10,7 +10,7 @@ mod spawn;
 pub(crate) mod serde_types;
 
 pub use call::{decode_call, encode_call, encode_call_raw};
-pub use calldata::{decode_calldata, encode_calldata};
+pub use inputdata::{decode_inputdata, encode_inputdata};
 pub use deploy::deploy_template;
 pub use error::JsonError;
 pub use receipt::decode_receipt;

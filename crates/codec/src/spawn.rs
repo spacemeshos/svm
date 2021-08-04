@@ -20,7 +20,7 @@ use std::io::Cursor;
 
 use svm_types::{Account, SpawnAccount, TemplateAddr};
 
-use crate::{calldata, version};
+use crate::{inputdata, version};
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a binary [`SpawnAccount`] transaction.
@@ -82,7 +82,7 @@ fn encode_ctor(spawn: &SpawnAccount, w: &mut Vec<u8>) {
 
 fn encode_ctor_calldata(spawn: &SpawnAccount, w: &mut Vec<u8>) {
     let calldata = &*spawn.calldata;
-    calldata::encode_calldata(calldata, w);
+    inputdata::encode_inputdata(calldata, w);
 }
 
 /// Decoders
@@ -115,7 +115,7 @@ fn decode_ctor(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
 }
 
 fn decode_ctor_calldata(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
-    calldata::decode_calldata(cursor)
+    inputdata::decode_inputdata(cursor)
 }
 
 #[cfg(test)]

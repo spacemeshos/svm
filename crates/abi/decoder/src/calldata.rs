@@ -8,7 +8,6 @@ use crate::{Cursor, Decoder};
 /// Its main usage is by the `svm-sdk` crate for decoding the binary `calldata` into a Rust native values.
 pub struct CallData {
     cursor: Cursor,
-
     decoder: Decoder,
 }
 
@@ -17,7 +16,6 @@ impl CallData {
     pub fn new(bytes: &[u8]) -> Self {
         Self {
             cursor: Cursor::new(bytes),
-
             decoder: Decoder::new(),
         }
     }

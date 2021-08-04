@@ -1,22 +1,21 @@
 use super::wasm_buf_apply;
 use crate::{api, api::json::JsonError};
 
-/// Given an offset to a Wasm buffer holding the data to be encoded
-/// to a binary `Calldata`, encodes it and returns an offset to the encoded
-/// binary `Calldata` (wrapped within a JSON).
-pub fn encode_calldata(offset: usize) -> Result<usize, JsonError> {
+/// Given an offset to a Wasm buffer holding the data to be encoded,
+/// encodes it and returns an offset to the encoded binary `Input Data` (wrapped within a JSON).
+pub fn encode_inputdata(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &str| {
-        let json = api::json::encode_calldata(json)?;
+        let json = api::json::encode_inputdata(json)?;
 
         Ok(api::json::to_bytes(&json))
     })
 }
 
-/// Given an offset to a Wasm buffer holding a binary `Calldata`,
-/// decodes it and returns an offset to be decoded `Calldata` (wrapped within a JSON)
-pub fn decode_calldata(offset: usize) -> Result<usize, JsonError> {
+/// Given an offset to a Wasm buffer holding a binary `Input Data`,
+/// decodes it and returns an offset to be decoded `Input Data` (wrapped within a JSON)
+pub fn decode_inputdata(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &str| {
-        let json = api::json::decode_calldata(json)?;
+        let json = api::json::decode_inputdata(json)?;
 
         Ok(api::json::to_bytes(&json))
     })
@@ -43,7 +42,7 @@ mod test {
     }
 
     #[test]
-    fn wasm_encode_calldata_valid() {
+    fn wasm_encode_inputdata_valid() {
         let json = r#"{
           "abi": ["i32", "address"],
           "data": [10, "102030405060708090A011121314151617181920"]
@@ -51,13 +50,13 @@ mod test {
 
         // encode
         let json_buf = to_wasm_buffer(json.as_bytes());
-        let calldata = encode_calldata(json_buf).unwrap();
-        let data = wasm_buffer_data(calldata);
+        let inputdata = encode_inputdata(json_buf).unwrap();
+        let data = wasm_buffer_data(inputdata);
         assert_eq!(data[0], BUF_OK_MARKER);
 
         // decode
         let data_buf = to_wasm_buffer(&data[1..]);
-        let res_buf = decode_calldata(data_buf).unwrap();
+        let res_buf = decode_inputdata(data_buf).unwrap();
 
         assert_eq!(
             wasm_buf_as_json(res_buf),
@@ -68,17 +67,17 @@ mod test {
         );
 
         free(json_buf);
-        free(calldata);
+        free(inputdata);
         free(data_buf);
         free(res_buf);
     }
 
     #[test]
-    fn wasm_encode_calldata_invalid_json() {
+    fn wasm_encode_inputdata_invalid_json() {
         let json = "{";
 
         let json_buf = to_wasm_buffer(json.as_bytes());
-        let error_buf = encode_calldata(json_buf).unwrap();
+        let error_buf = encode_inputdata(json_buf).unwrap();
 
         let error = unsafe { error_as_string(error_buf) };
 
@@ -89,11 +88,11 @@ mod test {
     }
 
     #[test]
-    fn wasm_decode_calldata_invalid_json() {
+    fn wasm_decode_inputdata_invalid_json() {
         let json = "{";
 
         let json_buf = to_wasm_buffer(json.as_bytes());
-        let error_buf = decode_calldata(json_buf).unwrap();
+        let error_buf = decode_inputdata(json_buf).unwrap();
 
         let error = unsafe { error_as_string(error_buf) };
 

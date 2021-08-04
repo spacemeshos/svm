@@ -6,7 +6,7 @@ use std::io::Cursor;
 use svm_types::{Account, SpawnAccount};
 
 use super::call::EncodedOrDecodedCalldata;
-use super::calldata::DecodedCallData;
+use super::inputdata::DecodedInputData;
 use super::serde_types::{EncodedData, TemplateAddrWrapper};
 use super::{JsonError, JsonSerdeUtils};
 use crate::spawn;
@@ -56,7 +56,7 @@ impl JsonSerdeUtils for DecodedSpawn {}
 impl From<SpawnAccount> for DecodedSpawn {
     fn from(spawn: SpawnAccount) -> Self {
         let template_addr = TemplateAddrWrapper(spawn.template_addr().clone());
-        let decoded_calldata = super::calldata::decode_raw_input(&spawn.calldata).unwrap();
+        let decoded_calldata = super::inputdata::decode_raw_input(&spawn.calldata).unwrap();
 
         Self {
             version: spawn.version,
@@ -64,7 +64,7 @@ impl From<SpawnAccount> for DecodedSpawn {
             template_addr,
             ctor_name: spawn.ctor_name,
             calldata: EncodedOrDecodedCalldata::Decoded(
-                DecodedCallData::new(&decoded_calldata.to_string())
+                DecodedInputData::new(&decoded_calldata.to_string())
                     .expect("Invalid JSON immediately after serialization"),
             ),
         }
@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn json_spawn_valid() {
-        let calldata = json::encode_calldata(
+        let calldata = json::encode_inputdata(
             &json!({
                 "abi": ["i32", "i64"],
                 "data": [10, 20]

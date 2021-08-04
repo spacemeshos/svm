@@ -13,7 +13,7 @@ use super::serde_types::{AddressWrapper, EncodedData, HexBlob};
 use super::JsonSerdeUtils;
 use crate::api::json::JsonError;
 
-/// Given a `Calldata` JSON, encodes it into a binary `Calldata`
+/// Given an `Input Data` JSON, encodes it into a binary `Input Data`
 /// and returns the result wrapped with a JSON.
 ///
 /// ```json
@@ -21,8 +21,8 @@ use crate::api::json::JsonError;
 ///   "data": "FFC103..."
 /// }
 /// ```
-pub fn encode_calldata(json: &str) -> Result<Json, JsonError> {
-    let decoded = DecodedCallData::new(json)?;
+pub fn encode_inputdata(json: &str) -> Result<Json, JsonError> {
+    let decoded = DecodedInputData::new(json)?;
     let calldata = HexBlob(decoded.encode().unwrap());
     Ok(EncodedData { data: calldata }.to_json())
 }
@@ -33,7 +33,7 @@ pub fn decode_raw_input(data: &[u8]) -> Result<Json, JsonError> {
 }
 
 /// Given a binary `Calldata` (wrapped within a JSON), decodes it into a JSON
-pub fn decode_calldata(json: &str) -> Result<Json, JsonError> {
+pub fn decode_inputdata(json: &str) -> Result<Json, JsonError> {
     let encoded = EncodedData::from_json_str(json)?;
     let calldata = CallData::new(&encoded.data.0);
     Ok(calldata_to_json(calldata))
@@ -41,12 +41,12 @@ pub fn decode_calldata(json: &str) -> Result<Json, JsonError> {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub(crate) struct DecodedCallData {
+pub(crate) struct DecodedInputData {
     abi: Vec<TySig>,
     data: Vec<Json>,
 }
 
-impl DecodedCallData {
+impl DecodedInputData {
     pub fn new(json: &str) -> Result<Self, JsonError> {
         let decoded = Self::from_json_str(json)?;
 
@@ -85,7 +85,7 @@ impl DecodedCallData {
     }
 }
 
-impl JsonSerdeUtils for DecodedCallData {}
+impl JsonSerdeUtils for DecodedInputData {}
 
 fn calldata_to_json(mut calldata: CallData) -> Json {
     let mut abi = vec![];

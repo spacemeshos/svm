@@ -5,7 +5,7 @@ use std::io::Cursor;
 
 use svm_types::Transaction;
 
-use super::calldata::{decode_raw_input, DecodedCallData};
+use super::inputdata::{decode_raw_input, DecodedInputData};
 use super::serde_types::*;
 use crate::api::json::{JsonError, JsonSerdeUtils};
 
@@ -100,11 +100,11 @@ impl From<Transaction> for DecodedCall {
             target: AddressWrapper::from(&tx.target),
             func_name: tx.func_name.clone(),
             verifydata: EncodedOrDecodedCalldata::Decoded(
-                DecodedCallData::new(&decode_raw_input(tx.verifydata()).unwrap().to_string())
+                DecodedInputData::new(&decode_raw_input(tx.verifydata()).unwrap().to_string())
                     .unwrap(),
             ),
             calldata: EncodedOrDecodedCalldata::Decoded(
-                DecodedCallData::new(&decode_raw_input(tx.calldata()).unwrap().to_string())
+                DecodedInputData::new(&decode_raw_input(tx.calldata()).unwrap().to_string())
                     .unwrap(),
             ),
         }
@@ -117,7 +117,7 @@ impl From<Transaction> for DecodedCall {
 #[serde(untagged)]
 pub(crate) enum EncodedOrDecodedCalldata {
     Encoded(HexBlob<Vec<u8>>),
-    Decoded(DecodedCallData),
+    Decoded(DecodedInputData),
 }
 
 impl EncodedOrDecodedCalldata {
@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn json_call_missing_calldata() {
-        let verifydata = json::encode_calldata(
+        let verifydata = json::encode_inputdata(
             &json!({
                 "abi": ["bool", "i8"],
                 "data": [true, 3],
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn json_call_valid() {
-        let calldata = json::encode_calldata(
+        let calldata = json::encode_inputdata(
             &json!({
                 "abi": ["i32", "i64"],
                 "data": [10, 20],
@@ -241,7 +241,7 @@ mod tests {
         )
         .unwrap();
 
-        let verifydata = json::encode_calldata(
+        let verifydata = json::encode_inputdata(
             &json!({
                 "abi": ["bool", "i8"],
                 "data": [true, 3],
