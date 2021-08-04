@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+pub type Result<T> = std::result::Result<T, GlobalStateError>;
+
 #[derive(Debug, thiserror::Error)]
 pub enum GlobalStateError {
     #[error("Invalid item.")]

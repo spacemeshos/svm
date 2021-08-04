@@ -6,13 +6,12 @@ use std::{collections::HashMap, convert::TryInto};
 
 use svm_hash::{Blake3Hasher, Hasher};
 
-pub use error::GlobalStateError;
+pub use error::{GlobalStateError, Result};
 
+/// Every commit
 pub type Commit = [u8; 32];
 
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
-
-type Result<T> = std::result::Result<T, GlobalStateError>;
 
 fn hash_key_value_pair(key_hash: &[u8; 32], value: &[u8]) -> [u8; 32] {
     let mut hasher = Blake3Hasher::default();
