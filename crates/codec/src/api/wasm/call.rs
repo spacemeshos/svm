@@ -38,11 +38,14 @@ mod test {
     fn wasm_call_valid() {
         let target = "1122334455667788990011223344556677889900";
 
-        // let verifydata = api::json::encode_calldata(&json!({
-        //     "abi": ["bool", "i8"],
-        //     "data": [true, 3]
-        // }))
-        // .unwrap();
+        let verifydata = api::json::encode_calldata(
+            &json!({
+                "abi": ["bool", "i8"],
+                "data": [true, 3]
+            })
+            .to_string(),
+        )
+        .unwrap();
 
         let calldata = api::json::encode_calldata(
             &json!({
@@ -57,7 +60,7 @@ mod test {
           "version": 1,
           "target": target,
           "func_name": "do_something",
-        //   "verifydata": verifydata["calldata"],
+          "verifydata": verifydata["data"],
           "calldata": calldata["data"]
         });
 
@@ -88,10 +91,10 @@ mod test {
                 "version": 1,
                 "target": target,
                 "func_name": "do_something",
-                // "verifydata": {
-                //     "abi": ["bool", "i8"],
-                //     "data": [true, 3],
-                // },
+                "verifydata": {
+                    "abi": ["bool", "i8"],
+                    "data": [true, 3],
+                },
                 "calldata": {
                     "abi": ["i32", "i64"],
                     "data": [10, 20],

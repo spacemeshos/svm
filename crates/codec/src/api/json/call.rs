@@ -16,10 +16,8 @@ use crate::api::json::{JsonError, JsonSerdeUtils};
 ///   "version": 0,           // number
 ///   "target": "A2FB...",    // string
 ///   "func_name": "do_work", // string
-///   "verifydata": "",       // string
-///   "calldata": {
-///     ...
-///   }
+///   "verifydata": {"abi": [], "data": []},
+///   "calldata": {"abi": [], "data": []},
 /// }
 ///
 /// The `calldata` field can be both encoded and user-friendly form.
@@ -219,7 +217,7 @@ mod tests {
             "version": 0,
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
-            "verifydata": verifydata["calldata"]
+            "verifydata": verifydata["data"]
         })
         .to_string();
 
@@ -243,12 +241,21 @@ mod tests {
         )
         .unwrap();
 
+        let verifydata = json::encode_calldata(
+            &json!({
+                "abi": ["bool", "i8"],
+                "data": [true, 3],
+            })
+            .to_string(),
+        )
+        .unwrap();
+
         let json = json!({
             "version": 0,
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
-            "verifydata": verifydata["verifydata"],
-            "calldata": calldata["calldata"],
+            "verifydata": verifydata["data"],
+            "calldata": calldata["data"],
         })
         .to_string();
 

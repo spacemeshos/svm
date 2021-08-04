@@ -115,14 +115,14 @@ fn vmcalls_empty_wasm() {
 #[test]
 fn vmcalls_get32_set32() {
     let template_addr = TemplateAddr::repeat(0xAB);
-    let account_addr = Address::repeat(0xCD);
+    let target_addr = Address::repeat(0xCD);
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
-    let storage = testing::blank_storage(&account_addr, &layout);
+    let storage = testing::blank_storage(&target_addr, &layout);
     let envelope = Envelope::default();
     let context = Context::default();
-    let func_env = FuncEnv::new(storage, &envelope, &context, &template_addr, &account_addr);
+    let func_env = FuncEnv::new(storage, &envelope, &context, template_addr, target_addr);
 
     let import_object = imports! {
         "svm" => {
@@ -150,14 +150,14 @@ fn vmcalls_get32_set32() {
 #[test]
 fn vmcalls_get64_set64() {
     let template_addr = TemplateAddr::repeat(0xAB);
-    let account_addr = Address::repeat(0xCD);
+    let target_addr = Address::repeat(0xCD);
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
-    let storage = testing::blank_storage(&account_addr, &layout);
+    let storage = testing::blank_storage(&target_addr, &layout);
     let envelope = Envelope::default();
     let context = Context::default();
-    let func_env = FuncEnv::new(storage, &envelope, &context, &template_addr, &account_addr);
+    let func_env = FuncEnv::new(storage, &envelope, &context, template_addr, target_addr);
 
     let import_object = imports! {
         "svm" => {
@@ -185,12 +185,12 @@ fn vmcalls_get64_set64() {
 #[test]
 fn vmcalls_load160() {
     let template_addr = TemplateAddr::repeat(0xAB);
-    let account_addr = Address::repeat(0xCD);
+    let target_addr = Address::repeat(0xCD);
     let layout: FixedLayout = vec![20].into();
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = testing::blank_storage(&account_addr, &layout);
+    let storage = testing::blank_storage(&target_addr, &layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -198,8 +198,8 @@ fn vmcalls_load160() {
         storage,
         &envelope,
         &context,
-        &template_addr,
-        &account_addr,
+        template_addr,
+        target_addr.clone(),
     );
 
     let import_object = imports! {
@@ -218,7 +218,7 @@ fn vmcalls_load160() {
 
     {
         let storage = &mut func_env.borrow_mut().storage;
-        storage.write_var(Id(0), account_addr.as_slice().to_vec());
+        storage.write_var(Id(0), target_addr.as_slice().to_vec());
     }
 
     let func: NativeFunc<(u32, u32)> = instance.exports.get_native_function("load").unwrap();
@@ -230,18 +230,18 @@ fn vmcalls_load160() {
     let view = &memory.view::<u8>()[ptr as usize..(ptr as usize + 20)];
     let bytes: Vec<u8> = view.iter().map(|cell| cell.get()).collect();
 
-    assert_eq!(account_addr, Address::from(&bytes[..]));
+    assert_eq!(target_addr, Address::from(&bytes[..]));
 }
 
 #[test]
 fn vmcalls_store160() {
     let template_addr = TemplateAddr::repeat(0xAB);
-    let account_addr = Address::repeat(0xCD);
+    let target_addr = Address::repeat(0xCD);
     let layout: FixedLayout = vec![20].into();
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = testing::blank_storage(&account_addr, &layout);
+    let storage = testing::blank_storage(&target_addr, &layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -249,8 +249,8 @@ fn vmcalls_store160() {
         storage,
         &envelope,
         &context,
-        &template_addr,
-        &account_addr,
+        template_addr,
+        target_addr.clone(),
     );
 
     let import_object = imports! {
@@ -267,7 +267,7 @@ fn vmcalls_store160() {
         include_str!("wasm/load160_store160.wast").into(),
     );
 
-    for (cell, byte) in memory.view::<u8>().iter().zip(account_addr.as_slice()) {
+    for (cell, byte) in memory.view::<u8>().iter().zip(target_addr.as_slice()) {
         cell.set(*byte);
     }
 
@@ -277,18 +277,18 @@ fn vmcalls_store160() {
 
     func.call(var_id, ptr).expect("function has failed");
 
-    assert_storage!(func_env, 0 => account_addr.as_slice());
+    assert_storage!(func_env, 0 => target_addr.as_slice());
 }
 
 #[test]
 fn vmcalls_log() {
     let template_addr = TemplateAddr::repeat(0xAB);
-    let account_addr = Address::repeat(0xCD);
+    let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::default();
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = testing::blank_storage(&account_addr, &layout);
+    let storage = testing::blank_storage(&target_addr, &layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -296,8 +296,8 @@ fn vmcalls_log() {
         storage,
         &envelope,
         &context,
-        &template_addr,
-        &account_addr,
+        template_addr,
+        target_addr,
     );
 
     let import_object = imports! {
