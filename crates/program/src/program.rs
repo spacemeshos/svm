@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 
-use parity_wasm::elements::{self as pwasm, ValueType};
+use parity_wasm::elements::{self as pwasm, FunctionSection, ValueType};
 
 use crate::{
     validate_no_floats, Exports, FuncIndex, Function, Imports, Instruction, ProgramError,
@@ -174,27 +174,16 @@ fn count_functions_in_program(program: &Program) -> u64 {
 ///     - The input is `()` since it is passed using the `Verify Data` mechanism.
 ///     - The output is the `offset` pointing to the `returndata` first cell.
 ///
-fn module_validate_exports(wasm_module: &pwasm::Module) -> Result<(), ProgramError> {
+fn module_validate_exports(module: &pwasm::Module) -> Result<(), ProgramError> {
     use pwasm::{ExportSection, FunctionSection, TypeSection};
 
-    let empty_function_sig_section = FunctionSection::with_entries(vec![]);
+    let empty_function_section = FunctionSection::with_entries(vec![]);
     let empty_type_section = TypeSection::with_types(vec![]);
     let empty_export_section = ExportSection::with_entries(vec![]);
 
-    let module_functions = wasm_module
-        .function_section()
-        .unwrap_or(&empty_function_sig_section)
-        .entries();
-
-    let module_types = wasm_module
-        .type_section()
-        .unwrap_or(&empty_type_section)
-        .types();
-
-    let module_exports = wasm_module
-        .export_section()
-        .unwrap_or(&empty_export_section)
-        .entries();
+    let module_functions = module_functions(module, &empty_function_section);
+    let module_types = module_types(module, &empty_type_section);
+    let module_exports = module_exports(module, &empty_export_section);
 
     let mut seen_alloc = false;
     let mut seen_verify = false;
@@ -206,6 +195,7 @@ fn module_validate_exports(wasm_module: &pwasm::Module) -> Result<(), ProgramErr
                 validate_export_alloc(entry, module_functions, module_types)?;
             }
             "svm_verify" => {
+                seen_verify = true;
                 svm_verify_validate(entry, &module_functions, &module_types)?;
             }
             _ => (),
@@ -283,4 +273,25 @@ fn export_func_signature<'p>(
     } else {
         Err(ProgramError::InvalidExportKind)
     }
+}
+
+fn module_functions<'p>(
+    module: &'p pwasm::Module,
+    default: &'p pwasm::FunctionSection,
+) -> &'p [pwasm::Func] {
+    module.function_section().unwrap_or(default).entries()
+}
+
+fn module_types<'p>(
+    module: &'p pwasm::Module,
+    default: &'p pwasm::TypeSection,
+) -> &'p [pwasm::Type] {
+    module.type_section().unwrap_or(default).types()
+}
+
+fn module_exports<'p>(
+    module: &'p pwasm::Module,
+    default: &'p pwasm::ExportSection,
+) -> &'p [pwasm::ExportEntry] {
+    module.export_section().unwrap_or(default).entries()
 }
