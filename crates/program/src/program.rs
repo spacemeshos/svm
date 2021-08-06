@@ -1,5 +1,6 @@
 use indexmap::IndexMap;
-use parity_wasm::elements::{CodeSection, Module};
+
+use parity_wasm::elements::{self as pwasm, ValueType};
 
 use crate::{
     validate_no_floats, Exports, FuncIndex, Function, Imports, Instruction, ProgramError,
@@ -124,13 +125,13 @@ impl Program {
     }
 }
 
-fn read_module(wasm: &[u8]) -> Result<Module, ProgramError> {
+fn read_module(wasm: &[u8]) -> Result<pwasm::Module, ProgramError> {
     let module = parity_wasm::deserialize_buffer(wasm);
 
     module.map_err(|_| ProgramError::InvalidWasm)
 }
 
-fn read_code(module: &Module) -> Result<CodeSection, ProgramError> {
+fn read_code(module: &pwasm::Module) -> Result<pwasm::CodeSection, ProgramError> {
     match module.code_section() {
         Some(code) => Ok(code.clone()),
         None => Err(ProgramError::MissingCodeSection),
@@ -162,53 +163,124 @@ fn count_functions_in_program(program: &Program) -> u64 {
     Counter::default().visit(program).unwrap()
 }
 
-/// Checks whether `wasm_module` exports a well-defined `svm_alloc` function.
-/// `svm_alloc` is required by SVM for all WASM code and must have a `I32 ->
-/// I32` type signature.
-fn module_validate_exports(wasm_module: &Module) -> Result<(), ProgramError> {
-    use parity_wasm::elements::{ExportSection, FunctionSection, Type, TypeSection, ValueType};
+/// Checks whether `wasm_module` exports a well-defined `svm_alloc` and `svm_verify` functions.
+/// Both are required by SVM to exist in each `Template`.
 
-    let empty_export_section = ExportSection::with_entries(vec![]);
+/// * `svm_alloc`  must have a `I32 -> I32` type signature.
+///     - The input param is for the amount of bytes to allocate.
+///     - The output is the `offset` pointing to the allocated memory first cell.  
+///   
+/// * `svm_verify` must have a `() -> I32` type signature.
+///     - The input is `()` since it is passed using the `Verify Data` mechanism.
+///     - The output is the `offset` pointing to the `returndata` first cell.
+///
+fn module_validate_exports(wasm_module: &pwasm::Module) -> Result<(), ProgramError> {
+    use pwasm::{ExportSection, FunctionSection, TypeSection};
+
     let empty_function_sig_section = FunctionSection::with_entries(vec![]);
     let empty_type_section = TypeSection::with_types(vec![]);
+    let empty_export_section = ExportSection::with_entries(vec![]);
 
     let module_functions = wasm_module
         .function_section()
         .unwrap_or(&empty_function_sig_section)
         .entries();
+
     let module_types = wasm_module
         .type_section()
         .unwrap_or(&empty_type_section)
         .types();
+
     let module_exports = wasm_module
         .export_section()
         .unwrap_or(&empty_export_section)
         .entries();
 
+    let mut seen_alloc = false;
+    let mut seen_verify = false;
+
     for entry in module_exports.iter() {
-        if entry.field() != "svm_alloc" {
-            continue;
-        }
-
-        let type_signature = {
-            let function = if let parity_wasm::elements::Internal::Function(i) = entry.internal() {
-                module_functions[*i as usize]
-            } else {
-                // We don't care about anything but functions right now.
-                continue;
-            };
-            &module_types[function.type_ref() as usize]
-        };
-
-        #[allow(irrefutable_let_patterns)]
-        if let Type::Function(f) = type_signature {
-            if f.params() == &[ValueType::I32] && f.results() == &[ValueType::I32] {
-                return Ok(());
+        match entry.field() {
+            "svm_alloc" => {
+                seen_alloc = true;
+                validate_export_alloc(entry, module_functions, module_types)?;
             }
+            "svm_verify" => {
+                svm_verify_validate(entry, &module_functions, &module_types)?;
+            }
+            _ => (),
         }
     }
 
-    Err(ProgramError::FunctionNotFound {
-        func_name: "svm_alloc".to_string(),
-    })
+    if !seen_alloc {
+        return Err(ProgramError::FunctionNotFound("svm_alloc".to_string()));
+    }
+
+    if !seen_verify {
+        return Err(ProgramError::FunctionNotFound("svm_verify".to_string()));
+    }
+
+    Ok(())
+}
+
+fn validate_export_alloc(
+    entry: &pwasm::ExportEntry,
+    module_funcs: &[pwasm::Func],
+    module_types: &[pwasm::Type],
+) -> Result<(), ProgramError> {
+    use pwasm::ValueType;
+
+    validate_func_signature(
+        entry,
+        module_funcs,
+        module_types,
+        &[ValueType::I32],
+        &[ValueType::I32],
+    )
+}
+
+fn svm_verify_validate(
+    entry: &pwasm::ExportEntry,
+    module_funcs: &[pwasm::Func],
+    module_types: &[pwasm::Type],
+) -> Result<(), ProgramError> {
+    use pwasm::ValueType;
+
+    validate_func_signature(entry, module_funcs, module_types, &[], &[ValueType::I32])
+}
+
+fn validate_func_signature(
+    entry: &pwasm::ExportEntry,
+    module_funcs: &[pwasm::Func],
+    module_types: &[pwasm::Type],
+    expected_params: &[pwasm::ValueType],
+    expected_rets: &[pwasm::ValueType],
+) -> Result<(), ProgramError> {
+    let sig = export_func_signature(entry, &module_funcs, &module_types)?;
+
+    #[allow(irrefutable_let_patterns)]
+    if let pwasm::Type::Function(f) = sig {
+        if f.params() == expected_params && f.results() == expected_rets {
+            Ok(())
+        } else {
+            Err(ProgramError::InvalidExportFunctionSignature)
+        }
+    } else {
+        unreachable!()
+    }
+}
+
+fn export_func_signature<'p>(
+    entry: &'p pwasm::ExportEntry,
+    module_functions: &'p [pwasm::Func],
+    module_types: &'p [pwasm::Type],
+) -> Result<&'p pwasm::Type, ProgramError> {
+    if let pwasm::Internal::Function(i) = entry.internal() {
+        let func = &module_functions[*i as usize];
+        let sig = &module_types[func.type_ref() as usize];
+
+        Ok(sig)
+    } else {
+        Err(ProgramError::InvalidExportKind)
+    }
 }

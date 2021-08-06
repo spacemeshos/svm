@@ -59,11 +59,8 @@ pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
 /// ```
 pub fn decode_call(json: &str) -> Result<Json, JsonError> {
     let encoded_call = EncodedData::from_json_str(json)?;
-    let tx = {
-        let mut cursor = Cursor::new(&encoded_call.data.0[..]);
-
-        crate::call::decode_call(&mut cursor).unwrap()
-    };
+    let mut cursor = Cursor::new(&encoded_call.data.0[..]);
+    let tx = crate::call::decode_call(&mut cursor).unwrap();
 
     Ok(DecodedCall::from(tx).to_json())
 }
