@@ -253,15 +253,17 @@ fn validate_func_signature(
     module_funcs: &[pwasm::Func],
     module_types: &[pwasm::Type],
     expected_params: &[pwasm::ValueType],
-    expected_rets: &[pwasm::ValueType],
+    expected_results: &[pwasm::ValueType],
 ) -> Result<(), ProgramError> {
-    let sig = export_func_signature(func_name, export, &module_funcs, &module_types)?;
+    let func_sig = export_func_signature(func_name, export, &module_funcs, &module_types)?;
 
     #[allow(irrefutable_let_patterns)]
-    if let pwasm::Type::Function(f) = sig {
-        if f.params() == expected_params && f.results() == expected_rets {
+    if let pwasm::Type::Function(f) = func_sig {
+        if f.params() == expected_params && f.results() == expected_results {
             Ok(())
         } else {
+            dbg!(f);
+
             Err(ProgramError::InvalidExportFunctionSignature(
                 func_name.to_string(),
             ))

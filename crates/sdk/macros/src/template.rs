@@ -57,14 +57,13 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TokenStream, Te
 
     let structs = expand_structs(&template)?;
     let functions = expand_functions(&template)?;
-    let alloc_func = alloc_func_ast();
+    let verify_export = export_verify_ast();
+    let alloc_export = export_alloc_ast();
 
     let ast = quote! {
-        // #(#imports)*
+        #verify_export
 
-        // #(#aliases)*
-
-        #alloc_func
+        #alloc_export
 
         #structs
 
@@ -266,15 +265,32 @@ fn expand_functions(template: &Template) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn alloc_func_ast() -> TokenStream {
+fn export_alloc_ast() -> TokenStream {
     quote! {
-        extern crate svm_sdk;
 
         #[no_mangle]
         pub extern "C" fn svm_alloc(size: u32) -> u32 {
+            extern crate svm_sdk;
+
             let ptr = svm_sdk::alloc(size as usize);
 
             ptr.offset() as u32
+        }
+    }
+}
+
+fn export_verify_ast() -> TokenStream {
+    quote! {
+        #[no_mangle]
+        pub extern "C" fn svm_verify() -> u32 {
+            extern crate svm_sdk;
+
+            // TODO:
+            // This is a temporary stub
+            //
+            // The Template Author will have to come up with
+            // his own implementation for `svm_verify`
+            0
         }
     }
 }
