@@ -119,23 +119,21 @@ fn memory_runtime_validate_deploy_floats_not_allowed() {
     assert_eq!(expected, actual);
 }
 
-// #[test]
-// fn memory_runtime_validate_deploy_ok() {
-//     let runtime = testing::create_memory_runtime();
+#[test]
+fn memory_runtime_validate_deploy_ok() {
+    let runtime = testing::create_memory_runtime();
 
-//     let message = testing::build_deploy(
-//         0,
-//         "My Template",
-//         FixedLayout::default(),
-//         &[],
-//         include_bytes!("wasm/runtime_calldata.wasm")[..].into(),
-//     );
+    let message = testing::build_deploy(
+        0,
+        "My Template",
+        FixedLayout::default(),
+        &[],
+        include_bytes!("wasm/runtime_calldata.wasm")[..].into(),
+    );
 
-//     let result = runtime.validate_deploy(&message);
-
-//     dbg!(result.unwrap_err());
-//     // assert!(result.is_ok());
-// }
+    let result = runtime.validate_deploy(&message);
+    assert!(result.is_ok());
+}
 
 #[test]
 fn memory_runtime_validate_spawn_missing_template_addr() {

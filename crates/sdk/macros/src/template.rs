@@ -267,13 +267,12 @@ fn expand_functions(template: &Template) -> Result<TokenStream> {
 
 fn export_alloc_ast() -> TokenStream {
     quote! {
+        // using the `Allocator` of `svm_sdk`
+        extern crate svm_sdk;
 
         #[no_mangle]
         pub extern "C" fn svm_alloc(size: u32) -> u32 {
-            extern crate svm_sdk;
-
             let ptr = svm_sdk::alloc(size as usize);
-
             ptr.offset() as u32
         }
     }
@@ -283,8 +282,6 @@ fn export_verify_ast() -> TokenStream {
     quote! {
         #[no_mangle]
         pub extern "C" fn svm_verify() -> u32 {
-            extern crate svm_sdk;
-
             // TODO:
             // This is a temporary stub
             //

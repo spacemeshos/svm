@@ -184,6 +184,7 @@ fn module_validate_exports(module: &pwasm::Module) -> Result<(), ProgramError> {
     let module_functions = module_functions(module, &empty_function_section);
     let module_types = module_types(module, &empty_type_section);
     let module_exports = module_exports(module, &empty_export_section);
+    let import_count = module_functions_import_count(module);
 
     let mut seen_alloc = false;
     let mut seen_verify = false;
@@ -192,11 +193,11 @@ fn module_validate_exports(module: &pwasm::Module) -> Result<(), ProgramError> {
         match export.field() {
             "svm_alloc" => {
                 seen_alloc = true;
-                validate_export_alloc(export, module_functions, module_types)?;
+                validate_export_alloc(export, import_count, module_functions, module_types)?;
             }
             "svm_verify" => {
                 seen_verify = true;
-                svm_verify_validate(export, &module_functions, &module_types)?;
+                svm_verify_validate(export, import_count, &module_functions, &module_types)?;
             }
             _ => (),
         }
@@ -215,6 +216,7 @@ fn module_validate_exports(module: &pwasm::Module) -> Result<(), ProgramError> {
 
 fn validate_export_alloc(
     export: &pwasm::ExportEntry,
+    import_count: usize,
     module_funcs: &[pwasm::Func],
     module_types: &[pwasm::Type],
 ) -> Result<(), ProgramError> {
@@ -223,6 +225,7 @@ fn validate_export_alloc(
     validate_func_signature(
         "svm_alloc",
         export,
+        import_count,
         module_funcs,
         module_types,
         &[ValueType::I32],
@@ -232,6 +235,7 @@ fn validate_export_alloc(
 
 fn svm_verify_validate(
     export: &pwasm::ExportEntry,
+    import_count: usize,
     module_funcs: &[pwasm::Func],
     module_types: &[pwasm::Type],
 ) -> Result<(), ProgramError> {
@@ -240,6 +244,7 @@ fn svm_verify_validate(
     validate_func_signature(
         "svm_verify",
         export,
+        import_count,
         module_funcs,
         module_types,
         &[],
@@ -250,20 +255,25 @@ fn svm_verify_validate(
 fn validate_func_signature(
     func_name: &str,
     export: &pwasm::ExportEntry,
+    import_count: usize,
     module_funcs: &[pwasm::Func],
     module_types: &[pwasm::Type],
     expected_params: &[pwasm::ValueType],
     expected_results: &[pwasm::ValueType],
 ) -> Result<(), ProgramError> {
-    let func_sig = export_func_signature(func_name, export, &module_funcs, &module_types)?;
+    let func_sig = export_func_signature(
+        func_name,
+        export,
+        import_count,
+        &module_funcs,
+        &module_types,
+    )?;
 
     #[allow(irrefutable_let_patterns)]
     if let pwasm::Type::Function(f) = func_sig {
         if f.params() == expected_params && f.results() == expected_results {
             Ok(())
         } else {
-            dbg!(f);
-
             Err(ProgramError::InvalidExportFunctionSignature(
                 func_name.to_string(),
             ))
@@ -276,12 +286,18 @@ fn validate_func_signature(
 fn export_func_signature<'p>(
     func_name: &str,
     entry: &'p pwasm::ExportEntry,
+    import_count: usize,
     module_functions: &'p [pwasm::Func],
     module_types: &'p [pwasm::Type],
 ) -> Result<&'p pwasm::Type, ProgramError> {
-    if let pwasm::Internal::Function(i) = entry.internal() {
-        let func = &module_functions[*i as usize];
-        let sig = &module_types[func.type_ref() as usize];
+    if let pwasm::Internal::Function(global) = entry.internal() {
+        let global = *global as usize;
+        debug_assert!(global >= import_count);
+
+        let local = global - import_count;
+        let func = &module_functions[local];
+        let type_ref = func.type_ref() as usize;
+        let sig = &module_types[type_ref];
 
         Ok(sig)
     } else {
@@ -308,4 +324,10 @@ fn module_exports<'p>(
     default: &'p pwasm::ExportSection,
 ) -> &'p [pwasm::ExportEntry] {
     module.export_section().unwrap_or(default).entries()
+}
+
+fn module_functions_import_count(module: &pwasm::Module) -> usize {
+    use pwasm::ImportCountType;
+
+    module.import_count(ImportCountType::Function)
 }
