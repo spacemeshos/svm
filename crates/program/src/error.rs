@@ -27,7 +27,7 @@ pub enum ProgramError {
     InvalidExportKind,
 
     /// Invalid Export Function Signature
-    InvalidExportFunctionSignature,
+    InvalidExportFunctionSignature(String),
 }
 
 impl fmt::Display for ProgramError {

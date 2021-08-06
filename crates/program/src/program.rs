@@ -34,7 +34,7 @@ pub struct Program {
 }
 
 impl Program {
-    /// Reads a Wasm program and constructs a `Program` struct
+    /// Reads a Wasm program and constructs a [`Program`] struct
     pub fn new(wasm_module: &[u8], validate_exports: bool) -> Result<Self, ProgramError> {
         let module = read_module(wasm_module)?;
 
@@ -188,15 +188,15 @@ fn module_validate_exports(module: &pwasm::Module) -> Result<(), ProgramError> {
     let mut seen_alloc = false;
     let mut seen_verify = false;
 
-    for entry in module_exports.iter() {
-        match entry.field() {
+    for export in module_exports.iter() {
+        match export.field() {
             "svm_alloc" => {
                 seen_alloc = true;
-                validate_export_alloc(entry, module_functions, module_types)?;
+                validate_export_alloc(export, module_functions, module_types)?;
             }
             "svm_verify" => {
                 seen_verify = true;
-                svm_verify_validate(entry, &module_functions, &module_types)?;
+                svm_verify_validate(export, &module_functions, &module_types)?;
             }
             _ => (),
         }
@@ -214,14 +214,15 @@ fn module_validate_exports(module: &pwasm::Module) -> Result<(), ProgramError> {
 }
 
 fn validate_export_alloc(
-    entry: &pwasm::ExportEntry,
+    export: &pwasm::ExportEntry,
     module_funcs: &[pwasm::Func],
     module_types: &[pwasm::Type],
 ) -> Result<(), ProgramError> {
     use pwasm::ValueType;
 
     validate_func_signature(
-        entry,
+        "svm_alloc",
+        export,
         module_funcs,
         module_types,
         &[ValueType::I32],
@@ -230,30 +231,40 @@ fn validate_export_alloc(
 }
 
 fn svm_verify_validate(
-    entry: &pwasm::ExportEntry,
+    export: &pwasm::ExportEntry,
     module_funcs: &[pwasm::Func],
     module_types: &[pwasm::Type],
 ) -> Result<(), ProgramError> {
     use pwasm::ValueType;
 
-    validate_func_signature(entry, module_funcs, module_types, &[], &[ValueType::I32])
+    validate_func_signature(
+        "svm_verify",
+        export,
+        module_funcs,
+        module_types,
+        &[],
+        &[ValueType::I32],
+    )
 }
 
 fn validate_func_signature(
-    entry: &pwasm::ExportEntry,
+    func_name: &str,
+    export: &pwasm::ExportEntry,
     module_funcs: &[pwasm::Func],
     module_types: &[pwasm::Type],
     expected_params: &[pwasm::ValueType],
     expected_rets: &[pwasm::ValueType],
 ) -> Result<(), ProgramError> {
-    let sig = export_func_signature(entry, &module_funcs, &module_types)?;
+    let sig = export_func_signature(func_name, export, &module_funcs, &module_types)?;
 
     #[allow(irrefutable_let_patterns)]
     if let pwasm::Type::Function(f) = sig {
         if f.params() == expected_params && f.results() == expected_rets {
             Ok(())
         } else {
-            Err(ProgramError::InvalidExportFunctionSignature)
+            Err(ProgramError::InvalidExportFunctionSignature(
+                func_name.to_string(),
+            ))
         }
     } else {
         unreachable!()
@@ -261,6 +272,7 @@ fn validate_func_signature(
 }
 
 fn export_func_signature<'p>(
+    func_name: &str,
     entry: &'p pwasm::ExportEntry,
     module_functions: &'p [pwasm::Func],
     module_types: &'p [pwasm::Type],
