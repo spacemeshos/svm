@@ -247,7 +247,7 @@ where
     }
 
     fn call_alloc(&self, instance: &Instance, env: &FuncEnv, size: usize) -> Result<WasmPtr<u8>> {
-        // Backup the current [`ProtectedMode`].
+        // Backups the current [`ProtectedMode`].
         let origin_mode = env.protected_mode();
 
         // Sets `Access Denied` mode while running `svm_alloc`.
@@ -257,6 +257,10 @@ where
 
         let func = self.func::<u32, u32>(&instance, env, func_name);
         if func.is_err() {
+            // ### Notes:
+            //
+            // We don't restore the original [`ProtectedMode`]
+            // since `svm_alloc` has failed and the transaction will halt.
             let err = self.func_not_found(env, func_name);
             return Err(err);
         }
@@ -764,6 +768,13 @@ where
             .parse_call(message)
             .expect("Should have called `validate_call` first");
 
+        /// ### Important:
+        ///
+        /// Right now we disallow any `Storage` access while running `svm_verify`.
+        /// This hard restriction might be mitigated in future versions.
+        ///
+        /// In that case, the current behavior should be backward-compatible since
+        /// we could always executed `Access Denied` logic when partial `Storage` access will be allowed by SVM.
         let call = self.build_call(
             &tx,
             envelope,
