@@ -33,16 +33,20 @@ impl FuncEnv {
         context: &Context,
         template_addr: TemplateAddr,
         target_addr: Address,
+        mode: ProtectedMode,
     ) -> Self {
         let inner = Inner::new(storage);
 
-        Self {
+        let env = Self {
             inner: Rc::new(RefCell::new(inner)),
             template_addr: template_addr,
             target_addr: target_addr,
             envelope: envelope.clone(),
             context: context.clone(),
-        }
+        };
+        env.set_protected_mode(mode);
+
+        env
     }
 
     /// New instance with explicit memory
@@ -53,11 +57,12 @@ impl FuncEnv {
         context: &Context,
         template_addr: TemplateAddr,
         target_addr: Address,
+        mode: ProtectedMode,
     ) -> Self {
-        let func_env = Self::new(storage, envelope, context, template_addr, target_addr);
-        func_env.borrow_mut().set_memory(memory);
+        let env = Self::new(storage, envelope, context, template_addr, target_addr, mode);
+        env.borrow_mut().set_memory(memory);
 
-        func_env
+        env
     }
 
     /// Returns the `Address` of the `Template` associated with the currently executed `Account`.

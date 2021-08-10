@@ -164,6 +164,7 @@ where
                     call.context,
                     call.template.clone(),
                     call.target.clone(),
+                    call.protected_mode,
                 );
 
                 let store = crate::wasm_store::new_store();
@@ -233,7 +234,6 @@ where
     {
         debug_assert!(calldata.is_empty() == false);
 
-        let origin_mode = env.protected_mode();
         let out = self.call_alloc(instance, env, calldata.len())?;
 
         // we assert that `svm_alloc` didn't touch the `returndata`
@@ -243,13 +243,14 @@ where
         let wasm_ptr = out.returns();
         self.set_calldata(env, calldata, wasm_ptr);
 
-        // restore the [`ProtectedMode`].
-        env.set_protected_mode(origin_mode);
-
         self.wasmer_call(instance, env, func, params)
     }
 
     fn call_alloc(&self, instance: &Instance, env: &FuncEnv, size: usize) -> Result<WasmPtr<u8>> {
+        // Backup the current [`ProtectedMode`].
+        let origin_mode = env.protected_mode();
+
+        // Sets `Access Denied` mode while running `svm_alloc`.
         env.set_protected_mode(ProtectedMode::AccessDenied);
 
         let func_name = "svm_alloc";
@@ -270,6 +271,9 @@ where
 
             WasmPtr::new(offset)
         });
+
+        // Restores the original [`ProtectedMode`].
+        env.set_protected_mode(origin_mode);
 
         Ok(out)
     }
