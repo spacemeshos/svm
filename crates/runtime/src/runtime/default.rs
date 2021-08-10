@@ -18,8 +18,8 @@ use super::{Call, Failure, Function, Outcome};
 use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
 use crate::error::ValidateError;
 use crate::storage::StorageBuilderFn;
-use crate::vmcalls;
 use crate::Env;
+use crate::{vmcalls, ProtectedMode};
 use crate::{Config, FuncEnv, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
@@ -131,6 +131,7 @@ where
             target: target.clone(),
             within_spawn: true,
             gas_limit: gas_left,
+            protected_mode: ProtectedMode::FullAccess,
             envelope,
             context,
         };
@@ -232,6 +233,7 @@ where
     {
         debug_assert!(calldata.is_empty() == false);
 
+        let origin_mode = env.protected_mode();
         let out = self.call_alloc(instance, env, calldata.len())?;
 
         // we assert that `svm_alloc` didn't touch the `returndata`
@@ -241,10 +243,15 @@ where
         let wasm_ptr = out.returns();
         self.set_calldata(env, calldata, wasm_ptr);
 
+        // restore the [`ProtectedMode`].
+        env.set_protected_mode(origin_mode);
+
         self.wasmer_call(instance, env, func, params)
     }
 
     fn call_alloc(&self, instance: &Instance, env: &FuncEnv, size: usize) -> Result<WasmPtr<u8>> {
+        env.set_protected_mode(ProtectedMode::AccessDenied);
+
         let func_name = "svm_alloc";
 
         let func = self.func::<u32, u32>(&instance, env, func_name);
@@ -505,6 +512,7 @@ where
         tx: &'a Transaction,
         envelope: &'a Envelope,
         context: &'a Context,
+        protected_mode: ProtectedMode,
         func_name: &'a str,
         func_input: &'a [u8],
     ) -> Call<'a> {
@@ -519,6 +527,7 @@ where
                 template,
                 state: context.state(),
                 gas_limit: envelope.gas_limit(),
+                protected_mode,
                 within_spawn: false,
                 envelope,
                 context,
@@ -751,7 +760,14 @@ where
             .parse_call(message)
             .expect("Should have called `validate_call` first");
 
-        let call = self.build_call(&tx, envelope, context, "svm_verify", tx.verifydata());
+        let call = self.build_call(
+            &tx,
+            envelope,
+            context,
+            ProtectedMode::AccessDenied,
+            "svm_verify",
+            tx.verifydata(),
+        );
 
         // TODO: override the `call.gas_limit` with `VERIFY_MAX_GAS`
         self.exec_call::<(), ()>(&call)
@@ -763,7 +779,15 @@ where
             .parse_call(message)
             .expect("Should have called `validate_call` first");
 
-        let call = self.build_call(&tx, envelope, context, tx.func_name(), tx.calldata());
+        let call = self.build_call(
+            &tx,
+            envelope,
+            context,
+            ProtectedMode::FullAccess,
+            tx.func_name(),
+            tx.calldata(),
+        );
+
         self.exec_call::<(), ()>(&call)
     }
 }

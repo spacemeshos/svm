@@ -61,7 +61,8 @@ macro_rules! __assert_vars_impl {
 
 macro_rules! assert_storage {
     ($env:expr, $($var_id:expr => $expected:expr), *) => {{
-        let storage = &$env.borrow().storage;
+        let borrow = $env.borrow();
+        let storage = borrow.storage();
 
         $(
             let actual = storage.read_var(Id($var_id));
@@ -217,7 +218,8 @@ fn vmcalls_load160() {
     );
 
     {
-        let storage = &mut func_env.borrow_mut().storage;
+        let mut borrow = func_env.borrow_mut();
+        let storage = borrow.storage_mut();
         storage.write_var(Id(0), target_addr.as_slice().to_vec());
     }
 

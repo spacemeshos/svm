@@ -21,7 +21,7 @@ pub mod vmcalls;
 
 pub use env::{Env, EnvTypes};
 pub use error::ValidateError;
-pub use func_env::FuncEnv;
+pub use func_env::{FuncEnv, ProtectedMode};
 pub use runtime::{Config, DefaultRuntime, Runtime};
 pub use wasm_store::new_store;
 

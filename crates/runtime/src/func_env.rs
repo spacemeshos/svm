@@ -81,6 +81,18 @@ impl FuncEnv {
     pub fn borrow_mut(&self) -> RefMut<Inner> {
         self.inner.borrow_mut()
     }
+
+    /// Sets the [`ProtectedMode`] and overrides the existing value.
+    pub fn set_protected_mode(&self, mode: ProtectedMode) {
+        let mut borrow = self.borrow_mut();
+        borrow.set_protected_mode(mode);
+    }
+
+    /// Returns the current [`ProtectedMode`].
+    pub fn protected_mode(&self) -> ProtectedMode {
+        let borrow = self.borrow();
+        borrow.mode
+    }
 }
 
 pub struct Inner {
@@ -105,9 +117,13 @@ pub struct Inner {
     mode: ProtectedMode,
 }
 
+/// Denotes the capabilities allowed to the executing Account at a given point in time.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ProtectedMode {
+    /// Access to [`AccountStorage`] is not allowed.
     AccessDenied,
+
+    /// Full-Access to [`AccountStorage`] is allowed.
     FullAccess,
 }
 
