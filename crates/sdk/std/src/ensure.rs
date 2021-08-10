@@ -10,21 +10,17 @@
 #[macro_export]
 macro_rules! ensure {
     ($expr:expr) => {{
-        use $crate::{log, panic};
-
         let satisfied = $expr;
 
         if !satisfied {
-            panic()
+            $crate::panic()
         }
     }};
-    ($expr:expr, $msg:expr) => {{
-        use $crate::log;
-
+    ($expr:expr, $data:expr) => {{
         let satisfied = $expr;
 
         if !satisfied {
-            log($msg, 0);
+            $crate::log($data);
 
             panic()
         }

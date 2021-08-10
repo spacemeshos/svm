@@ -18,23 +18,13 @@
 #![no_std]
 #![feature(core_intrinsics)]
 #![allow(unused)]
+#![allow(unreachable_code)]
 
 mod log;
+pub use log::log;
 
-pub use log::*;
-
-#[link_section = "svm"]
-extern "C" {
-    fn svm_log(msg_ptr: u32, msg_len: u32, code: u32);
-}
-
-/// Log the string `msg` along with code `code`.
-pub fn log(msg: &str, code: u8) {
-    let ptr = msg.as_ptr() as u32;
-    let len = msg.len() as u32;
-
-    unsafe { svm_log(ptr, len, code as u32) }
-}
+mod string;
+pub use string::{String, StringBuilder, ToString, Token};
 
 /// A replacement for the `core::option::Option` (exposed also as `std::option::Option`)
 mod option;

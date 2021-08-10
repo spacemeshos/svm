@@ -58,11 +58,10 @@ pub(crate) fn gas_to_json(gas: &Gas) -> i64 {
 pub(crate) fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Json> {
     logs.iter()
         .map(|log| {
-            let msg = unsafe { String::from_utf8_unchecked(log.msg.clone()) };
+            let data = unsafe { String::from_utf8_unchecked(log.as_bytes().to_vec()) };
 
             json!({
-                "msg": msg,
-                "code": log.code
+                "data": data,
             })
         })
         .collect()

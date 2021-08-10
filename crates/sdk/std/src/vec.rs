@@ -16,7 +16,6 @@ extern crate svm_sdk_alloc;
 
 use svm_sdk_alloc::alloc;
 
-use core::fmt;
 use core::mem::size_of;
 use core::ops::{Deref, DerefMut};
 
@@ -24,9 +23,7 @@ use crate::ensure;
 
 pub struct Vec<T> {
     len: usize,
-
     cap: usize,
-
     ptr: *mut T,
 }
 
@@ -38,12 +35,19 @@ impl<T> Vec<T> {
         Self { len: 0, cap, ptr }
     }
 
+    pub unsafe fn from_raw_parts(ptr: *const T, len: usize) -> Self {
+        Self {
+            len,
+            cap: len,
+            ptr: ptr as *mut T,
+        }
+    }
+
     pub fn push(&mut self, value: T) {
         ensure!(self.len() < self.capacity());
 
         unsafe {
-            let dest = self.get_ptr_mut(self.len());
-
+            let dest = self.as_ptr_mut(self.len());
             core::ptr::write(dest, value);
         }
 
@@ -54,9 +58,7 @@ impl<T> Vec<T> {
         ensure!(self.is_empty() == false);
 
         let last = self.len() - 1;
-
         let value = unsafe { self.take(last) };
-
         self.len = last;
 
         value
@@ -78,7 +80,6 @@ impl<T> Vec<T> {
         let slice = self.as_slice();
 
         let vec = unsafe { core::mem::transmute(slice) };
-
         core::mem::forget(self);
 
         vec
@@ -114,7 +115,7 @@ impl<T> Vec<T> {
     unsafe fn take(&mut self, offset: usize) -> T {
         ensure!(self.len() > offset);
 
-        let dest = self.get_ptr_mut(offset);
+        let dest = self.as_ptr_mut(offset);
 
         core::ptr::read(dest)
     }
@@ -125,33 +126,20 @@ impl<T> Vec<T> {
         unsafe { self.get_unchecked(offset) }
     }
 
-    fn get_mut(&mut self, offset: usize) -> &mut T {
-        ensure!(self.len() > offset);
-
-        unsafe { self.get_mut_unchecked(offset) }
-    }
-
     #[inline]
     unsafe fn get_unchecked(&self, offset: usize) -> &T {
-        let ptr = self.get_ptr(offset);
+        let ptr = self.as_ptr(offset);
 
         &*ptr
     }
 
     #[inline]
-    unsafe fn get_mut_unchecked(&mut self, offset: usize) -> &mut T {
-        let ptr = self.get_ptr_mut(offset);
-
-        &mut *ptr
-    }
-
-    #[inline]
-    unsafe fn get_ptr(&self, offset: usize) -> *const T {
+    unsafe fn as_ptr(&self, offset: usize) -> *const T {
         self.ptr.add(offset)
     }
 
     #[inline]
-    unsafe fn get_ptr_mut(&self, offset: usize) -> *mut T {
+    unsafe fn as_ptr_mut(&self, offset: usize) -> *mut T {
         self.ptr.add(offset)
     }
 
@@ -195,7 +183,6 @@ impl<T> DerefMut for Vec<T> {
 
 pub struct Iter<'a, T> {
     pos: usize,
-
     vec: &'a Vec<T>,
 }
 
@@ -214,7 +201,6 @@ impl<'a, T> core::iter::Iterator for Iter<'a, T> {
         }
 
         let item = self.vec.get(self.pos);
-
         self.pos += 1;
 
         Some(item)
@@ -242,7 +228,6 @@ impl<T> core::iter::Iterator for IntoIter<T> {
         }
 
         let v = unsafe { self.vec.take(self.pos) };
-
         self.pos += 1;
 
         Some(v)

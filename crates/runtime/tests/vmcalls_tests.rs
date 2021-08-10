@@ -341,12 +341,5 @@ fn vmcalls_log() {
     let _ = func.call(&[]).unwrap();
 
     let logs = func_env.borrow_mut().take_logs();
-
-    assert_eq!(
-        logs,
-        vec![ReceiptLog {
-            msg: b"Hello World".to_vec(),
-            code: 200
-        }]
-    );
+    assert_eq!(logs, vec![ReceiptLog::new(b"Hello World".to_vec(),)]);
 }

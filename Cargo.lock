@@ -1372,6 +1372,7 @@ dependencies = [
 name = "svm-sdk-std"
 version = "0.0.0"
 dependencies = [
+ "seq-macro",
  "svm-sdk-alloc",
 ]
 

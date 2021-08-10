@@ -2,15 +2,13 @@ use svm_types::ReceiptLog;
 
 use crate::FuncEnv;
 
-/// Logs the log entry given.
-///
-/// It's string message sits in memory starting from offset `msg_ptr` and its length is `msg_len`.
-/// The log entry numeric code is given via parameter `code`.
-pub fn log(env: &FuncEnv, msg_ptr: u32, msg_len: u32, code: u32) {
-    let start = msg_ptr as usize;
-    let end = start + msg_len as usize;
+/// Logs the log entry given in a form of blob (offset and length).
+pub fn log(env: &FuncEnv, offset: u32, length: u32) {
+    let start = offset as usize;
+    let end = start + length as usize;
 
-    let msg: Vec<u8> = {
+    // We introduce a new scope to avoid runtime ownership error by the `env`'s internal [`std::cell::RefCell`].
+    let bytes = {
         let borrow = env.borrow();
         let memory = borrow.memory();
 
@@ -20,10 +18,7 @@ pub fn log(env: &FuncEnv, msg_ptr: u32, msg_len: u32, code: u32) {
             .collect()
     };
 
-    let log = ReceiptLog {
-        msg,
-        code: code as u8,
-    };
+    let log = ReceiptLog::new(bytes);
 
     env.borrow_mut().logs_mut().push(log);
 }

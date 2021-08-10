@@ -7,7 +7,6 @@ use crate::{panic, Result};
 /// over the final emitted Wasm.
 pub enum Option<T> {
     None,
-
     Some(T),
 }
 
