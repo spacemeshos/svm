@@ -19,7 +19,8 @@ macro_rules! store_n_impl {
         };
         assert_eq!(bytes.len(), $nbytes);
 
-        let storage = &mut $env.borrow_mut().storage;
+        let mut borrow = $env.borrow_mut();
+        let storage = borrow.storage_mut();
         storage.write_var(Id($var_id), bytes);
     }};
 }
@@ -28,7 +29,8 @@ macro_rules! load_n_impl {
     ($nbytes:expr, $env:ident, $var_id:expr, $mem_ptr:expr) => {{
         use svm_layout::Id;
 
-        let storage = &$env.borrow().storage;
+        let borrow = $env.borrow();
+        let storage = borrow.storage();
 
         let bytes = storage.read_var(Id($var_id));
         let nbytes = bytes.len();
@@ -72,8 +74,8 @@ pub fn load160(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
 ///
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 32-bit.
 pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
-    let storage = &env.borrow().storage;
-
+    let borrow = env.borrow();
+    let storage = borrow.storage();
     let bytes = storage.read_var(Id(var_id));
     let nbytes = bytes.len();
 
@@ -93,8 +95,8 @@ pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 32-bit,
 /// or when it has not enough bytes to hold `value`.
 pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
-    let storage = &mut env.borrow_mut().storage;
-
+    let mut borrow = env.borrow_mut();
+    let storage = borrow.storage_mut();
     let (_off, nbytes) = storage.var_layout(Id(var_id));
 
     assert!(nbytes <= 4);
@@ -111,8 +113,8 @@ pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
 ///
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 64-bit.
 pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
-    let storage = &env.borrow().storage;
-
+    let borrow = env.borrow();
+    let storage = borrow.storage();
     let bytes = storage.read_var(Id(var_id));
     let nbytes = bytes.len();
 
@@ -128,8 +130,8 @@ pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
 /// Panics when variable `var_id` consumes more than 64-bit,
 /// or when it has not enough bytes to hold `value`.
 pub fn set64(env: &FuncEnv, var_id: u32, value: u64) {
-    let storage = &mut env.borrow_mut().storage;
-
+    let mut borrow = env.borrow_mut();
+    let storage = borrow.storage_mut();
     let (_off, nbytes) = storage.var_layout(Id(var_id));
 
     assert!(nbytes <= 8);

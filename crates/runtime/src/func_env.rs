@@ -85,13 +85,13 @@ impl FuncEnv {
 
 pub struct Inner {
     /// An accessor to the `Account`'s storage.
-    pub storage: AccountStorage,
+    storage: AccountStorage,
 
     /// Collected logs during execution.
-    pub logs: Vec<ReceiptLog>,
+    logs: Vec<ReceiptLog>,
 
     /// Pointer to `returndata`. Tuple stores `(offset, len)`.
-    pub returndata: Option<(usize, usize)>,
+    returndata: Option<(usize, usize)>,
 
     /// Instance's allocated memory.
     memory: Option<Memory>,
@@ -101,6 +101,14 @@ pub struct Inner {
 
     /// Pointer to `calldata`. Tuple stores `(offset, len)`.
     calldata: Option<(usize, usize)>,
+
+    mode: ProtectedMode,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum ProtectedMode {
+    AccessDenied,
+    FullAccess,
 }
 
 impl Inner {
@@ -114,7 +122,32 @@ impl Inner {
             calldata: None,
             returndata: None,
             used_memory: 0,
+            mode: ProtectedMode::AccessDenied,
         }
+    }
+
+    pub fn set_protected_mode(&mut self, mode: ProtectedMode) {
+        self.mode = mode;
+    }
+
+    pub fn storage(&self) -> &AccountStorage {
+        assert!(self.can_read());
+
+        &self.storage
+    }
+
+    pub fn storage_mut(&mut self) -> &mut AccountStorage {
+        assert!(self.can_write());
+
+        &mut self.storage
+    }
+
+    pub fn logs(&self) -> &[ReceiptLog] {
+        &self.logs
+    }
+
+    pub fn logs_mut(&mut self) -> &mut Vec<ReceiptLog> {
+        &mut self.logs
     }
 
     pub fn set_calldata(&mut self, offset: usize, len: usize) {
@@ -137,6 +170,10 @@ impl Inner {
         debug_assert!(self.returndata.is_none());
 
         self.returndata = Some((offset, len));
+    }
+
+    pub fn returndata(&self) -> Option<(usize, usize)> {
+        self.returndata
     }
 
     pub fn set_memory(&mut self, memory: Memory) {
@@ -163,5 +200,15 @@ impl Inner {
 
     pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
         std::mem::take(&mut self.logs)
+    }
+
+    #[inline]
+    fn can_read(&self) -> bool {
+        self.mode != ProtectedMode::AccessDenied
+    }
+
+    #[inline]
+    fn can_write(&self) -> bool {
+        matches!(self.mode, ProtectedMode::FullAccess)
     }
 }

@@ -301,17 +301,18 @@ where
 
     #[inline]
     fn commit_changes(&self, env: &FuncEnv) -> State {
-        let storage = &mut env.borrow_mut().storage;
+        let mut borrow = env.borrow_mut();
+        let storage = borrow.storage_mut();
         storage.commit()
     }
 
     #[inline]
     fn assert_no_returndata(&self, env: &FuncEnv) {
-        assert!(env.borrow().returndata.is_none())
+        assert!(env.borrow().returndata().is_none())
     }
 
     fn take_returndata(&self, env: &FuncEnv) -> Vec<u8> {
-        let data = env.borrow().returndata;
+        let data = env.borrow().returndata();
 
         match data {
             Some((offset, length)) => self.read_memory(env, offset, length),
