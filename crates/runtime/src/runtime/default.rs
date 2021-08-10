@@ -768,13 +768,13 @@ where
             .parse_call(message)
             .expect("Should have called `validate_call` first");
 
-        /// ### Important:
-        ///
-        /// Right now we disallow any `Storage` access while running `svm_verify`.
-        /// This hard restriction might be mitigated in future versions.
-        ///
-        /// In that case, the current behavior should be backward-compatible since
-        /// we could always executed `Access Denied` logic when partial `Storage` access will be allowed by SVM.
+        // ### Important:
+        //
+        // Right now we disallow any `Storage` access while running `svm_verify`.
+        // This hard restriction might be mitigated in future versions.
+        //
+        // In that case, the current behavior should be backward-compatible since
+        // we could always executed `Access Denied` logic when partial `Storage` access will be allowed by SVM.
         let call = self.build_call(
             &tx,
             envelope,
