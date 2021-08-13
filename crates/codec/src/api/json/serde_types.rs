@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use svm_types::{Address, AddressOf};
+use svm_types::{Address, TemplateAddr};
 
 use super::JsonSerdeUtils;
 
@@ -39,11 +39,8 @@ impl<'de> Deserialize<'de> for HexBlob<Vec<u8>> {
 #[derive(Clone, Debug)]
 pub struct AddressWrapper(pub Address);
 
-impl<'a, T> From<&'a AddressOf<T>> for AddressWrapper {
-    fn from(addr: &'a AddressOf<T>) -> Self {
-        Self(Address::from(addr.inner().bytes()))
-    }
-}
+#[derive(Clone, Debug)]
+pub struct TemplateAddrWrapper(pub TemplateAddr);
 
 impl Serialize for AddressWrapper {
     fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
@@ -72,13 +69,59 @@ impl<'de> Deserialize<'de> for AddressWrapper {
     }
 }
 
-impl<T> From<AddressWrapper> for AddressOf<T> {
+impl Serialize for TemplateAddrWrapper {
+    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let blob = HexBlob(self.0.as_slice());
+        blob.serialize(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for TemplateAddrWrapper {
+    fn deserialize<D>(de: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+
+        let blob = HexBlob::deserialize(de)?;
+
+        if blob.0.len() != TemplateAddr::len() {
+            Err(D::Error::custom("Bad length"))
+        } else {
+            Ok(Self(TemplateAddr::from(&blob.0[..])))
+        }
+    }
+}
+
+impl From<AddressWrapper> for Address {
     fn from(wrapper: AddressWrapper) -> Self {
-        AddressOf::new(wrapper.0)
+        wrapper.0
+    }
+}
+
+impl From<TemplateAddrWrapper> for TemplateAddr {
+    fn from(wrapper: TemplateAddrWrapper) -> Self {
+        wrapper.0
+    }
+}
+
+impl<'a> From<&'a Address> for AddressWrapper {
+    fn from(addr: &'a Address) -> Self {
+        Self(addr.clone())
+    }
+}
+
+impl<'a> From<&'a TemplateAddr> for TemplateAddrWrapper {
+    fn from(addr: &'a TemplateAddr) -> Self {
+        Self(addr.clone())
     }
 }
 
 impl JsonSerdeUtils for AddressWrapper {}
+impl JsonSerdeUtils for TemplateAddrWrapper {}
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct EncodedData {

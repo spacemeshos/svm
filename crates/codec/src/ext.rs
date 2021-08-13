@@ -1,7 +1,7 @@
 use std::io::{Cursor, Read, Result};
 use std::string::FromUtf8Error;
 
-use svm_types::{Address, State, TransactionId};
+use svm_types::{Address, State, TemplateAddr, TransactionId};
 
 /// A trait to be implemented by Decoders
 pub trait ReadExt {
@@ -26,8 +26,11 @@ pub trait ReadExt {
     /// Reads a UTF-8 String
     fn read_string(&mut self) -> Result<std::result::Result<String, FromUtf8Error>>;
 
-    /// Reads an `Address`
+    /// Reads an `Account Address`
     fn read_address(&mut self) -> Result<Address>;
+
+    /// Reads a `Template Address`
+    fn read_template_addr(&mut self) -> Result<TemplateAddr>;
 
     /// Reads a `State`
     fn read_state(&mut self) -> Result<State>;
@@ -59,8 +62,11 @@ pub trait WriteExt {
     /// Writes a UTF-8 String
     fn write_string(&mut self, s: &str);
 
-    /// Writes an `Address`
+    /// Writes an `Account Address`
     fn write_address(&mut self, addr: &Address);
+
+    /// Writes a `Template Address`
+    fn write_template_addr(&mut self, addr: &TemplateAddr);
 
     /// Writes a `State`
     fn write_state(&mut self, state: &State);
@@ -137,6 +143,13 @@ impl ReadExt for Cursor<&[u8]> {
         Ok(addr)
     }
 
+    fn read_template_addr(&mut self) -> Result<TemplateAddr> {
+        let bytes = self.read_bytes(TemplateAddr::len())?;
+        let addr = bytes.as_slice().into();
+
+        Ok(addr)
+    }
+
     fn read_state(&mut self) -> Result<State> {
         let bytes = self.read_bytes(State::len())?;
         let state = bytes.as_slice().into();
@@ -187,7 +200,6 @@ impl WriteExt for Vec<u8> {
 
     fn write_string(&mut self, s: &str) {
         let length = s.len();
-
         assert!(length <= std::u8::MAX as usize);
 
         self.write_byte(length as u8);
@@ -197,6 +209,12 @@ impl WriteExt for Vec<u8> {
     }
 
     fn write_address(&mut self, addr: &Address) {
+        let bytes = addr.as_slice();
+
+        self.write_bytes(bytes);
+    }
+
+    fn write_template_addr(&mut self, addr: &TemplateAddr) {
         let bytes = addr.as_slice();
 
         self.write_bytes(bytes);

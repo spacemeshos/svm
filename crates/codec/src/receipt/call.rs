@@ -1,28 +1,37 @@
-//! `Call Account` Receipt Raw Format Version 0
+//!  ## `Call Account` Receipt Binary Format Version 0
 //!
 //!  On success (`is_success = 1`)
+//!
+//!  ```text
 //!  +---------------------------------------------------+
 //!  |           |            |            |             |
-//!  |  tx type  |  version   | is_success |  new state  |
+//!  |  tx type  |  version   | is_success |  new State  |
 //!  | (1 byte)  |  (2 bytes) |  (1 byte)  | (32 bytes)  |
-//!  +___________|____________|____________|_____________+
-//!  |                       |                           |
-//!  |       returndata      |    gas_used (8 bytes)     |
-//!  +_______________________|___________________________+
-//!  |          |            |         |                 |
-//!  |  #logs   | log 1 blob |  . . .  |     log #N      |
-//!  +__________|____________|_________|_________________+
+//!  |           |            |            |             |
+//!  +---------------------------------------------------+
+//!  |              |             |                      |
+//!  |  returndata  | returndata  |      gas_used        |
+//!  |   byte-size  |   (Blob)    |      (8 bytes)       |
+//!  |   (2 bytes)  |             |                      |
+//!  |              |             |                      |
+//!  +---------------------------------------------------+
+//!  |           |          |         |                  |
+//!  |  #logs    |  log #1  |  . . .  |     log #N       |
+//!  | (1 byte)  |  (Blob)  |         |     (Blob)       |
+//!  |           |          |         |                  |
+//!  +---------------------------------------------------+
+//!  ```
 //!
 //!
-//!  On success (`is_success = 0`)
-//!  See [error.rs][./error.rs]
+//!  On Error (`is_success = 0`)
+//!  See [error.rs](./error.rs)
 
 use std::io::Cursor;
 
 use svm_types::CallReceipt;
 
-use super::{decode_error, encode_error, gas, logs};
-use crate::{calldata, version};
+use super::{decode_error, encode_error, gas, logs, returndata};
+use crate::version;
 use crate::{ReadExt, WriteExt};
 
 /// Encodes an [`CallReceipt`] into its binary format.
@@ -66,7 +75,7 @@ pub fn decode_call(bytes: &[u8]) -> CallReceipt {
         }
         true => {
             let new_state = cursor.read_state().unwrap();
-            let returndata = calldata::decode_calldata(&mut cursor).unwrap();
+            let returndata = returndata::decode(&mut cursor).unwrap();
             let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
@@ -94,7 +103,7 @@ fn encode_returndata(receipt: &CallReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let data = receipt.returndata();
-    calldata::encode_calldata(&data, w);
+    returndata::encode(&data, w);
 }
 
 #[cfg(test)]

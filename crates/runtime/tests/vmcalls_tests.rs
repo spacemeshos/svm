@@ -3,7 +3,7 @@ use wasmer::{imports, NativeFunc};
 use svm_layout::{FixedLayout, Id};
 use svm_runtime::testing::{self, WasmFile};
 use svm_runtime::{vmcalls, FuncEnv};
-use svm_types::{Address, ReceiptLog};
+use svm_types::{Address, Context, Envelope, ReceiptLog, TemplateAddr};
 
 /// Creates a new `Wasmer Store`
 pub fn wasmer_store() -> wasmer::Store {
@@ -114,19 +114,20 @@ fn vmcalls_empty_wasm() {
 
 #[test]
 fn vmcalls_get32_set32() {
-    let template_addr = Address::repeat(0xAB);
+    let template_addr = TemplateAddr::repeat(0xAB);
     let account_addr = Address::repeat(0xCD);
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
     let storage = testing::blank_storage(&account_addr, &layout);
-
-    let env = FuncEnv::new(storage, &template_addr.into(), &account_addr.into());
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let func_env = FuncEnv::new(storage, &envelope, &context, &template_addr, &account_addr);
 
     let import_object = imports! {
         "svm" => {
-            "svm_get32" => func!(store, env, vmcalls::get32),
-            "svm_set32" => func!(store, env, vmcalls::set32),
+            "svm_get32" => func!(store, func_env, vmcalls::get32),
+            "svm_set32" => func!(store, func_env, vmcalls::set32),
         }
     };
 
@@ -143,23 +144,25 @@ fn vmcalls_get32_set32() {
 
     assert_vars32!(instance, 0 => 5, 1 => 10);
 
-    assert_storage!(env, 0 => [5, 0, 0, 0], 1 => [10, 0]);
+    assert_storage!(func_env, 0 => [5, 0, 0, 0], 1 => [10, 0]);
 }
 
 #[test]
 fn vmcalls_get64_set64() {
-    let template_addr = Address::repeat(0xAB);
+    let template_addr = TemplateAddr::repeat(0xAB);
     let account_addr = Address::repeat(0xCD);
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
     let storage = testing::blank_storage(&account_addr, &layout);
-    let env = FuncEnv::new(storage, &template_addr.into(), &account_addr.into());
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let func_env = FuncEnv::new(storage, &envelope, &context, &template_addr, &account_addr);
 
     let import_object = imports! {
         "svm" => {
-            "svm_get64" => func!(store, env, vmcalls::get64),
-            "svm_set64" => func!(store, env, vmcalls::set64),
+            "svm_get64" => func!(store, func_env, vmcalls::get64),
+            "svm_set64" => func!(store, func_env, vmcalls::set64),
         },
     };
 
@@ -176,30 +179,34 @@ fn vmcalls_get64_set64() {
 
     assert_vars64!(instance, 0 => 5, 1 => 10);
 
-    assert_storage!(env, 0 => [5, 0, 0, 0], 1 => [10, 0]);
+    assert_storage!(func_env, 0 => [5, 0, 0, 0], 1 => [10, 0]);
 }
 
 #[test]
 fn vmcalls_load160() {
-    let template_addr = Address::repeat(0xAB);
+    let template_addr = TemplateAddr::repeat(0xAB);
     let account_addr = Address::repeat(0xCD);
     let layout: FixedLayout = vec![20].into();
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
     let storage = testing::blank_storage(&account_addr, &layout);
-    let env = FuncEnv::new_with_memory(
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let func_env = FuncEnv::new_with_memory(
         memory.clone(),
         storage,
-        &template_addr.into(),
-        &account_addr.clone().into(),
+        &envelope,
+        &context,
+        &template_addr,
+        &account_addr,
     );
 
     let import_object = imports! {
         "svm" => {
             "memory" => memory.clone(),
-            "svm_load160" => func!(store, env, vmcalls::load160),
-            "svm_store160" => func!(store, env, vmcalls::store160),
+            "svm_load160" => func!(store, func_env, vmcalls::load160),
+            "svm_store160" => func!(store, func_env, vmcalls::store160),
         },
     };
 
@@ -210,7 +217,7 @@ fn vmcalls_load160() {
     );
 
     {
-        let storage = &mut env.borrow_mut().storage;
+        let storage = &mut func_env.borrow_mut().storage;
         storage.write_var(Id(0), account_addr.as_slice().to_vec());
     }
 
@@ -228,25 +235,29 @@ fn vmcalls_load160() {
 
 #[test]
 fn vmcalls_store160() {
-    let template_addr = Address::repeat(0xAB);
+    let template_addr = TemplateAddr::repeat(0xAB);
     let account_addr = Address::repeat(0xCD);
     let layout: FixedLayout = vec![20].into();
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
     let storage = testing::blank_storage(&account_addr, &layout);
-    let env = FuncEnv::new_with_memory(
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let func_env = FuncEnv::new_with_memory(
         memory.clone(),
         storage,
-        &template_addr.into(),
-        &account_addr.clone().into(),
+        &envelope,
+        &context,
+        &template_addr,
+        &account_addr,
     );
 
     let import_object = imports! {
         "svm" => {
             "memory" => memory.clone(),
-            "svm_load160" => func!(store, env, vmcalls::load160),
-            "svm_store160" => func!(store, env, vmcalls::store160),
+            "svm_load160" => func!(store, func_env, vmcalls::load160),
+            "svm_store160" => func!(store, func_env, vmcalls::store160),
         },
     };
 
@@ -266,29 +277,33 @@ fn vmcalls_store160() {
 
     func.call(var_id, ptr).expect("function has failed");
 
-    assert_storage!(env, 0 => account_addr.as_slice());
+    assert_storage!(func_env, 0 => account_addr.as_slice());
 }
 
 #[test]
 fn vmcalls_log() {
-    let template_addr = Address::repeat(0xAB);
+    let template_addr = TemplateAddr::repeat(0xAB);
     let account_addr = Address::repeat(0xCD);
     let layout = FixedLayout::default();
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
     let storage = testing::blank_storage(&account_addr, &layout);
-    let env = FuncEnv::new_with_memory(
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let func_env = FuncEnv::new_with_memory(
         memory.clone(),
         storage,
-        &template_addr.into(),
-        &account_addr.into(),
+        &envelope,
+        &context,
+        &template_addr,
+        &account_addr,
     );
 
     let import_object = imports! {
         "svm" => {
             "memory" => memory.clone(),
-            "svm_log" => func!(store, env, vmcalls::log),
+            "svm_log" => func!(store, func_env, vmcalls::log),
         },
     };
 
@@ -300,13 +315,13 @@ fn vmcalls_log() {
         cell.set(*byte);
     }
 
-    let logs = env.borrow_mut().take_logs();
+    let logs = func_env.borrow_mut().take_logs();
     assert!(logs.is_empty());
 
     let func = instance.exports.get_function("sayHello").unwrap();
     let _ = func.call(&[]).unwrap();
 
-    let logs = env.borrow_mut().take_logs();
+    let logs = func_env.borrow_mut().take_logs();
 
     assert_eq!(
         logs,

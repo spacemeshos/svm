@@ -1,8 +1,9 @@
 use std::io;
 
-use svm_ffi::svm_byte_array;
 use svm_runtime::ValidateError;
 use svm_types::Type;
+
+use crate::svm_byte_array;
 
 pub(crate) fn raw_validate_error(err: &ValidateError, raw_err: &mut svm_byte_array) {
     let s = format!("{}", err);

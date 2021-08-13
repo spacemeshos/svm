@@ -11,8 +11,7 @@ use svm_storage::{
     kv::{FakeKV, StatefulKV},
 };
 use svm_types::{
-    AccountAddr, Address, CodeSection, CtorsSection, DataSection, HeaderSection, State,
-    TemplateAddr,
+    Address, CodeSection, CtorsSection, DataSection, HeaderSection, State, TemplateAddr,
 };
 
 use crate::env::{DefaultMemAccountStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
@@ -83,10 +82,8 @@ fn runtime_memory_storage_builder(kv: &Rc<RefCell<dyn StatefulKV>>) -> Box<Stora
     let kv = Rc::clone(kv);
 
     let func =
-        move |account_addr: &AccountAddr, state: &State, layout: &FixedLayout, _config: &Config| {
-            let account_addr = account_addr.inner();
+        move |account_addr: &Address, state: &State, layout: &FixedLayout, _config: &Config| {
             let account_kv = AccountKVStore::new(account_addr.clone(), &kv);
-
             let mut storage = AccountStorage::new(layout.clone(), account_kv);
             storage.rewind(state);
 
@@ -131,7 +128,7 @@ pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[
 }
 
 /// Builds a binary `Call Account` transaction. (a.k.a a `Transaction`).
-pub fn build_call(target: &AccountAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
+pub fn build_call(target: &Address, func: &str, calldata: &[u8]) -> Vec<u8> {
     CallBuilder::new()
         .with_version(0)
         .with_target(target)

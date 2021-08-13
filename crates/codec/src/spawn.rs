@@ -62,31 +62,26 @@ pub fn decode(cursor: &mut Cursor<&[u8]>) -> Result<SpawnAccount, ParseError> {
 
 fn encode_version(spawn: &SpawnAccount, w: &mut Vec<u8>) {
     let v = &spawn.version;
-
     version::encode_version(*v, w);
 }
 
 fn encode_name(spawn: &SpawnAccount, w: &mut Vec<u8>) {
     let name = spawn.account_name();
-
     w.write_string(name);
 }
 
 fn encode_template(spawn: &SpawnAccount, w: &mut Vec<u8>) {
     let template = spawn.template_addr();
-
-    w.write_address(template.inner());
+    w.write_template_addr(template);
 }
 
 fn encode_ctor(spawn: &SpawnAccount, w: &mut Vec<u8>) {
-    let ctor = &spawn.ctor_name;
-
+    let ctor = spawn.ctor_name();
     w.write_string(ctor);
 }
 
 fn encode_ctor_calldata(spawn: &SpawnAccount, w: &mut Vec<u8>) {
     let calldata = &*spawn.calldata;
-
     calldata::encode_calldata(calldata, w);
 }
 
@@ -98,10 +93,9 @@ fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
 }
 
 fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {
-    match cursor.read_address() {
-        Ok(addr) => Ok(addr.into()),
-        Err(..) => Err(ParseError::NotEnoughBytes(Field::Address)),
-    }
+    cursor
+        .read_template_addr()
+        .map_err(|_| ParseError::NotEnoughBytes(Field::Address))
 }
 
 fn decode_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
@@ -128,7 +122,7 @@ fn decode_ctor_calldata(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseErro
 mod tests {
     use super::*;
 
-    use svm_types::Address;
+    use svm_types::TemplateAddr;
 
     #[test]
     fn encode_decode_spawn() {
@@ -136,7 +130,7 @@ mod tests {
             version: 0,
             account: Account {
                 name: "@account".to_string(),
-                template_addr: Address::of("@template").into(),
+                template_addr: TemplateAddr::of("@template"),
             },
             ctor_name: "initialize".to_string(),
             calldata: vec![0x10, 0x20, 0x30],
@@ -146,7 +140,6 @@ mod tests {
         encode(&spawn, &mut bytes);
 
         let mut cursor = Cursor::new(&bytes[..]);
-
         let decoded = decode(&mut cursor).unwrap();
 
         assert_eq!(spawn, decoded);

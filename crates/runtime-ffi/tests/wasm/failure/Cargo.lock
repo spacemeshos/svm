@@ -15,6 +15,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
+name = "hashbrown"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "indexmap"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc633605454125dec4b66843673f01c7df2b89479b32e0ed634e43a91cff62a5"
+dependencies = [
+ "autocfg",
+ "hashbrown",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -120,8 +142,12 @@ name = "svm-abi-layout"
 version = "0.0.0"
 
 [[package]]
+name = "svm-layout"
+version = "0.0.0"
+
+[[package]]
 name = "svm-runtime-examples-failure"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "svm-sdk",
 ]
@@ -161,7 +187,7 @@ dependencies = [
 
 [[package]]
 name = "svm-sdk-macros"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -172,6 +198,7 @@ dependencies = [
  "svm-sdk-std",
  "svm-sdk-storage",
  "svm-sdk-types",
+ "svm-types",
  "syn",
 ]
 
@@ -197,6 +224,15 @@ name = "svm-sdk-types"
 version = "0.0.0"
 dependencies = [
  "svm-sdk-std",
+]
+
+[[package]]
+name = "svm-types"
+version = "0.0.0"
+dependencies = [
+ "hex",
+ "indexmap",
+ "svm-layout",
 ]
 
 [[package]]

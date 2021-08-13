@@ -12,5 +12,5 @@ pub fn calldata_len(env: &FuncEnv) -> i32 {
 
 #[inline]
 fn calldata(env: &FuncEnv) -> (usize, usize) {
-    env.borrow().get_calldata()
+    env.borrow().calldata()
 }

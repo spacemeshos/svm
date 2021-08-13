@@ -1,31 +1,7 @@
 use crate::impl_bytes_primitive;
-use crate::AddressOf;
 
 impl_bytes_primitive!(Address, 20);
-
-macro_rules! impl_addr_type {
-    ($id:ident) => {
-        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        pub enum $id {}
-    };
-}
-
-impl_addr_type!(Deployer);
-impl_addr_type!(Spawner);
-impl_addr_type!(Template);
-impl_addr_type!(Account);
-
-/// Address of a Template.
-pub type TemplateAddr = AddressOf<Template>;
-
-/// Address of a Template Deployer.
-pub type DeployerAddr = AddressOf<Deployer>;
-
-/// Address of an `Account` Spawner.
-pub type SpawnerAddr = AddressOf<Spawner>;
-
-/// Address of an [`Account`](crate::Account)
-pub type AccountAddr = AddressOf<Account>;
+impl_bytes_primitive!(TemplateAddr, 20);
 
 #[cfg(test)]
 mod tests {
@@ -34,24 +10,14 @@ mod tests {
     #[test]
     fn address_len() {
         assert_eq!(20, Address::len());
+        assert_eq!(20, TemplateAddr::len());
     }
 
     #[test]
     fn address_partial_eq() {
-        let addr1 = Address([
-            0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ]);
-
-        let addr2 = Address([
-            0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ]);
-
-        let addr3 = Address([
-            0x88, 0x77, 0x66, 0x55, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ]);
+        let addr1 = Address::repeat(0xAB);
+        let addr2 = Address::repeat(0xAB);
+        let addr3 = Address::repeat(0xCD);
 
         assert_eq!(addr1, addr2);
         assert_eq!(addr2, addr1);

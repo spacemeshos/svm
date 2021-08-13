@@ -79,7 +79,6 @@ jobs:
           set -e
           mkdir bins
           mv target/${{ matrix.profile }}/svm.h bins/svm.h
-          mv target/${{ matrix.profile }}/svm_types.h bins/svm_types.h
       - name: Prepare Artifact (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |

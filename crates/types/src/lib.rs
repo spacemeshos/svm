@@ -14,7 +14,6 @@ mod macros;
 
 mod account;
 mod address;
-mod address_of;
 mod error;
 mod spawn_account;
 mod state;
@@ -37,9 +36,8 @@ pub use receipt::{
     into_spawn_receipt, CallReceipt, DeployReceipt, Receipt, ReceiptLog, ReceiptRef, SpawnReceipt,
 };
 
-/// Address-related types
-pub use address::{AccountAddr, Address, DeployerAddr, SpawnerAddr, TemplateAddr};
-pub use address_of::AddressOf;
+/// `Addressable` types
+pub use address::{Address, TemplateAddr};
 
 pub use account::Account;
 pub use spawn_account::SpawnAccount;

@@ -4,7 +4,7 @@ use env::{ExtSpawn, Template};
 use traits::ComputeAddress;
 
 use svm_hash::{Blake3Hasher, Hasher};
-use svm_types::{AccountAddr, Address, TemplateAddr};
+use svm_types::{Address, TemplateAddr};
 
 /// Default implementation for computing an `Account's Address` deterministically.
 ///
@@ -16,15 +16,15 @@ impl ComputeAddress<Template> for DefaultTemplateAddressCompute {
     type Address = TemplateAddr;
 
     fn compute(template: &Template) -> TemplateAddr {
-        let cap = Address::len() + template.code().len();
+        let cap = TemplateAddr::len() + template.code().len();
         let mut buf = Vec::with_capacity(cap);
 
         buf.extend_from_slice(template.code());
 
         let hash = Blake3Hasher::hash(&buf);
-        let addr = Address::from(&hash[0..Address::len()]);
+        let addr = TemplateAddr::from(&hash[0..TemplateAddr::len()]);
 
-        TemplateAddr::new(addr)
+        addr
     }
 }
 
@@ -32,17 +32,17 @@ impl ComputeAddress<Template> for DefaultTemplateAddressCompute {
 pub struct DefaultAccountAddressCompute;
 
 impl ComputeAddress<ExtSpawn> for DefaultAccountAddressCompute {
-    type Address = AccountAddr;
+    type Address = Address;
 
     fn compute(spawn: &ExtSpawn) -> Self::Address {
         let mut buf = Vec::with_capacity(Address::len() * 2);
 
-        let template_addr = spawn.template_addr().inner();
+        let template_addr = spawn.template_addr();
         buf.extend_from_slice(template_addr.as_slice());
 
         let hash = Blake3Hasher::hash(&buf);
         let addr = Address::from(&hash[0..Address::len()]);
 
-        AccountAddr::new(addr)
+        addr
     }
 }

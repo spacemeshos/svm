@@ -60,7 +60,7 @@ fn memory_runtime_validate_call_not_enough_bytes() {
     let runtime = testing::create_memory_runtime();
     let message = vec![0xFF, 0xFF];
 
-    let error = ParseError::NotEnoughBytes(Field::AccountAddr);
+    let error = ParseError::NotEnoughBytes(Field::TargetAddr);
     let expected = Err(ValidateError::Parse(error));
 
     let actual = runtime.validate_call(&message);

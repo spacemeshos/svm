@@ -10,8 +10,8 @@ use crate::tracking;
 /// # Examples
 ///
 /// ```rust
+/// use svm_runtime_ffi::svm_byte_array;
 /// use svm_types::Type;
-/// use svm_ffi::svm_byte_array;
 ///
 /// use std::convert::TryFrom;
 /// use std::string::FromUtf8Error;
@@ -36,6 +36,7 @@ pub struct svm_byte_array {
 }
 
 impl svm_byte_array {
+    /// Creates a new [`svm_byte_array`] out of its raw parts.
     pub unsafe fn from_raw_parts(
         bytes: *const u8,
         length: u32,
@@ -50,7 +51,7 @@ impl svm_byte_array {
         }
     }
 
-    /// Creates a new `svm_byte_array` backed by a buffer of zeros sized `size`.
+    /// Creates a new [`svm_byte_array`] backed by a buffer of zeros sized `size`.
     pub fn with_capacity(size: usize, ty: Type) -> Self {
         let vec = vec![0u8; size];
 
@@ -68,12 +69,17 @@ impl svm_byte_array {
         tracking::decrement_live_1(self.type_id)
     }
 
-    /// Returns a byte slice over the contents.
+    /// Returns a shared slice over the contents.
     pub fn as_slice(&self) -> &[u8] {
         unsafe { std::slice::from_raw_parts(self.bytes, self.length as usize) }
     }
 
-    /// Copies `self` into a new `Vec`.
+    /// Returns a mutable slice over the contents.
+    pub fn as_slice_mut(&mut self) -> &mut [u8] {
+        unsafe { std::slice::from_raw_parts_mut(self.bytes as _, self.length as usize) }
+    }
+
+    /// Copies `self` into a new [`Vec`](std::vec::Vec).
     pub fn to_vec(&self) -> Vec<u8> {
         self.as_slice().to_vec()
     }
@@ -92,7 +98,7 @@ impl svm_byte_array {
         self.length
     }
 
-    /// The `svm_types::Type` associated with the data represented by `bytes`.
+    /// The [`Type`] associated with the data represented by `bytes`.
     /// It's the interned value of the type. (For more info see `tracking::interning.rs`)
     pub fn type_id(&self) -> usize {
         self.type_id
@@ -103,7 +109,7 @@ impl svm_byte_array {
 // /// # Examples
 // ///
 // /// ```rust
-// /// use svm_ffi::svm_byte_array;
+// /// use svm_runtime_ffi::svm_byte_array;
 // ///
 // /// let array = svm_byte_array::default();
 // ///
