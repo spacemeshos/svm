@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS "values";
 CREATE TABLE IF NOT EXISTS "values" (
 	"id" INTEGER NOT NULL UNIQUE,
 	"commit_id"	INTEGER,
-	"key_hash" BLOB NOT NULL,
+	"key_hash" BLOB NOT NULL CHECK(length("key_hash") == 32),
 	"value"	BLOB NOT NULL,
 	PRIMARY KEY("id"),
 	FOREIGN KEY("commit_id") REFERENCES "commits"("id")
