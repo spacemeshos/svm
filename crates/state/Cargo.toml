@@ -10,6 +10,9 @@ homepage = "https://github.com/spacemeshos/svm"
 description = "Spacemesh Virtual Machine"
 publish = false
 
+[env]
+DATABASE_URL = { value = "src/resources/empty.sqlite", relative = true }
+
 [dependencies]
 anyhow = "1"
 blake3 = "1"
