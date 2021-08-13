@@ -1,4 +1,4 @@
-use svm_hash::{DefaultHasher, Hasher};
+use svm_hash::{Blake3Hasher, Hasher};
 use svm_types::Template;
 
 use super::super::traits::TemplateHasher;
@@ -10,6 +10,6 @@ pub struct DefaultTemplateHasher;
 impl TemplateHasher for DefaultTemplateHasher {
     #[inline]
     fn hash(template: &Template) -> TemplateHash {
-        DefaultHasher::hash(template.code())
+        Blake3Hasher::hash(template.code())
     }
 }

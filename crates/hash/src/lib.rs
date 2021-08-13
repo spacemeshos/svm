@@ -1,3 +1,10 @@
+//! Hashing utilities for the SVM.
+
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
+
 /// A low-level trait for defining a hasher
 pub trait Hasher: Default {
     /// `KeyHasher` produces hashes of type `Self::Hash`
@@ -10,65 +17,20 @@ pub trait Hasher: Default {
         hasher.finalize()
     }
 
+    /// Writes some arbitrary `bytes` into this [`Hasher`].
     fn update(&mut self, bytes: &[u8]) -> &mut Self;
 
+    /// Returns the final [`Hasher::Hash`] value for all data written to `self`
+    /// via [`Hasher::update`] so far.
     fn finalize(self) -> Self::Hash;
 }
 
-#[derive(Default)]
-pub struct Blake3Hasher {
-    hasher: blake3::Hasher,
-}
-
-impl Hasher for Blake3Hasher {
-    type Hash = [u8; 32];
-
-    fn update(&mut self, bytes: &[u8]) -> &mut Self {
-        self.hasher.update(bytes);
-        self
-    }
-
-    fn finalize(self) -> Self::Hash {
-        *self.hasher.finalize().as_bytes()
-    }
-}
-
-/// Implements the `KeyHasher` trait using the `keccak256` hashing algorithm (output: 32 bytes)
-pub struct DefaultHasher {
-    hasher: tiny_keccak::Keccak,
-}
-
-impl Hasher for DefaultHasher {
-    type Hash = [u8; 32];
-
-    fn update(&mut self, bytes: &[u8]) -> &mut Self {
-        use tiny_keccak::Hasher;
-
-        self.hasher.update(bytes);
-        self
-    }
-
-    fn finalize(self) -> Self::Hash {
-        use tiny_keccak::Hasher;
-
-        let mut out = [0; 32];
-        self.hasher.finalize(&mut out);
-        out
-    }
-}
-
-impl Default for DefaultHasher {
-    fn default() -> Self {
-        Self {
-            hasher: tiny_keccak::Keccak::v256(),
-        }
-    }
-}
-
+/// Implements the [`Hasher`] trait using the Blake3 hashing algorithm (output:
+/// 32 bytes).
 #[derive(Clone, Debug, Default)]
-pub struct Blake3StdHasher(blake3::Hasher);
+pub struct Blake3Hasher(blake3::Hasher);
 
-impl std::hash::Hasher for Blake3StdHasher {
+impl std::hash::Hasher for Blake3Hasher {
     fn write(&mut self, bytes: &[u8]) {
         self.0.update(bytes);
     }
@@ -77,5 +39,18 @@ impl std::hash::Hasher for Blake3StdHasher {
         let mut hash = [0; 8];
         self.0.finalize_xof().fill(&mut hash);
         u64::from_be_bytes(hash)
+    }
+}
+
+impl Hasher for Blake3Hasher {
+    type Hash = [u8; 32];
+
+    fn update(&mut self, bytes: &[u8]) -> &mut Self {
+        self.0.update(bytes);
+        self
+    }
+
+    fn finalize(self) -> Self::Hash {
+        *self.0.finalize().as_bytes()
     }
 }

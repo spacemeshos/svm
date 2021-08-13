@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use crate::kv::StatefulKV;
 
-use svm_hash::{DefaultHasher, Hasher};
+use svm_hash::{Blake3Hasher, Hasher};
 use svm_types::{Address, State};
 
 /// An Account-aware (and `State`-aware) key-value store interface responsible of
@@ -85,7 +85,7 @@ impl AccountKVStore {
 
     #[inline]
     fn hash(&self, bytes: &[u8]) -> Vec<u8> {
-        DefaultHasher::hash(bytes).to_vec()
+        Blake3Hasher::hash(bytes).to_vec()
     }
 }
 

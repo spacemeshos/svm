@@ -12,4 +12,3 @@ publish = false
 
 [dependencies]
 blake3 = "1"
-tiny-keccak = { version = "2", features = ["keccak"] }
