@@ -11,7 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [env]
-DATABASE_URL = { value = "src/resources/empty.sqlite", relative = true }
+DATABASE_URL = { value = "src/resources/empty.sqlite", force = true, relative = true }
 
 [dependencies]
 anyhow = "1"
