@@ -5,12 +5,12 @@
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 
-/// A low-level trait for defining a hasher
+/// A low-level trait for defining a hasher.
 pub trait Hasher: Default {
     /// `KeyHasher` produces hashes of type `Self::Hash`
-    type Hash: AsRef<[u8]> + Copy + Clone + std::fmt::Debug + Sized;
+    type Hash: AsRef<[u8]> + Copy + std::fmt::Debug + Sized;
 
-    /// Receives an input `key` and returns its hash as `Self::Hash`
+    /// Receives an input `key` and returns its hash as `Self::Hash`.
     fn hash(key: &[u8]) -> Self::Hash {
         let mut hasher = Self::default();
         hasher.update(key);
