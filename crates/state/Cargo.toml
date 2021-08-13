@@ -1,23 +1,27 @@
 [package]
 name = "svm-state"
-version = "0.1.0"
+version = "0.0.0"
+authors = ["Spacemesh SVM Team"]
+license = "MIT"
 edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
 publish = false
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1"
 blake3 = "1"
+# https://github.com/myrrlyn/funty/issues/3
 funty = "=1.1.0"
-futures = "0.3"
-redis = { version = "0.21", features = ["tokio-comp"] }
 rocksdb = { version = "0.15", default-features = false }
 sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite"] }
 svm-hash = { path = "../hash" }
 thiserror = "1"
 
 [dev-dependencies]
+futures = "0.3"
 quickcheck = "1"
 quickcheck_async = "0.1"
 quickcheck_macros = "1"
