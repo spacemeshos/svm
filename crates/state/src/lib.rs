@@ -1,3 +1,11 @@
+//! Global State implementation for the SVM.
+
+// TODO: Add missing documentation.
+#![warn(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
+
 mod error;
 
 use sqlx::SqlitePool;
