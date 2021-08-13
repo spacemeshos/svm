@@ -3,7 +3,7 @@ BEGIN TRANSACTION;
 DROP TABLE IF EXISTS "commits";
 CREATE TABLE IF NOT EXISTS "commits" (
 	"id" INTEGER NOT NULL UNIQUE,
-	"signature" BLOB NOT NULL CHECK(length("signature") == 32),
+	"fingerprint" BLOB NOT NULL CHECK(length("fingerprint") == 32),
 	PRIMARY KEY("id")
 );
 
@@ -17,9 +17,9 @@ CREATE TABLE IF NOT EXISTS "values" (
 	FOREIGN KEY("commit_id") REFERENCES "commits"("id")
 );
 
-DROP INDEX IF EXISTS "commits_by_signature";
-CREATE INDEX IF NOT EXISTS "commits_by_signature" ON "commits" (
-	"signature" ASC
+DROP INDEX IF EXISTS "commits_by_fingerprint";
+CREATE INDEX IF NOT EXISTS "commits_by_fingerprint" ON "commits" (
+	"fingerprint" ASC
 );
 
 DROP INDEX IF EXISTS "values_by_commit_id_and_key_hash";

@@ -28,13 +28,13 @@ fn hash_key_value_pair(key_hash: &[u8; 32], value: &[u8]) -> [u8; 32] {
     hasher.finalize()
 }
 
-fn xor_signature(sig_1: &mut [u8; 32], sig_2: &[u8; 32]) {
+fn xor_fingerprint(sig_1: &mut [u8; 32], sig_2: &[u8; 32]) {
     for (a, b) in sig_1.iter_mut().zip(sig_2) {
         *a ^= *b;
     }
 }
 
-const ZERO_SIGNATURE: [u8; 32] = [0; 32];
+const ZERO_FINGERPRINT: [u8; 32] = [0; 32];
 
 /// Some external resources:
 ///
@@ -71,7 +71,7 @@ impl GlobalState {
     pub async fn initialize(&mut self) -> Result<()> {
         // When initializing the database, we must look for the most recent
         // commit. If not present, that means the database is pristine and we
-        // must create a new commit with an empty signature.
+        // must create a new commit with an empty fingerprint.
         let max_commit_id: Option<i64> = sqlx::query!(
             r#"
                 SELECT "id"
@@ -90,7 +90,7 @@ impl GlobalState {
             }
             None => {
                 self.next_commit_id = 1;
-                self.create_commit(ZERO_SIGNATURE).await?;
+                self.create_commit(ZERO_FINGERPRINT).await?;
             }
         }
 
@@ -139,7 +139,7 @@ impl GlobalState {
                         "commit_id" <= (
                             SELECT "id"
                             FROM "commits"
-                            WHERE "signature" = ?1
+                            WHERE "fingerprint" = ?1
                         )
                         AND
                         "key_hash" = ?2
@@ -197,16 +197,16 @@ impl GlobalState {
         None
     }
 
-    /// Creates a new [`Commit`] with the given signature.
-    async fn create_commit(&mut self, signature: Commit) -> Result<()> {
-        let signature = &signature[..];
+    /// Creates a new [`Commit`] with the given fingerprint.
+    async fn create_commit(&mut self, fingerprint: Commit) -> Result<()> {
+        let fingerprint = &fingerprint[..];
         sqlx::query!(
             r#"
-                INSERT INTO "commits" ("id", "signature")
+                INSERT INTO "commits" ("id", "fingerprint")
                 VALUES (?1, ?2)
             "#,
             self.next_commit_id,
-            signature
+            fingerprint
         )
         .execute(&self.sqlite)
         .await?;
@@ -226,14 +226,17 @@ impl GlobalState {
     pub async fn checkpoint(&mut self) -> Result<Commit> {
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
 
-        let mut signature = [0; 32];
+        let mut fingerprint = [0; 32];
 
         for change in dirty_changes {
             let old_value: Option<Vec<u8>> = self.get_by_hash(&change.0, None).await?;
             if let Some(old_value) = old_value {
-                xor_signature(&mut signature, &hash_key_value_pair(&change.0, &old_value));
+                xor_fingerprint(
+                    &mut fingerprint,
+                    &hash_key_value_pair(&change.0, &old_value),
+                );
             }
-            xor_signature(&mut signature, &hash_key_value_pair(&change.0, &change.1));
+            xor_fingerprint(&mut fingerprint, &hash_key_value_pair(&change.0, &change.1));
 
             let key_hash = &change.0[..];
             let value = &change.1[..];
@@ -250,13 +253,13 @@ impl GlobalState {
             .await?;
         }
 
-        self.update_commit_signature(&signature).await
+        self.update_commit_fingerprint(&fingerprint).await
     }
 
-    async fn commit_signature(&self, commit_id: i64) -> Result<Commit> {
+    async fn commit_fingerprint(&self, commit_id: i64) -> Result<Commit> {
         let bytes = sqlx::query!(
             r#"
-                SELECT "signature"
+                SELECT "fingerprint"
                 FROM "commits"
                 WHERE "id" = ?1
             "#,
@@ -264,34 +267,37 @@ impl GlobalState {
         )
         .fetch_one(&self.sqlite)
         .await?
-        .signature;
+        .fingerprint;
         Ok(bytes.try_into().unwrap())
     }
 
-    async fn update_commit_signature(&mut self, partial_signature: &[u8; 32]) -> Result<Commit> {
-        let mut signature: [u8; 32] = self.commit_signature(self.next_commit_id).await?;
-        xor_signature(&mut signature, partial_signature);
-        let signature_bytes = &signature[..];
+    async fn update_commit_fingerprint(
+        &mut self,
+        partial_fingerprint: &[u8; 32],
+    ) -> Result<Commit> {
+        let mut fingerprint: [u8; 32] = self.commit_fingerprint(self.next_commit_id).await?;
+        xor_fingerprint(&mut fingerprint, partial_fingerprint);
+        let fingerprint_bytes = &fingerprint[..];
 
         sqlx::query!(
             r#"
                 UPDATE "commits"
-                SET "signature" = ?1
+                SET "fingerprint" = ?1
                 WHERE "id" = ?2
             "#,
-            signature_bytes,
+            fingerprint_bytes,
             self.next_commit_id
         )
         .execute(&self.sqlite)
         .await?;
 
-        Ok(signature)
+        Ok(fingerprint)
     }
 
-    /// Returns the [`Commit`] signature of the last ever checkpoint; i.e.
+    /// Returns the [`Commit`] fingerprint of the last ever checkpoint; i.e.
     /// persisted changes without dirty changes.
     pub async fn current(&self) -> Result<Commit> {
-        self.commit_signature(self.next_commit_id).await
+        self.commit_fingerprint(self.next_commit_id).await
     }
 
     /// Returns the current root hash in the form of a [`Commit`].
@@ -355,7 +361,7 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
-    async fn root_signature_changes_after_inserts() -> bool {
+    async fn root_fingerprint_changes_after_inserts() -> bool {
         let mut gs = GlobalState::in_memory().await.unwrap();
 
         gs.upsert(b"foo", "bar").await;
