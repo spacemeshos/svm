@@ -1,7 +1,7 @@
 use core::cmp::{Ordering, PartialOrd};
 use core::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
-use svm_sdk_std::ensure;
+use svm_sdk_std::{ensure, String, StringBuilder, ToString};
 
 use crate::types::PrimitiveMarker;
 
@@ -123,9 +123,33 @@ impl PartialOrd for Amount {
     }
 }
 
+impl ToString for Amount {
+    fn to_string(&self) -> String {
+        let mut sb = StringBuilder::with_capacity(100);
+
+        let s = self.0.to_string();
+        sb.push_str(&s);
+        sb.push_str(&String::new(" coins"));
+        sb.build()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn amount_to_string() {
+        extern crate std;
+
+        let amount = Amount(123);
+        let string = svm_sdk_std::ToString::to_string(&amount);
+
+        let vec: std::vec::Vec<u8> = string.as_bytes().into();
+        let string = unsafe { std::string::String::from_utf8_unchecked(vec) };
+
+        assert_eq!(string.as_str(), "123 coins");
+    }
 
     #[test]
     fn amount_add() {

@@ -92,6 +92,9 @@ macro_rules! impl_blob_type {
         impl From<[u8; $nbytes]> for $ty {
             #[inline]
             fn from(value: [u8; $nbytes]) -> Self {
+                extern crate alloc;
+                use alloc::boxed::Box;
+
                 let slice = Box::leak(Box::new(value));
                 let ptr = slice.as_ptr();
 

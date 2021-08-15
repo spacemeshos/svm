@@ -67,15 +67,6 @@ impl ToToken for DecDigit {
     }
 }
 
-#[inline]
-fn next_digit(value: u64) -> (u8, u64, bool) {
-    let digit = value % 10;
-    let value = value / 10;
-    let completed = value == 0;
-
-    (digit as u8, value, completed)
-}
-
 fn num_as_string(num: u64, is_negative: bool) -> String {
     let mut value = num;
     let mut digits = [0u8; 20];
@@ -93,13 +84,23 @@ fn num_as_string(num: u64, is_negative: bool) -> String {
             has_more = !completed;
         }
         else {
-            return concat_digits(&digits, used_count, is_negative);
             debug_assert_eq!(value, 0);
+            return concat_digits(&digits, used_count, is_negative);
         }
     });
 
     // we should never get here
     crate::panic()
+}
+
+#[inline]
+fn next_digit(value: u64) -> (u8, u64, bool) {
+    let digit = value % 10;
+    let value = value / 10;
+    let completed = value == 0;
+
+    debug_assert!(digit < 10);
+    (digit as u8, value, completed)
 }
 
 fn concat_digits(digits: &[u8; 20], used_count: usize, is_negative: bool) -> String {
@@ -110,7 +111,7 @@ fn concat_digits(digits: &[u8; 20], used_count: usize, is_negative: bool) -> Str
 
     seq_macro::seq!(N in 0..20 {
         if N < used_count {
-            let digit = digits[N];
+            let digit = digits[used_count - N - 1];
             let token = DecDigit(digit).to_token();
             sb.push_token(token);
         }
