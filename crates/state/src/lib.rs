@@ -61,6 +61,12 @@ impl GlobalState {
         Ok(gs)
     }
 
+    /// Creates a new, empty [`GlobalState`] with no persisted state at all. All
+    /// state will be kept in an in-memory SQLite instance.
+    pub async fn in_memory() -> Result<Self> {
+        Self::new(":memory:").await
+    }
+
     async fn create_first_commit(&mut self) -> Result<()> {
         // When initializing the database, we must look for the most recent
         // commit. If not present, that means the database is pristine and we
@@ -87,22 +93,6 @@ impl GlobalState {
         }
 
         Ok(())
-    }
-
-    /// Creates a new, empty [`GlobalState`] with no persisted state at all. All
-    /// state will be kept in an in-memory SQLite database.
-    pub async fn in_memory() -> Result<Self> {
-        let sqlite = sqlx::SqlitePool::connect(":memory:").await?;
-        sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
-
-        let mut gs = Self {
-            sqlite,
-            dirty_changes: HashMap::new(),
-            next_commit_id: 1,
-        };
-        gs.create_first_commit().await?;
-
-        Ok(gs)
     }
 
     /// Fetches the value associated with the Blake3 hash of `key`. See
