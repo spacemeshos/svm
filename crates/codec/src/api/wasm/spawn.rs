@@ -36,7 +36,7 @@ mod test {
     fn wasm_spawn_valid() {
         let template_addr = "1122334455667788990011223344556677889900";
 
-        let calldata = json::encode_calldata(
+        let calldata = json::encode_inputdata(
             &json!({
                 "abi": ["i32", "i64"],
                 "data": [10, 20]

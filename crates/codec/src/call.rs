@@ -20,19 +20,19 @@ use svm_types::{Address, Transaction};
 
 use std::io::Cursor;
 
-use crate::{calldata, version};
+use crate::{inputdata, version};
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
-/// Encodes a raw [`Transaction`]
+/// Encodes a binary [`Transaction`]
 pub fn encode_call(tx: &Transaction, w: &mut Vec<u8>) {
     encode_version(tx, w);
     encode_target(tx, w);
     encode_func(tx, w);
-    // encode_verifydata(tx, w);
+    encode_verifydata(tx, w);
     encode_calldata(tx, w);
 }
 
-/// Parsing a raw [`Transaction`].
+/// Parsing a binary [`Transaction`].
 ///
 /// Returns the parsed transaction as [`Transaction`] struct.
 /// On failure, returns `ParseError`
@@ -40,14 +40,14 @@ pub fn decode_call(cursor: &mut Cursor<&[u8]>) -> Result<Transaction, ParseError
     let version = decode_version(cursor)?;
     let target = decode_target(cursor)?;
     let func_name = decode_func(cursor)?;
-    // let verifydata = calldata::decode_calldata(cursor)?;
-    let calldata = calldata::decode_calldata(cursor)?;
+    let verifydata = inputdata::decode_inputdata(cursor)?;
+    let calldata = inputdata::decode_inputdata(cursor)?;
 
     let tx = Transaction {
         version,
         target,
         func_name,
-        // verifydata,
+        verifydata,
         calldata,
     };
 
@@ -67,19 +67,18 @@ fn encode_target(tx: &Transaction, w: &mut Vec<u8>) {
 }
 
 fn encode_func(tx: &Transaction, w: &mut Vec<u8>) {
-    let func = tx.function();
+    let func = tx.func_name();
     w.write_string(func);
 }
 
-// fn encode_verifydata(tx: &Transaction, w: &mut Vec<u8>) {
-//     let verifydata = &tx.verifydata;
-
-//     calldata::encode_calldata(verifydata, w)
-// }
+fn encode_verifydata(tx: &Transaction, w: &mut Vec<u8>) {
+    let verifydata = tx.verifydata();
+    inputdata::encode_inputdata(verifydata, w)
+}
 
 fn encode_calldata(tx: &Transaction, w: &mut Vec<u8>) {
     let calldata = tx.calldata();
-    calldata::encode_calldata(calldata, w)
+    inputdata::encode_inputdata(calldata, w)
 }
 
 /// Decoders
@@ -115,7 +114,7 @@ mod tests {
             version: 0,
             target: Address::of("@target").into(),
             func_name: "do_work".to_string(),
-            // verifydata: vec![0x10, 0x0, 0x30],
+            verifydata: vec![0xAA, 0xBB, 0xCC],
             calldata: vec![0x10, 0x0, 0x30],
         };
 

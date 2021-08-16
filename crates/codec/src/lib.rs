@@ -12,9 +12,9 @@
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
-mod calldata;
 mod ext;
 mod field;
+mod inputdata;
 mod section;
 mod version;
 
@@ -60,7 +60,8 @@ pub use error::ParseError;
 ///
 ///
 /// WASM Buffer `Data` for Success result:
-/// ```
+///
+/// ```text
 /// +------------------------------------------------+
 /// | OK_MAKER = 1 (1 byte) | SVM binary transaction |  
 /// +------------------------------------------------+
@@ -68,7 +69,8 @@ pub use error::ParseError;
 ///
 ///
 /// WASM Buffer `Data` for Error result:
-/// ```
+//
+/// ```text
 /// +------------------------------------------------+
 /// | ERR_MAKER = 0 (1 byte) | UTF-8 String (error)  |  
 /// +------------------------------------------------+
@@ -194,25 +196,25 @@ pub extern "C" fn wasm_buffer_data(offset: i32) -> i32 {
     data_offset as _
 }
 
-/// ## Calldata
+/// ## Input Data (i.e `CallData/VerifyData`)
 ///
 /// Reads the WASM buffer given at parameter `offset` containing a JSON value.
-/// Encodes the `Calldata, and returns a pointer to a new WASM buffer holding the encoded `Calldata`.
+/// Encodes the `Input Data`, and returns a pointer to a new WASM buffer holding the encoded `Input Data`.
 /// If the encoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_encode_calldata(offset: i32) -> i32 {
-    wasm_func_call!(encode_calldata, offset)
+pub extern "C" fn wasm_encode_inputdata(offset: i32) -> i32 {
+    wasm_func_call!(encode_inputdata, offset)
 }
 
-/// Decodes the encoded `Calldata` given as a WASM buffer (parameter `offset`).
+/// Decodes the encoded `Input Data` given as a WASM buffer (parameter `offset`).
 ///
-/// Returns a pointer to a new WASM buffer holding the decoded `Calldata`.
+/// Returns a pointer to a new WASM buffer holding the decoded `Input Data`.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_decode_calldata(offset: i32) -> i32 {
-    wasm_func_call!(decode_calldata, offset)
+pub extern "C" fn wasm_decode_inputdata(offset: i32) -> i32 {
+    wasm_func_call!(decode_inputdata, offset)
 }
 
 /// Decodes the encoded `Receipt` given as a WASM buffer (parameter `offset`).

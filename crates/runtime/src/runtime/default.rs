@@ -11,7 +11,7 @@ use svm_program::Program;
 use svm_storage::account::AccountStorage;
 use svm_types::{
     Address, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError, ReceiptLog,
-    RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr,
+    RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr, Transaction,
 };
 
 use super::{Call, Failure, Function, Outcome};
@@ -116,23 +116,21 @@ where
     fn call_ctor(
         &mut self,
         spawn: &ExtSpawn,
-        target: &Address,
-        gas_used: Gas,
+        target: Address,
         gas_left: Gas,
         envelope: &Envelope,
         context: &Context,
     ) -> SpawnReceipt {
-        let template_addr = spawn.template_addr();
+        let template = spawn.template_addr().clone();
 
         let call = Call {
             func_name: spawn.ctor_name(),
-            calldata: spawn.ctor_data(),
+            func_input: spawn.ctor_data(),
             state: &State::zeros(),
-            target_template: template_addr,
-            target_addr: target,
+            template,
+            target: target.clone(),
             within_spawn: true,
-            gas_used,
-            gas_left,
+            gas_limit: gas_left,
             envelope,
             context,
         };
@@ -140,7 +138,7 @@ where
         let receipt = self.exec_call::<(), ()>(&call);
 
         // TODO: move the `into_spawn_receipt` to a `From / TryFrom`
-        svm_types::into_spawn_receipt(receipt, target)
+        svm_types::into_spawn_receipt(receipt, &target)
     }
 
     fn exec_call<Args, Rets>(&mut self, call: &Call) -> CallReceipt {
@@ -155,17 +153,16 @@ where
         Rets: WasmTypeList,
         F: Fn(&FuncEnv, Outcome<Box<[wasmer::Val]>>) -> R,
     {
-        match self.account_template(call.target_addr) {
+        match self.account_template(&call.target) {
             Ok(template) => {
-                let storage =
-                    self.open_storage(call.target_addr, call.state, template.fixed_layout());
+                let storage = self.open_storage(&call.target, call.state, template.fixed_layout());
 
                 let mut env = FuncEnv::new(
                     storage,
                     call.envelope,
                     call.context,
-                    call.target_template,
-                    call.target_addr,
+                    call.template.clone(),
+                    call.target.clone(),
                 );
 
                 let store = crate::wasm_store::new_store();
@@ -192,17 +189,17 @@ where
     {
         self.validate_call(call, template, func_env)?;
 
-        let module = self.compile_template(store, func_env, &template, call.gas_left)?;
+        let module = self.compile_template(store, func_env, &template, call.gas_limit)?;
         let instance = self.instantiate(func_env, &module, import_object)?;
 
         self.set_memory(func_env, &instance);
 
         let func = self.func::<Args, Rets>(&instance, func_env, call.func_name)?;
 
-        let mut out = if call.calldata.len() > 0 {
-            self.call_with_alloc(&instance, func_env, call.calldata, &func, &[])?
+        let mut out = if call.func_input.len() > 0 {
+            self.call_with_alloc(&instance, func_env, call.func_input, &func, &[])?
         } else {
-            self.call(&instance, func_env, &func, &[])?
+            self.wasmer_call(&instance, func_env, &func, &[])?
         };
 
         let logs = out.take_logs();
@@ -244,7 +241,7 @@ where
         let wasm_ptr = out.returns();
         self.set_calldata(env, calldata, wasm_ptr);
 
-        self.call(instance, env, func, params)
+        self.wasmer_call(instance, env, func, params)
     }
 
     fn call_alloc(&self, instance: &Instance, env: &FuncEnv, size: usize) -> Result<WasmPtr<u8>> {
@@ -259,7 +256,7 @@ where
         let func = func.unwrap();
         let params: [wasmer::Val; 1] = [(size as i32).into()];
 
-        let out = self.call(instance, env, &func, &params)?;
+        let out = self.wasmer_call(instance, env, &func, &params)?;
         let out = out.map(|rets| {
             let ret = &rets[0];
             let offset = ret.i32().unwrap() as u32;
@@ -270,7 +267,7 @@ where
         Ok(out)
     }
 
-    fn call<Args, Rets>(
+    fn wasmer_call<Args, Rets>(
         &self,
         instance: &Instance,
         env: &FuncEnv,
@@ -477,6 +474,11 @@ where
         template: &Template,
         env: &FuncEnv,
     ) -> std::result::Result<(), Failure> {
+        // TODO: validate there is enough gas for running the `Transaction`.
+        // * verify
+        // * call
+        // * other factors
+
         let spawning = call.within_spawn;
         let ctor = template.is_ctor(call.func_name);
 
@@ -495,6 +497,34 @@ where
         }
 
         Ok(())
+    }
+
+    fn build_call<'a>(
+        &self,
+        tx: &'a Transaction,
+        envelope: &'a Envelope,
+        context: &'a Context,
+        func_name: &'a str,
+        func_input: &'a [u8],
+    ) -> Call<'a> {
+        let target = tx.target();
+        let template = self.env.resolve_template_addr(target);
+
+        if let Some(template) = template {
+            Call {
+                func_name,
+                func_input,
+                target: target.clone(),
+                template,
+                state: context.state(),
+                gas_limit: envelope.gas_limit(),
+                within_spawn: false,
+                envelope,
+                context,
+            }
+        } else {
+            unreachable!("Should have failed earlier when doing `validate_call`");
+        }
     }
 
     /// Errors
@@ -705,24 +735,25 @@ where
         match gas_left {
             Ok(gas_left) => {
                 let account = ExtAccount::new(spawn.account(), &spawner);
-                let addr = self.env.compute_account_addr(&spawn);
+                let target = self.env.compute_account_addr(&spawn);
 
-                self.env.store_account(&account, &addr);
-                let gas_used = payload_price.into();
-
-                self.call_ctor(&spawn, &addr, gas_used, gas_left, envelope, context)
+                self.env.store_account(&account, &target);
+                self.call_ctor(&spawn, target, gas_left, envelope, context)
             }
             Err(..) => SpawnReceipt::new_oog(Vec::new()),
         }
     }
 
-    fn verify(
-        &self,
-        _envelope: &Envelope,
-        _message: &[u8],
-        _context: &Context,
-    ) -> std::result::Result<bool, RuntimeError> {
-        todo!("https://github.com/spacemeshos/svm/issues/248")
+    fn verify(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
+        let tx = self
+            .env
+            .parse_call(message)
+            .expect("Should have called `validate_call` first");
+
+        let call = self.build_call(&tx, envelope, context, "svm_verify", tx.verifydata());
+
+        // TODO: override the `call.gas_limit` with `VERIFY_MAX_GAS`
+        self.exec_call::<(), ()>(&call)
     }
 
     fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
@@ -731,25 +762,7 @@ where
             .parse_call(message)
             .expect("Should have called `validate_call` first");
 
-        let template = self.env.resolve_template_addr(tx.target());
-
-        if let Some(template) = template {
-            let call = Call {
-                func_name: tx.function(),
-                calldata: tx.calldata(),
-                target_addr: tx.target(),
-                target_template: &template,
-                state: context.state(),
-                gas_used: Gas::with(0),
-                gas_left: envelope.gas_limit(),
-                within_spawn: false,
-                envelope,
-                context,
-            };
-
-            self.exec_call::<(), ()>(&call)
-        } else {
-            unreachable!("Should have failed earlier when doing `validate_call`");
-        }
+        let call = self.build_call(&tx, envelope, context, tx.func_name(), tx.calldata());
+        self.exec_call::<(), ()>(&call)
     }
 }

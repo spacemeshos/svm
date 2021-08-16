@@ -23,6 +23,7 @@ static MESSAGE_TYPE: Type = Type::Str("Tx Message");
 static CONTEXT_TYPE: Type = Type::Str("Tx Context");
 static DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
 static SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
+static VERIFY_RECEIPT_TYPE: Type = Type::Str("Verify Receipt");
 static CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
 
 static SVM_RESOURCE_TYPE: Type = Type::of::<svm_resource_t>();
@@ -468,6 +469,86 @@ pub unsafe extern "C" fn svm_spawn(
 
         debug!("`svm_spawn` returns `SVM_SUCCESS`");
 
+        svm_result_t::SVM_SUCCESS
+    })
+}
+
+/// Calls `verify` on an Account.
+/// The inputs `envelope`, `message` and `context` should be the same ones
+/// passed later to `svm_call`.(in case the `verify` succeeds).
+///
+/// Returns the Receipt of the execution via the `receipt` parameter.
+///
+/// # Examples
+///
+/// ```rust, no_run
+/// use std::ffi::c_void;
+///
+/// use svm_runtime_ffi::*;
+///
+/// let mut runtime = std::ptr::null_mut();
+/// let mut error = svm_byte_array::default();
+///
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
+/// assert!(res.is_ok());
+///
+/// let mut receipt = svm_byte_array::default();
+/// let envelope = svm_byte_array::default();
+/// let message = svm_byte_array::default();
+/// let context = svm_byte_array::default();
+///
+/// let _res = unsafe {
+///   svm_verify(
+///     &mut receipt,
+///     runtime,
+///     envelope,
+///     message,
+///     context,
+///     &mut error)
+/// };
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_verify(
+    receipt: *mut svm_byte_array,
+    runtime: *mut c_void,
+    envelope: svm_byte_array,
+    message: svm_byte_array,
+    context: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        debug!("`svm_verify` start");
+
+        let runtime = RuntimeRef::as_native(runtime);
+        let message = message.as_slice();
+
+        let envelope = decode_envelope(envelope);
+        if let Err(e) = envelope {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
+
+        let context = decode_context(context);
+        if let Err(e) = context {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
+
+        let envelope = envelope.unwrap();
+        let context = context.unwrap();
+        let rust_receipt = runtime.verify(&envelope, &message, &context);
+        let receipt_bytes = receipt::encode_call(&rust_receipt);
+
+        // Returns encoded `CallReceipt` as `svm_byte_array`.
+        //
+        // # Notes:
+        //
+        // Should call later `svm_receipt_destroy`
+        data_to_svm_byte_array(VERIFY_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
+
+        debug!("`svm_verify` returns `SVM_SUCCESS`");
         svm_result_t::SVM_SUCCESS
     })
 }
