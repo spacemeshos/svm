@@ -126,7 +126,7 @@ impl PartialOrd for Amount {
 
 impl ToString for Amount {
     fn to_string(&self) -> String {
-        let mut sb = StringBuilder::with_capacity(20 + " coins".len());
+        let mut sb = StringBuilder::with_capacity("18446744073709551615 coins".len());
 
         let s = self.0.to_string();
         sb.push_str(&s);
@@ -143,13 +143,13 @@ mod tests {
     fn amount_to_string() {
         extern crate std;
 
-        let amount = Amount(123);
+        let amount = Amount(std::u64::MAX);
         let string = svm_sdk_std::ToString::to_string(&amount);
 
         let vec: std::vec::Vec<u8> = string.as_bytes().into();
         let string = unsafe { std::string::String::from_utf8_unchecked(vec) };
 
-        assert_eq!(string.as_str(), "123 coins");
+        assert_eq!(string.as_str(), "18446744073709551615 coins");
     }
 
     #[test]

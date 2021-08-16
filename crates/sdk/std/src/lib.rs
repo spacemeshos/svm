@@ -26,7 +26,7 @@ mod log;
 pub use log::log;
 
 mod string;
-pub use string::{String, StringBuilder, ToString, Token};
+pub use string::{DecDigit, HexDigit, String, StringBuilder, ToString, ToToken, Token};
 
 /// A replacement for the `core::option::Option` (exposed also as `std::option::Option`)
 mod option;

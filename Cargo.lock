@@ -1400,6 +1400,7 @@ dependencies = [
 name = "svm-sdk-types"
 version = "0.0.0"
 dependencies = [
+ "seq-macro",
  "svm-sdk-std",
 ]
 

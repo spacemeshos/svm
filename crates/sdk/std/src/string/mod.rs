@@ -3,7 +3,7 @@ mod token;
 mod traits;
 
 pub use builder::StringBuilder;
-pub use token::Token;
+pub use token::{DecDigit, HexDigit, Token};
 pub use traits::{ToString, ToToken};
 
 use crate::Vec;
