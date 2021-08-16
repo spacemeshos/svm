@@ -7,7 +7,7 @@
 #![feature(maybe_uninit_uninit_array)]
 #![feature(core_intrinsics)]
 #![deny(missing_docs)]
-#![allow(unused)]
+#![deny(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 

@@ -126,7 +126,7 @@ impl PartialOrd for Amount {
 
 impl ToString for Amount {
     fn to_string(&self) -> String {
-        let mut sb = StringBuilder::with_capacity(100);
+        let mut sb = StringBuilder::with_capacity(20 + " coins".len());
 
         let s = self.0.to_string();
         sb.push_str(&s);

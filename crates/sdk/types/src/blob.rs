@@ -1,3 +1,5 @@
+#![allow(unused_must_use)]
+
 macro_rules! impl_blob_type {
     ($ty:ident, $nbytes:expr) => {
         use core::cmp::{Eq, PartialEq};

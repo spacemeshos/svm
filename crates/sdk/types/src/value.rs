@@ -4,6 +4,7 @@ use svm_sdk_std::{ensure, panic, Option};
 
 /// Primitive value
 #[allow(missing_docs)]
+#[cfg_attr(any(test, feature = "debug"), derive(core::fmt::Debug))]
 #[derive(PartialEq)]
 pub enum Primitive {
     None,
@@ -22,12 +23,20 @@ pub enum Primitive {
 }
 
 /// Composite value
+#[cfg_attr(
+    any(test, feature = "debug"),
+    derive(core::fmt::Debug, core::cmp::PartialEq)
+)]
 pub enum Composite {
     /// A Vector of [`Value`].
     Vec(svm_sdk_std::Vec<Value>),
 }
 
 /// A Value can be either a `Primitive` or a `Composite`.
+#[cfg_attr(
+    any(test, feature = "debug"),
+    derive(core::fmt::Debug, core::cmp::PartialEq)
+)]
 pub enum Value {
     /// A `Primitive` value
     Primitive(Primitive),
@@ -53,7 +62,6 @@ macro_rules! impl_from_rust_to_value {
         impl From<$T> for Value {
             fn from(num: $T) -> Self {
                 let prim = Primitive::$prim_ident(num);
-
                 Value::Primitive(prim)
             }
         }
@@ -281,6 +289,25 @@ mod tests {
         vec.push(c);
 
         let values: Value = vec.into();
+
+        match values {
+            Value::Composite(Composite::Vec(mut vec)) => {
+                let a: Value = 10u8.into();
+                let b: Value = 20u8.into();
+                let c: Value = 30u8.into();
+
+                let c_ = vec.pop();
+                let b_ = vec.pop();
+                let a_ = vec.pop();
+
+                assert_eq!(a, a_);
+                assert_eq!(b, b_);
+                assert_eq!(c, c_);
+
+                assert!(vec.is_empty());
+            }
+            _ => unreachable!(),
+        }
     }
 
     #[test]

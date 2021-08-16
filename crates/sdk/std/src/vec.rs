@@ -168,7 +168,7 @@ impl<T> Vec<T> {
     }
 }
 
-#[cfg(feature = "debug")]
+#[cfg(any(test, feature = "debug"))]
 impl<T> core::fmt::Debug for Vec<T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("svm_sdk::Vec")
@@ -178,6 +178,7 @@ impl<T> core::fmt::Debug for Vec<T> {
     }
 }
 
+#[cfg(any(test, feature = "debug"))]
 impl<T: PartialEq> PartialEq for Vec<T> {
     fn eq(&self, other: &Self) -> bool {
         self.as_slice() == other.as_slice()
