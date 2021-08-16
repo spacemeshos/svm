@@ -79,7 +79,8 @@ mod tests {
         let mut sb = StringBuilder::with_capacity(6);
         sb.push_token(Token::One(b'H'));
         sb.push_token(Token::Two(b'e', b'l'));
-        sb.push_token(Token::Three(b'l', b'o', b'!'));
+        sb.push_token(Token::Two(b'l', b'o'));
+        sb.push_token(Token::One(b'!'));
 
         let actual = sb.build();
         let expected = String::new("Hello!");
