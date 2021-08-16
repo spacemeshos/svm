@@ -2,7 +2,7 @@ use wasmer::{imports, NativeFunc};
 
 use svm_layout::{FixedLayout, Id};
 use svm_runtime::testing::{self, WasmFile};
-use svm_runtime::{vmcalls, FuncEnv};
+use svm_runtime::{vmcalls, FuncEnv, ProtectedMode};
 use svm_types::{Address, Context, Envelope, ReceiptLog, TemplateAddr};
 
 /// Creates a new `Wasmer Store`
@@ -61,7 +61,8 @@ macro_rules! __assert_vars_impl {
 
 macro_rules! assert_storage {
     ($env:expr, $($var_id:expr => $expected:expr), *) => {{
-        let storage = &$env.borrow().storage;
+        let borrow = $env.borrow();
+        let storage = borrow.storage();
 
         $(
             let actual = storage.read_var(Id($var_id));
@@ -122,7 +123,14 @@ fn vmcalls_get32_set32() {
     let storage = testing::blank_storage(&target_addr, &layout);
     let envelope = Envelope::default();
     let context = Context::default();
-    let func_env = FuncEnv::new(storage, &envelope, &context, template_addr, target_addr);
+    let func_env = FuncEnv::new(
+        storage,
+        &envelope,
+        &context,
+        template_addr,
+        target_addr,
+        ProtectedMode::FullAccess,
+    );
 
     let import_object = imports! {
         "svm" => {
@@ -157,7 +165,14 @@ fn vmcalls_get64_set64() {
     let storage = testing::blank_storage(&target_addr, &layout);
     let envelope = Envelope::default();
     let context = Context::default();
-    let func_env = FuncEnv::new(storage, &envelope, &context, template_addr, target_addr);
+    let func_env = FuncEnv::new(
+        storage,
+        &envelope,
+        &context,
+        template_addr,
+        target_addr,
+        ProtectedMode::FullAccess,
+    );
 
     let import_object = imports! {
         "svm" => {
@@ -200,6 +215,7 @@ fn vmcalls_load160() {
         &context,
         template_addr,
         target_addr.clone(),
+        ProtectedMode::FullAccess,
     );
 
     let import_object = imports! {
@@ -217,7 +233,8 @@ fn vmcalls_load160() {
     );
 
     {
-        let storage = &mut func_env.borrow_mut().storage;
+        let mut borrow = func_env.borrow_mut();
+        let storage = borrow.storage_mut();
         storage.write_var(Id(0), target_addr.as_slice().to_vec());
     }
 
@@ -251,6 +268,7 @@ fn vmcalls_store160() {
         &context,
         template_addr,
         target_addr.clone(),
+        ProtectedMode::FullAccess,
     );
 
     let import_object = imports! {
@@ -298,6 +316,7 @@ fn vmcalls_log() {
         &context,
         template_addr,
         target_addr,
+        ProtectedMode::AccessDenied,
     );
 
     let import_object = imports! {

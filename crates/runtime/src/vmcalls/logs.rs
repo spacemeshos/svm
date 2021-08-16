@@ -25,5 +25,5 @@ pub fn log(env: &FuncEnv, msg_ptr: u32, msg_len: u32, code: u32) {
         code: code as u8,
     };
 
-    env.borrow_mut().logs.push(log);
+    env.borrow_mut().logs_mut().push(log);
 }

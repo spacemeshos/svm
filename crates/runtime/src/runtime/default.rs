@@ -18,8 +18,8 @@ use super::{Call, Failure, Function, Outcome};
 use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
 use crate::error::ValidateError;
 use crate::storage::StorageBuilderFn;
-use crate::vmcalls;
 use crate::Env;
+use crate::{vmcalls, ProtectedMode};
 use crate::{Config, FuncEnv, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
@@ -131,6 +131,7 @@ where
             target: target.clone(),
             within_spawn: true,
             gas_limit: gas_left,
+            protected_mode: ProtectedMode::FullAccess,
             envelope,
             context,
         };
@@ -163,6 +164,7 @@ where
                     call.context,
                     call.template.clone(),
                     call.target.clone(),
+                    call.protected_mode,
                 );
 
                 let store = crate::wasm_store::new_store();
@@ -245,10 +247,20 @@ where
     }
 
     fn call_alloc(&self, instance: &Instance, env: &FuncEnv, size: usize) -> Result<WasmPtr<u8>> {
+        // Backups the current [`ProtectedMode`].
+        let origin_mode = env.protected_mode();
+
+        // Sets `Access Denied` mode while running `svm_alloc`.
+        env.set_protected_mode(ProtectedMode::AccessDenied);
+
         let func_name = "svm_alloc";
 
         let func = self.func::<u32, u32>(&instance, env, func_name);
         if func.is_err() {
+            // ### Notes:
+            //
+            // We don't restore the original [`ProtectedMode`]
+            // since `svm_alloc` has failed and the transaction will halt.
             let err = self.func_not_found(env, func_name);
             return Err(err);
         }
@@ -263,6 +275,9 @@ where
 
             WasmPtr::new(offset)
         });
+
+        // Restores the original [`ProtectedMode`].
+        env.set_protected_mode(origin_mode);
 
         Ok(out)
     }
@@ -301,17 +316,18 @@ where
 
     #[inline]
     fn commit_changes(&self, env: &FuncEnv) -> State {
-        let storage = &mut env.borrow_mut().storage;
+        let mut borrow = env.borrow_mut();
+        let storage = borrow.storage_mut();
         storage.commit()
     }
 
     #[inline]
     fn assert_no_returndata(&self, env: &FuncEnv) {
-        assert!(env.borrow().returndata.is_none())
+        assert!(env.borrow().returndata().is_none())
     }
 
     fn take_returndata(&self, env: &FuncEnv) -> Vec<u8> {
-        let data = env.borrow().returndata;
+        let data = env.borrow().returndata();
 
         match data {
             Some((offset, length)) => self.read_memory(env, offset, length),
@@ -504,6 +520,7 @@ where
         tx: &'a Transaction,
         envelope: &'a Envelope,
         context: &'a Context,
+        protected_mode: ProtectedMode,
         func_name: &'a str,
         func_input: &'a [u8],
     ) -> Call<'a> {
@@ -518,6 +535,7 @@ where
                 template,
                 state: context.state(),
                 gas_limit: envelope.gas_limit(),
+                protected_mode,
                 within_spawn: false,
                 envelope,
                 context,
@@ -750,7 +768,21 @@ where
             .parse_call(message)
             .expect("Should have called `validate_call` first");
 
-        let call = self.build_call(&tx, envelope, context, "svm_verify", tx.verifydata());
+        // ### Important:
+        //
+        // Right now we disallow any `Storage` access while running `svm_verify`.
+        // This hard restriction might be mitigated in future versions.
+        //
+        // In that case, the current behavior should be backward-compatible since
+        // we could always executed `Access Denied` logic when partial `Storage` access will be allowed by SVM.
+        let call = self.build_call(
+            &tx,
+            envelope,
+            context,
+            ProtectedMode::AccessDenied,
+            "svm_verify",
+            tx.verifydata(),
+        );
 
         // TODO: override the `call.gas_limit` with `VERIFY_MAX_GAS`
         self.exec_call::<(), ()>(&call)
@@ -762,7 +794,15 @@ where
             .parse_call(message)
             .expect("Should have called `validate_call` first");
 
-        let call = self.build_call(&tx, envelope, context, tx.func_name(), tx.calldata());
+        let call = self.build_call(
+            &tx,
+            envelope,
+            context,
+            ProtectedMode::FullAccess,
+            tx.func_name(),
+            tx.calldata(),
+        );
+
         self.exec_call::<(), ()>(&call)
     }
 }
