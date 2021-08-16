@@ -21,8 +21,8 @@ pub use error::{GlobalStateError, Result};
 pub type Fingerprint = [u8; 32];
 
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
-
 const ZERO_FINGERPRINT: Fingerprint = [0; 32];
+const INITIAL_COMMIT_ID: i64 = 1;
 
 /// Some external resources:
 ///
@@ -51,12 +51,17 @@ impl GlobalState {
         let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await?;
         sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
 
+        let next_commit_id = max_commit_id(&sqlite).await?;
+
         let mut gs = Self {
             sqlite,
             dirty_changes: HashMap::new(),
-            next_commit_id: 1,
+            next_commit_id: next_commit_id.unwrap_or(INITIAL_COMMIT_ID),
         };
-        gs.create_first_commit().await?;
+
+        if next_commit_id.is_none() {
+            gs.create_commit(ZERO_FINGERPRINT).await?;
+        }
 
         Ok(gs)
     }
@@ -65,34 +70,6 @@ impl GlobalState {
     /// state will be kept in an in-memory SQLite instance.
     pub async fn in_memory() -> Result<Self> {
         Self::new(":memory:").await
-    }
-
-    async fn create_first_commit(&mut self) -> Result<()> {
-        // When initializing the database, we must look for the most recent
-        // commit. If not present, that means the database is pristine and we
-        // must create a new commit with an empty fingerprint.
-        let max_commit_id: Option<(i64,)> = sqlx::query_as(
-            r#"
-                SELECT "id"
-                FROM "commits"
-                ORDER BY "id" DESC
-                LIMIT 1
-            "#,
-        )
-        .fetch_optional(&self.sqlite)
-        .await?;
-
-        match max_commit_id {
-            Some(id) => {
-                self.next_commit_id = id.0;
-            }
-            None => {
-                self.next_commit_id = 1;
-                self.create_commit(ZERO_FINGERPRINT).await?;
-            }
-        }
-
-        Ok(())
     }
 
     /// Fetches the value associated with the Blake3 hash of `key`. See
@@ -287,6 +264,21 @@ impl GlobalState {
     pub fn rollback(&mut self) {
         self.dirty_changes.clear();
     }
+}
+
+async fn max_commit_id(pool: &SqlitePool) -> Result<Option<i64>> {
+    let max_commit_id: Option<(i64,)> = sqlx::query_as(
+        r#"
+                SELECT "id"
+                FROM "commits"
+                ORDER BY "id" DESC
+                LIMIT 1
+            "#,
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(max_commit_id.map(|x| x.0))
 }
 
 fn hash_key_value_pair(key_hash: &Fingerprint, value: &[u8]) -> Fingerprint {
