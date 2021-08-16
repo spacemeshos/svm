@@ -1,3 +1,5 @@
+use svm_sdk_std::{String, ToString};
+
 macro_rules! impl_blob_type {
     ($ty:ident, $nbytes:expr) => {
         use core::char;
@@ -137,3 +139,10 @@ macro_rules! impl_blob_type {
 }
 
 impl_blob_type!(Address, 20);
+
+impl ToString for Address {
+    fn to_string(&self) -> String {
+        todo!()
+    }
+    //
+}

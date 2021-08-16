@@ -14,12 +14,16 @@ impl StringBuilder {
 
     pub fn push_str(&mut self, s: &String) {
         let bytes = s.as_bytes();
-        ensure!(bytes.len() <= 128);
+        ensure!(bytes.len() < 256);
 
-        seq_macro::seq!(N in 0..=128 {
+        seq_macro::seq!(N in 0..256 {
             if N < bytes.len() {
                 let byte = bytes[N];
                 self.inner.push(byte);
+            }
+            else {
+                // halt immediately
+                return;
             }
         });
     }
