@@ -5,6 +5,7 @@ use svm_sdk_std::{ensure, String, StringBuilder, ToString};
 
 use crate::types::PrimitiveMarker;
 
+/// A type for representing an amount of `Coins`.
 #[derive(PartialEq, Copy, Clone, Hash)]
 #[repr(transparent)]
 pub struct Amount(pub u64);

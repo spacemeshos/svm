@@ -3,40 +3,31 @@ use crate::{Address, Amount};
 use svm_sdk_std::{ensure, panic, Option};
 
 /// Primitive value
+#[allow(missing_docs)]
 #[derive(PartialEq)]
 pub enum Primitive {
     None,
-
     Unit,
-
     Bool(bool),
-
     Address(Address),
-
     Amount(Amount),
-
     I8(i8),
-
     U8(u8),
-
     I16(i16),
-
     U16(u16),
-
     I32(i32),
-
     U32(u32),
-
     I64(i64),
-
     U64(u64),
 }
 
 /// Composite value
 pub enum Composite {
+    /// A Vector of [`Value`].
     Vec(svm_sdk_std::Vec<Value>),
 }
 
+/// A Value can be either a `Primitive` or a `Composite`.
 pub enum Value {
     /// A `Primitive` value
     Primitive(Primitive),
@@ -191,7 +182,7 @@ macro_rules! impl_value_to_rust_array {
                 use core::mem::{size_of, MaybeUninit};
 
                 match value {
-                    Value::Composite(Composite::Vec(mut values)) => {
+                    Value::Composite(Composite::Vec(values)) => {
                         ensure!(values.len() == $n);
 
                         let mut array: [MaybeUninit<$T>; $n] = MaybeUninit::uninit_array();

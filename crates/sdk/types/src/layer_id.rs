@@ -1,3 +1,4 @@
+/// Represents a `Layer`
 #[derive(PartialEq, Copy, Clone)]
 #[repr(transparent)]
 pub struct LayerId(pub u64);

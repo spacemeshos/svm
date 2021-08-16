@@ -1,8 +1,5 @@
-use svm_sdk_std::{String, ToString};
-
 macro_rules! impl_blob_type {
     ($ty:ident, $nbytes:expr) => {
-        use core::char;
         use core::cmp::{Eq, PartialEq};
 
         use svm_sdk_std::{ensure, Vec};
@@ -57,7 +54,6 @@ macro_rules! impl_blob_type {
             #[inline]
             fn from(offset: u32) -> Self {
                 let ptr = offset as *const u8;
-
                 ptr.into()
             }
         }
@@ -84,9 +80,9 @@ macro_rules! impl_blob_type {
         }
 
         impl $ty {
+            /// Generates an instance consisting only of the input `byte` in repetitive manner.
             pub fn repeat(byte: u8) -> Self {
                 let bytes = [byte; Self::len()];
-
                 bytes.into()
             }
         }
@@ -139,10 +135,3 @@ macro_rules! impl_blob_type {
 }
 
 impl_blob_type!(Address, 20);
-
-impl ToString for Address {
-    fn to_string(&self) -> String {
-        todo!()
-    }
-    //
-}
