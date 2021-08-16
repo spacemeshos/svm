@@ -2,10 +2,10 @@
 //!
 //! The main entity in this crate is [`Program`].
 
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 use parity_wasm::elements::Instruction;
 
