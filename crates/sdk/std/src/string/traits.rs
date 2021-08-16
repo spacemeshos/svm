@@ -131,7 +131,7 @@ impl ToString for u8 {
 
 impl ToString for i8 {
     fn to_string(&self) -> String {
-        let num = self.abs();
+        let num = (*self as i64).abs();
         let is_negative = *self < 0;
         num_as_string(num as u64, is_negative)
     }
@@ -145,7 +145,7 @@ impl ToString for u16 {
 
 impl ToString for i16 {
     fn to_string(&self) -> String {
-        let num = self.abs();
+        let num = (*self as i64).abs();
         let is_negative = *self < 0;
         num_as_string(num as u64, is_negative)
     }
@@ -159,7 +159,7 @@ impl ToString for u32 {
 
 impl ToString for i32 {
     fn to_string(&self) -> String {
-        let num = self.abs();
+        let num = (*self as i64).abs();
         let is_negative = *self < 0;
         num_as_string(num as u64, is_negative)
     }
@@ -173,7 +173,7 @@ impl ToString for u64 {
 
 impl ToString for i64 {
     fn to_string(&self) -> String {
-        let num = self.abs();
+        let num = (*self as i128).abs();
         let is_negative = *self < 0;
         num_as_string(num as u64, is_negative)
     }
@@ -238,5 +238,75 @@ mod tests {
         test!(12u16, "12");
         test!(123u16, "123");
         test!(std::u16::MAX, "65535");
+    }
+
+    #[test]
+    fn i16_to_string() {
+        test!(0i16, "0");
+        test!(-0i16, "0");
+
+        test!(7i16, "7");
+        test!(-7i16, "-7");
+
+        test!(12i16, "12");
+        test!(-12i16, "-12");
+
+        test!(123i16, "123");
+        test!(-123i16, "-123");
+
+        test!(std::i16::MAX, "32767");
+        test!(std::i16::MIN, "-32768");
+    }
+
+    #[test]
+    fn u32_to_string() {
+        test!(0u32, "0");
+        test!(12u32, "12");
+        test!(123u32, "123");
+        test!(std::u32::MAX, "4294967295");
+    }
+
+    #[test]
+    fn i32_to_string() {
+        test!(0i32, "0");
+        test!(-0i32, "0");
+
+        test!(7i32, "7");
+        test!(-7i32, "-7");
+
+        test!(12i32, "12");
+        test!(-12i32, "-12");
+
+        test!(123i32, "123");
+        test!(-123i32, "-123");
+
+        test!(std::i32::MAX, "2147483647");
+        test!(std::i32::MIN, "-2147483648");
+    }
+
+    #[test]
+    fn u64_to_string() {
+        test!(0u64, "0");
+        test!(12u64, "12");
+        test!(123u64, "123");
+        test!(std::u64::MAX, "18446744073709551615");
+    }
+
+    #[test]
+    fn i64_to_string() {
+        test!(0i64, "0");
+        test!(-0i64, "0");
+
+        test!(7i64, "7");
+        test!(-7i64, "-7");
+
+        test!(12i64, "12");
+        test!(-12i64, "-12");
+
+        test!(123i64, "123");
+        test!(-123i64, "-123");
+
+        test!(std::i64::MAX, "9223372036854775807");
+        test!(std::i64::MIN, "-9223372036854775808");
     }
 }
