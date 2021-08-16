@@ -178,3 +178,65 @@ impl ToString for i64 {
         num_as_string(num as u64, is_negative)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    extern crate std;
+
+    fn std_string(s: String) -> std::string::String {
+        let bytes = s.as_bytes();
+
+        unsafe { std::string::String::from_utf8_unchecked(bytes.to_vec()) }
+    }
+
+    macro_rules! test {
+        ($expr:expr, $expected:expr) => {{
+            assert_eq!(
+                std_string($expr.to_string()),
+                std::string::ToString::to_string($expected)
+            );
+        }};
+    }
+
+    #[test]
+    fn bool_to_string() {
+        test!(true, "True");
+        test!(false, "False");
+    }
+
+    #[test]
+    fn u8_to_string() {
+        test!(0u8, "0");
+        test!(12u8, "12");
+        test!(123u8, "123");
+        test!(std::u8::MAX, "255");
+    }
+
+    #[test]
+    fn i8_to_string() {
+        test!(0i8, "0");
+        test!(-0i8, "0");
+
+        test!(7i8, "7");
+        test!(-7i8, "-7");
+
+        test!(12i8, "12");
+        test!(-12i8, "-12");
+
+        test!(123i8, "123");
+        test!(-123i8, "-123");
+
+        test!(std::i8::MAX, "127");
+        test!(std::i8::MIN, "-128");
+    }
+
+    #[test]
+    fn u16_to_string() {
+        test!(0u16, "0");
+        test!(12u16, "12");
+        test!(123u16, "123");
+        test!(std::u16::MAX, "65535");
+    }
+}
