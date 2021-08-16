@@ -2,6 +2,7 @@ use crate::{String, StringBuilder, Token};
 
 /// A trait to be implemented by bytes that want to have a [`String`] representation.
 pub trait ToString {
+    /// Returns a [`String`] representing `self`.
     fn to_string(&self) -> String;
 }
 

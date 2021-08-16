@@ -1,8 +1,8 @@
 use core::cmp::{Eq, PartialEq};
 
-use crate::{panic, Result};
+use crate::Result;
 
-/// Fixed-Gas substitute replacement for [`std::option::Option`].
+/// Fixed-Gas replacement for [`std::option::Option`].
 pub enum Option<T> {
     /// Represents Missing `value`
     None,
@@ -20,7 +20,7 @@ impl<T> Option<T> {
     #[inline]
     pub fn unwrap(self) -> T {
         match self {
-            Self::None => panic(),
+            Self::None => crate::panic(),
             Self::Some(val) => val,
         }
     }

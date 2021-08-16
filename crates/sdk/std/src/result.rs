@@ -1,6 +1,4 @@
-use crate::panic;
-
-/// Fixed-Gas substitute replacement for [`std::result::Result`].
+/// Fixed-Gas replacement for [`std::result::Result`].
 #[doc(hidden)]
 pub enum Result<T, E> {
     Ok(T),
@@ -26,7 +24,7 @@ impl<T, E> Result<T, E> {
     pub fn unwrap(self) -> T {
         match self {
             Self::Ok(value) => value,
-            Self::Err(..) => panic(),
+            Self::Err(..) => crate::panic(),
         }
     }
 
@@ -34,7 +32,7 @@ impl<T, E> Result<T, E> {
     pub fn unwrap_err(self) -> E {
         match self {
             Self::Err(err) => err,
-            Self::Ok(..) => panic(),
+            Self::Ok(..) => crate::panic(),
         }
     }
 }

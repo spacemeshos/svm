@@ -8,7 +8,7 @@ pub use traits::{ToString, ToToken};
 
 use crate::Vec;
 
-/// Fixed-Gas substitute replacement for [`std::string::String`].
+/// Fixed-Gas replacement for [`std::string::String`].
 pub struct String {
     inner: Vec<u8>,
 }

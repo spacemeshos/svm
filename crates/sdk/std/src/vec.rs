@@ -21,6 +21,7 @@ use core::ops::{Deref, DerefMut};
 
 use crate::ensure;
 
+/// Fixed-Gas replacement for [`std::vec::Vec`].
 pub struct Vec<T> {
     len: usize,
     cap: usize,
@@ -35,6 +36,7 @@ impl<T> Vec<T> {
         Self { len: 0, cap, ptr }
     }
 
+    /// Initializes a new [`Vec`] given a raw pointer to the first item and the number of items.
     pub unsafe fn from_raw_parts(ptr: *const T, len: usize) -> Self {
         Self {
             len,
@@ -43,6 +45,7 @@ impl<T> Vec<T> {
         }
     }
 
+    /// Appends a new item.
     pub fn push(&mut self, value: T) {
         ensure!(self.len() < self.capacity());
 
@@ -54,6 +57,11 @@ impl<T> Vec<T> {
         self.len += 1;
     }
 
+    /// Pops the last pushed item and returns it.
+    ///
+    /// # Safety
+    ///
+    /// Panics if the `self` is empty.
     pub fn pop(&mut self) -> T {
         ensure!(self.is_empty() == false);
 
@@ -64,18 +72,22 @@ impl<T> Vec<T> {
         value
     }
 
+    /// Returns a shared view over the underlying items.
     pub fn as_slice(&self) -> &[T] {
         unsafe { core::slice::from_raw_parts(self.ptr, self.len) }
     }
 
+    /// Returns a mutable view over the underlying items.
     pub fn as_mut(&mut self) -> &mut [T] {
         unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 
+    /// Clears the `self`, turns it into an empty [`Vec`].
     pub fn clear(&mut self) {
         self.len = 0;
     }
 
+    /// Leaks the underlying items and returns a slice to it with a `static` lifetime.
     pub fn leak(self) -> &'static [T] {
         let slice = self.as_slice();
 
@@ -85,29 +97,35 @@ impl<T> Vec<T> {
         vec
     }
 
+    /// Returns the number of taken items.
     #[inline]
     pub fn len(&self) -> usize {
         self.len
     }
 
+    /// Returns the number of items that `self` can hold.
     #[inline]
     pub fn capacity(&self) -> usize {
         self.cap
     }
 
+    /// Returns whether `self` is empty.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// Returns an iterator over the contained items.
     pub fn iter(&self) -> Iter<T> {
         Iter::new(self)
     }
 
+    /// Returns a mutable iterator over the contained items.
     pub fn iter_mut(&mut self) -> Iter<T> {
         Iter::new(self)
     }
 
+    /// Transfers ownership of self and returns [`IntoIter`].
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter::new(self)
     }
@@ -116,7 +134,6 @@ impl<T> Vec<T> {
         ensure!(self.len() > offset);
 
         let dest = self.as_ptr_mut(offset);
-
         core::ptr::read(dest)
     }
 
@@ -209,7 +226,6 @@ impl<'a, T> core::iter::Iterator for Iter<'a, T> {
 
 pub struct IntoIter<T> {
     pos: usize,
-
     vec: Vec<T>,
 }
 
