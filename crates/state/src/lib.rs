@@ -60,7 +60,7 @@ impl GlobalState {
         };
 
         if next_commit_id.is_none() {
-            gs.create_commit(ZERO_FINGERPRINT).await?;
+            gs.insert_commit(ZERO_FINGERPRINT).await?;
         }
 
         Ok(gs)
@@ -140,7 +140,8 @@ impl GlobalState {
         self.upsert_by_hash(hash, value).await;
     }
 
-    /// Sets the `value` associated with a Blake3 `hash`. This change will be "dirty" until
+    /// Sets the `value` associated with a Blake3 `hash`. This change will be
+    /// "dirty" until a [`GlobalState::checkout`].
     pub async fn upsert_by_hash<V>(&mut self, hash: Fingerprint, value: V)
     where
         V: Into<Vec<u8>>,
@@ -149,8 +150,15 @@ impl GlobalState {
         self.dirty_changes.entry(hash).or_insert(value);
     }
 
+    pub async fn commit(&mut self) -> Result<Fingerprint> {
+        let commit = self.checkpoint().await?;
+        self.next_commit_id += 1;
+        self.insert_commit(commit).await?;
+        Ok(commit)
+    }
+
     /// Creates a new [`Fingerprint`] with the given fingerprint.
-    async fn create_commit(&mut self, fingerprint: Fingerprint) -> Result<()> {
+    async fn insert_commit(&mut self, fingerprint: Fingerprint) -> Result<()> {
         sqlx::query(
             r#"
                 INSERT INTO "commits" ("id", "fingerprint")
@@ -162,13 +170,6 @@ impl GlobalState {
         .execute(&self.sqlite)
         .await?;
         Ok(())
-    }
-
-    pub async fn commit(&mut self) -> Result<Fingerprint> {
-        let commit = self.checkpoint().await?;
-        self.next_commit_id += 1;
-        self.create_commit(commit).await?;
-        Ok(commit)
     }
 
     /// Persists all dirty changes from memory to disk. Even though persisted to
@@ -360,18 +361,18 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn rewind_succeeds_when_empty(bytes: Vec<u8>) -> bool {
-        let context = Blake3Hasher::hash(&bytes);
+        let commit = Blake3Hasher::hash(&bytes);
         let mut gs = GlobalState::in_memory().await.unwrap();
 
-        gs.rewind(&context).await.is_ok()
+        gs.rewind(&commit).await.is_ok()
     }
 
     #[quickcheck_async::tokio]
     async fn rewind_fails_after_insert(bytes: Vec<u8>, key: Vec<u8>, value: Vec<u8>) -> bool {
-        let context = Blake3Hasher::hash(&bytes);
+        let commit = Blake3Hasher::hash(&bytes);
         let mut gs = GlobalState::in_memory().await.unwrap();
 
         gs.upsert(&key, value).await;
-        gs.rewind(&context).await.is_err()
+        gs.rewind(&commit).await.is_err()
     }
 }
