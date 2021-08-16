@@ -22,7 +22,7 @@ pub type Fingerprint = [u8; 32];
 
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
 
-const ZERO_FINGERPRINT: [u8; 32] = [0; 32];
+const ZERO_FINGERPRINT: Fingerprint = [0; 32];
 
 /// Some external resources:
 ///
@@ -174,7 +174,7 @@ impl GlobalState {
     }
 
     /// Sets the `value` associated with a Blake3 `hash`. This change will be "dirty" until
-    pub async fn upsert_by_hash<V>(&mut self, hash: [u8; 32], value: V)
+    pub async fn upsert_by_hash<V>(&mut self, hash: Fingerprint, value: V)
     where
         V: Into<Vec<u8>>,
     {
@@ -210,7 +210,7 @@ impl GlobalState {
     pub async fn checkpoint(&mut self) -> Result<Fingerprint> {
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
 
-        let mut fingerprint = [0; 32];
+        let mut fingerprint = ZERO_FINGERPRINT;
 
         for change in dirty_changes {
             let old_value: Option<Vec<u8>> = self.get_by_hash(&change.0, None).await?;
@@ -254,9 +254,9 @@ impl GlobalState {
 
     async fn update_commit_fingerprint(
         &mut self,
-        partial_fingerprint: &[u8; 32],
+        partial_fingerprint: &Fingerprint,
     ) -> Result<Fingerprint> {
-        let mut fingerprint: [u8; 32] = self.commit_fingerprint(self.next_commit_id).await?;
+        let mut fingerprint: Fingerprint = self.commit_fingerprint(self.next_commit_id).await?;
         xor_fingerprint(&mut fingerprint, partial_fingerprint);
         let fingerprint_bytes = &fingerprint[..];
 
@@ -306,7 +306,7 @@ fn hash_key_value_pair(key_hash: &Fingerprint, value: &[u8]) -> Fingerprint {
     hasher.finalize()
 }
 
-fn xor_fingerprint(sig_1: &mut [u8; 32], sig_2: &[u8; 32]) {
+fn xor_fingerprint(sig_1: &mut Fingerprint, sig_2: &Fingerprint) {
     for (a, b) in sig_1.iter_mut().zip(sig_2) {
         *a ^= *b;
     }
