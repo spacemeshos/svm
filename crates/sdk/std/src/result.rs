@@ -1,10 +1,13 @@
 use crate::panic;
 
+/// Fixed-Gas substitute replacement for [`std::result::Result`].
+#[doc(hidden)]
 pub enum Result<T, E> {
     Ok(T),
     Err(E),
 }
 
+#[doc(hidden)]
 impl<T, E> Result<T, E> {
     #[inline]
     pub fn is_ok(&self) -> bool {

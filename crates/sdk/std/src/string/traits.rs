@@ -1,5 +1,6 @@
 use crate::{String, StringBuilder, Token};
 
+/// A trait to be implemented by bytes that want to have a [`String`] representation.
 pub trait ToString {
     fn to_string(&self) -> String;
 }
@@ -67,23 +68,20 @@ impl ToToken for DecDigit {
     }
 }
 
+#[inline(never)]
 fn num_as_string(num: u64, is_negative: bool) -> String {
     let mut value = num;
     let mut digits = [0u8; 20];
-    let mut has_more = true;
     let mut used_count = 0;
 
     seq_macro::seq!(N in 0..21 {
-        if has_more {
-            let (digit, new_value, completed) = next_digit(value);
+        let (digit, new_value, completed) = next_digit(value);
+        digits[used_count] = digit;
 
-            digits[used_count] = digit;
-            used_count += 1;
+        used_count += 1;
+        value = new_value;
 
-            value = new_value;
-            has_more = !completed;
-        }
-        else {
+        if completed {
             debug_assert_eq!(value, 0);
             return concat_digits(&digits, used_count, is_negative);
         }
@@ -103,6 +101,7 @@ fn next_digit(value: u64) -> (u8, u64, bool) {
     (digit as u8, value, completed)
 }
 
+#[inline(never)]
 fn concat_digits(digits: &[u8; 20], used_count: usize, is_negative: bool) -> String {
     let mut sb = StringBuilder::with_capacity(21);
     if is_negative {

@@ -8,11 +8,13 @@ pub use traits::{ToString, ToToken};
 
 use crate::Vec;
 
+/// Fixed-Gas substitute replacement for [`std::string::String`].
 pub struct String {
     inner: Vec<u8>,
 }
 
 impl String {
+    /// Creates a new [`String`] and copies the input `&'static str` to its allocated space.
     pub fn new(s: &'static str) -> Self {
         let ptr = s.as_ptr();
         let len = s.len();
@@ -23,10 +25,12 @@ impl String {
         }
     }
 
+    /// Returns a raw pointer to the underlying [`String`] first byte.
     pub fn as_ptr(&self) -> *const u8 {
         self.as_bytes().as_ptr()
     }
 
+    /// Returns a slice view to the underlying bytes.
     pub fn as_bytes(&self) -> &[u8] {
         self.inner.as_slice()
     }

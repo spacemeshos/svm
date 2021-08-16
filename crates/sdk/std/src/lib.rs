@@ -17,8 +17,10 @@
 
 #![no_std]
 #![feature(core_intrinsics)]
-#![allow(unused)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 mod log;
 pub use log::log;
