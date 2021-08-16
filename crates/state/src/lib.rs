@@ -17,23 +17,10 @@ use svm_hash::{Blake3Hasher, Hasher};
 
 pub use error::{GlobalStateError, Result};
 
-/// Every commit
+/// Hashes as well as root fingerprints are 256 bits long.
 pub type Fingerprint = [u8; 32];
 
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
-
-fn hash_key_value_pair(key_hash: &Fingerprint, value: &[u8]) -> Fingerprint {
-    let mut hasher = Blake3Hasher::default();
-    hasher.update(key_hash);
-    hasher.update(value);
-    hasher.finalize()
-}
-
-fn xor_fingerprint(sig_1: &mut [u8; 32], sig_2: &[u8; 32]) {
-    for (a, b) in sig_1.iter_mut().zip(sig_2) {
-        *a ^= *b;
-    }
-}
 
 const ZERO_FINGERPRINT: [u8; 32] = [0; 32];
 
@@ -57,19 +44,24 @@ pub struct GlobalState {
 }
 
 impl GlobalState {
-    /// Creates a new [`GlobalState`] persisted by the given SQLite instance.
+    /// Creates a new [`GlobalState`] persisted by the given SQLite database.
+    /// The SQLite database may or may not be an empty database. If it's empty,
+    /// then it will be initialized with the appropriate schema.
     pub async fn new(sqlite_uri: &str) -> Result<Self> {
         let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await?;
+        sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
+
         let mut gs = Self {
             sqlite,
             dirty_changes: HashMap::new(),
             next_commit_id: 1,
         };
-        gs.initialize().await?;
+        gs.create_first_commit().await?;
+
         Ok(gs)
     }
 
-    pub async fn initialize(&mut self) -> Result<()> {
+    async fn create_first_commit(&mut self) -> Result<()> {
         // When initializing the database, we must look for the most recent
         // commit. If not present, that means the database is pristine and we
         // must create a new commit with an empty fingerprint.
@@ -108,7 +100,8 @@ impl GlobalState {
             dirty_changes: HashMap::new(),
             next_commit_id: 1,
         };
-        gs.initialize().await?;
+        gs.create_first_commit().await?;
+
         Ok(gs)
     }
 
@@ -129,8 +122,6 @@ impl GlobalState {
     ) -> Result<Option<Vec<u8>>> {
         // We are given an explicit [`Fingerprint`], so we must add that condition.
         if let Some(commit) = commit {
-            let hash = &hash[..];
-            let commit = &commit[..];
             let value_opt: Option<(Vec<u8>,)> = sqlx::query_as(
                 r#"
                     SELECT "value"
@@ -145,8 +136,8 @@ impl GlobalState {
                         "key_hash" = ?2
                 "#,
             )
-            .bind(commit)
-            .bind(hash)
+            .bind(&commit[..])
+            .bind(&hash[..])
             .fetch_optional(&self.sqlite)
             .await?;
             Ok(value_opt.map(|x| x.0))
@@ -305,6 +296,19 @@ impl GlobalState {
     /// Erases all dirty changes from memory. Persisted data is left untouched.
     pub fn rollback(&mut self) {
         self.dirty_changes.clear();
+    }
+}
+
+fn hash_key_value_pair(key_hash: &Fingerprint, value: &[u8]) -> Fingerprint {
+    let mut hasher = Blake3Hasher::default();
+    hasher.update(key_hash);
+    hasher.update(value);
+    hasher.finalize()
+}
+
+fn xor_fingerprint(sig_1: &mut [u8; 32], sig_2: &[u8; 32]) {
+    for (a, b) in sig_1.iter_mut().zip(sig_2) {
+        *a ^= *b;
     }
 }
 
