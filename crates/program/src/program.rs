@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 
-use parity_wasm::elements::{self as pwasm, FunctionSection, ValueType};
+use parity_wasm::elements as pwasm;
 
 use crate::{
     validate_no_floats, Exports, FuncIndex, Function, Imports, Instruction, ProgramError,
@@ -261,13 +261,7 @@ fn validate_func_signature(
     expected_params: &[pwasm::ValueType],
     expected_results: &[pwasm::ValueType],
 ) -> Result<(), ProgramError> {
-    let func_sig = export_func_signature(
-        func_name,
-        export,
-        import_count,
-        &module_funcs,
-        &module_types,
-    )?;
+    let func_sig = export_func_signature(export, import_count, &module_funcs, &module_types)?;
 
     #[allow(irrefutable_let_patterns)]
     if let pwasm::Type::Function(f) = func_sig {
@@ -284,7 +278,6 @@ fn validate_func_signature(
 }
 
 fn export_func_signature<'p>(
-    func_name: &str,
     entry: &'p pwasm::ExportEntry,
     import_count: usize,
     module_functions: &'p [pwasm::Func],
