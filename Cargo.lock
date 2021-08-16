@@ -2113,7 +2113,6 @@ dependencies = [
  "quickcheck",
  "quickcheck_async",
  "quickcheck_macros",
- "rocksdb",
  "sqlx",
  "svm-hash",
  "thiserror",
