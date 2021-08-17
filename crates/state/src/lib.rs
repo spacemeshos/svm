@@ -275,6 +275,32 @@ impl Storage {
         self.commit_fingerprint(self.current_commit.id).await
     }
 
+    /// Completely deletes all commits after `commit` from the SQLite store.
+    /// Returns a [`StorageError::Changes`] or [`StorageError::DirtyChanges`] in
+    /// case there's in-memory changes that haven't been persisted yet.
+    pub async fn erase_history(&mut self, commit: &Fingerprint) -> Result<()> {
+        if !self.dirty_changes.is_empty() {
+            Err(StorageError::DirtyChanges)
+        } else if !self.current_commit.changes.is_empty() {
+            Err(StorageError::Changes)
+        } else {
+            sqlx::query(
+                r#"
+                DELETE FROM "commits"
+                WHERE "commit_id" > (
+                    SELECT "id"
+                    FROM "commits"
+                    WHERE "fingerprint" = ?1
+                )
+                "#,
+            )
+            .bind(&commit[..])
+            .execute(&self.sqlite)
+            .await?;
+            Ok(())
+        }
+    }
+
     /// Erases all saved data from memory. Persisted data is
     /// left untouched. It returns a [`StorageError::DirtyChanges`] in case
     /// there's any dirty changes, i.e. you must call [`Storage::rollback`]

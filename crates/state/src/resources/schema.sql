@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS "values" (
 	"key_hash" BLOB NOT NULL CHECK(length("key_hash") == 32),
 	"value"	BLOB,
 	PRIMARY KEY("id"),
-	FOREIGN KEY("commit_id") REFERENCES "commits"("id")
+	FOREIGN KEY("commit_id") REFERENCES "commits"("id") ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS "commits_by_fingerprint" ON "commits" (
