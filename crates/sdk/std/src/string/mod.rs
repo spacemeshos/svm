@@ -16,11 +16,25 @@ pub enum String {
 
 impl String {
     pub fn from_byte(byte: u8) -> Self {
-        Self::new_short_inner([byte], true)
+        let mut bytes = [0u8; 8];
+        bytes[0] = byte;
+
+        Self::new_short_inner(bytes, 1, true)
     }
 
     pub fn new_short<const N: usize>(data: [u8; N]) -> Self {
-        Self::new_short_inner(data, true)
+        let length = data.len();
+        debug_assert!(length <= 8);
+
+        let mut bytes = [0u8; 8];
+
+        seq_macro::seq!(N in 0..8 {
+            if N < length {
+                bytes[N] = data[N];
+            }
+        });
+
+        Self::new_short_inner(bytes, length, true)
     }
 
     pub unsafe fn new_unchecked(data: Vec<u8>) -> Self {
@@ -36,7 +50,7 @@ impl String {
                 }
             });
 
-            Self::new_short_inner(bytes, false)
+            Self::new_short_inner(bytes, length, false)
         } else {
             String::Long(data)
         }
@@ -55,21 +69,17 @@ impl String {
         }
     }
 
-    fn new_short_inner<const N: usize>(data: [u8; N], safe: bool) -> Self {
-        let length = data.len();
+    fn new_short_inner(bytes: [u8; 8], length: usize, safe: bool) -> Self {
         debug_assert!(length <= 8);
 
-        let mut bytes = [0u8; 8];
-
-        seq_macro::seq!(N in 0..8 {
-            if N < length {
-                let byte = data[N];
-                if safe {
-                    ensure_ascii(byte)
+        if safe {
+            seq_macro::seq!(N in 0..8 {
+                if N < length {
+                    let byte = bytes[N];
+                    ensure_ascii(byte);
                 }
-                bytes[N] = byte;
-            }
-        });
+            });
+        }
 
         String::Short { bytes, length }
     }
