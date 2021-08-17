@@ -16,41 +16,16 @@ pub enum String {
 
 impl String {
     pub fn from_byte(byte: u8) -> Self {
-        let mut bytes = [0u8; 8];
-        bytes[0] = byte;
-
-        Self::new_short_inner(bytes, 1, true)
+        Self::new_short_inner(&[byte], true)
     }
 
     pub fn new_short<const N: usize>(data: [u8; N]) -> Self {
-        let length = data.len();
-        debug_assert!(length <= 8);
-
-        let mut bytes = [0u8; 8];
-
-        seq_macro::seq!(N in 0..8 {
-            if N < length {
-                bytes[N] = data[N];
-            }
-        });
-
-        Self::new_short_inner(bytes, length, true)
+        Self::new_short_inner(&data, true)
     }
 
     pub unsafe fn new_unchecked(data: Vec<u8>) -> Self {
-        let length = data.len();
-
-        if length <= 8 {
-            let data = data.as_slice();
-            let mut bytes = [0u8; 8];
-
-            seq_macro::seq!(N in 0..8 {
-                if N < length {
-                    bytes[N] = data[N];
-                }
-            });
-
-            Self::new_short_inner(bytes, length, false)
+        if data.len() <= 8 {
+            Self::new_short_inner(data.as_slice(), false)
         } else {
             String::Long(data)
         }
@@ -69,17 +44,26 @@ impl String {
         }
     }
 
-    fn new_short_inner(bytes: [u8; 8], length: usize, safe: bool) -> Self {
+    fn new_short_inner(data: &[u8], safe: bool) -> Self {
+        let length = data.len();
         debug_assert!(length <= 8);
 
         if safe {
             seq_macro::seq!(N in 0..8 {
                 if N < length {
-                    let byte = bytes[N];
+                    let byte = data[N];
                     ensure_ascii(byte);
                 }
             });
         }
+
+        let mut bytes = [0u8; 8];
+
+        seq_macro::seq!(N in 0..8 {
+            if N < length {
+                bytes[N] = data[N];
+            }
+        });
 
         String::Short { bytes, length }
     }
