@@ -1,27 +1,44 @@
 mod builder;
-mod token;
+mod digit;
 mod traits;
 
 pub use builder::StringBuilder;
-pub use token::{DecDigit, HexDigit, Token};
-pub use traits::{ToString, ToToken};
+pub use digit::{DecDigit, HexDigit};
+pub use traits::ToString;
 
 use crate::Vec;
 
 /// Fixed-Gas replacement for [`std::string::String`].
-pub struct String {
-    inner: Vec<u8>,
+pub enum String {
+    Long(Vec<u8>),
+    Short { bytes: [u8; 8], length: usize },
 }
 
 impl String {
-    /// Creates a new [`String`] and copies the input `&'static str` to its allocated space.
-    pub fn new(s: &'static str) -> Self {
-        let ptr = s.as_ptr();
-        let len = s.len();
+    pub fn from_byte(byte: u8) -> Self {
+        Self::new_short_inner([byte], true)
+    }
 
-        unsafe {
-            let inner = Vec::from_raw_parts(ptr, len);
-            String { inner }
+    pub fn new_short<const N: usize>(data: [u8; N]) -> Self {
+        Self::new_short_inner(data, true)
+    }
+
+    pub unsafe fn new_unchecked(data: Vec<u8>) -> Self {
+        let length = data.len();
+
+        if length <= 8 {
+            let data = data.as_slice();
+            let mut bytes = [0u8; 8];
+
+            seq_macro::seq!(N in 0..8 {
+                if N < length {
+                    bytes[N] = data[N];
+                }
+            });
+
+            Self::new_short_inner(bytes, false)
+        } else {
+            String::Long(data)
         }
     }
 
@@ -32,7 +49,29 @@ impl String {
 
     /// Returns a slice view to the underlying bytes.
     pub fn as_bytes(&self) -> &[u8] {
-        self.inner.as_slice()
+        match self {
+            String::Long(vec) => vec.as_slice(),
+            String::Short { bytes, length } => &bytes[0..*length],
+        }
+    }
+
+    fn new_short_inner<const N: usize>(data: [u8; N], safe: bool) -> Self {
+        let length = data.len();
+        debug_assert!(length <= 8);
+
+        let mut bytes = [0u8; 8];
+
+        seq_macro::seq!(N in 0..8 {
+            if N < length {
+                let byte = data[N];
+                if safe {
+                    ensure_ascii(byte)
+                }
+                bytes[N] = byte;
+            }
+        });
+
+        String::Short { bytes, length }
     }
 }
 
@@ -40,15 +79,20 @@ impl String {
 impl core::fmt::Debug for String {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         extern crate std;
-        use std::string::String as StdString;
 
         let ptr = self.as_ptr() as *mut u8;
         let len = self.as_bytes().len();
 
         let bytes = unsafe { core::slice::from_raw_parts(ptr, len) };
-        let string = StdString::from_utf8_lossy(bytes);
+        let string = std::string::String::from_utf8_lossy(bytes);
+
         string.fmt(f)
     }
+}
+
+#[inline]
+fn ensure_ascii(byte: u8) {
+    crate::ensure!(byte & 0b1000_0000 == 0)
 }
 
 #[cfg(test)]
@@ -77,10 +121,10 @@ mod tests {
     #[test]
     fn string_builder_push_token() {
         let mut sb = StringBuilder::with_capacity(6);
-        sb.push_token(Token::One(b'H'));
-        sb.push_token(Token::Two(b'e', b'l'));
-        sb.push_token(Token::Two(b'l', b'o'));
-        sb.push_token(Token::One(b'!'));
+        sb.push_token(ShortString::One(b'H'));
+        sb.push_token(ShortString::Two(b'e', b'l'));
+        sb.push_token(ShortString::Two(b'l', b'o'));
+        sb.push_token(ShortString::One(b'!'));
 
         let actual = sb.build();
         let expected = String::new("Hello!");

@@ -1,4 +1,4 @@
-use crate::{DecDigit, String, StringBuilder, Token};
+use crate::{DecDigit, String, StringBuilder};
 
 /// A trait to be implemented by types that want to have a [`String`] representation.
 pub trait ToString {
@@ -6,23 +6,18 @@ pub trait ToString {
     fn to_string(&self) -> String;
 }
 
-/// A trait to be implemented by types that want to have a [`Token`] representation.
-pub trait ToToken {
-    /// Returns a [`Token`] representing `self`.
-    fn to_token(&self) -> Token;
-}
-
 impl ToString for bool {
     fn to_string(&self) -> String {
         match *self {
-            true => String::new("True"),
-            false => String::new("False"),
+            true => String::new_short([b'T', b'r', b'u', b'e']),
+            false => String::new_short([b'F', b'a', b'l', b's', b'e']),
         }
     }
 }
 
 #[inline(never)]
 fn num_as_string(num: u64, is_negative: bool) -> String {
+    // Important: we allocate 20 digits in order to be able to hold [`std::u64::MAX`].
     let mut value = num;
     let mut digits = [0u8; 20];
     let mut used_count = 0;
@@ -56,16 +51,17 @@ fn next_digit(value: u64) -> (u8, u64, bool) {
 
 #[inline(never)]
 fn concat_digits(digits: &[u8; 20], used_count: usize, is_negative: bool) -> String {
+    // We allocate 21 digits and not 20 for the `minus` sign.
     let mut sb = StringBuilder::with_capacity(21);
     if is_negative {
-        sb.push_token(Token::One(b'-'));
+        sb.push_str(&String::from_byte(b'-'));
     }
 
     seq_macro::seq!(N in 0..20 {
         if N < used_count {
             let digit = digits[used_count - N - 1];
-            let token = DecDigit(digit).to_token();
-            sb.push_token(token);
+            let digit_str = DecDigit(digit).to_string();
+            sb.push_str(&digit_str);
         }
         else {
             return sb.build()
@@ -143,122 +139,120 @@ mod tests {
         unsafe { std::string::String::from_utf8_unchecked(bytes.to_vec()) }
     }
 
-    macro_rules! test {
-        ($expr:expr, $expected:expr) => {{
-            assert_eq!(
-                std_string($expr.to_string()),
-                std::string::ToString::to_string($expected)
-            );
-        }};
+    fn test<T: ToString>(value: T, expected: &'static str) {
+        assert_eq!(
+            std_string(value.to_string()),
+            std::string::ToString::to_string(expected)
+        );
     }
 
     #[test]
     fn bool_to_string() {
-        test!(true, "True");
-        test!(false, "False");
+        test(true, "True");
+        test(false, "False");
     }
 
     #[test]
     fn u8_to_string() {
-        test!(0u8, "0");
-        test!(12u8, "12");
-        test!(123u8, "123");
-        test!(std::u8::MAX, "255");
+        test(0u8, "0");
+        test(12u8, "12");
+        test(123u8, "123");
+        test(std::u8::MAX, "255");
     }
 
     #[test]
     fn i8_to_string() {
-        test!(0i8, "0");
-        test!(-0i8, "0");
+        test(0i8, "0");
+        test(-0i8, "0");
 
-        test!(7i8, "7");
-        test!(-7i8, "-7");
+        test(7i8, "7");
+        test(-7i8, "-7");
 
-        test!(12i8, "12");
-        test!(-12i8, "-12");
+        test(12i8, "12");
+        test(-12i8, "-12");
 
-        test!(123i8, "123");
-        test!(-123i8, "-123");
+        test(123i8, "123");
+        test(-123i8, "-123");
 
-        test!(std::i8::MAX, "127");
-        test!(std::i8::MIN, "-128");
+        test(std::i8::MAX, "127");
+        test(std::i8::MIN, "-128");
     }
 
     #[test]
     fn u16_to_string() {
-        test!(0u16, "0");
-        test!(12u16, "12");
-        test!(123u16, "123");
-        test!(std::u16::MAX, "65535");
+        test(0u16, "0");
+        test(12u16, "12");
+        test(123u16, "123");
+        test(std::u16::MAX, "65535");
     }
 
     #[test]
     fn i16_to_string() {
-        test!(0i16, "0");
-        test!(-0i16, "0");
+        test(0i16, "0");
+        test(-0i16, "0");
 
-        test!(7i16, "7");
-        test!(-7i16, "-7");
+        test(7i16, "7");
+        test(-7i16, "-7");
 
-        test!(12i16, "12");
-        test!(-12i16, "-12");
+        test(12i16, "12");
+        test(-12i16, "-12");
 
-        test!(123i16, "123");
-        test!(-123i16, "-123");
+        test(123i16, "123");
+        test(-123i16, "-123");
 
-        test!(std::i16::MAX, "32767");
-        test!(std::i16::MIN, "-32768");
+        test(std::i16::MAX, "32767");
+        test(std::i16::MIN, "-32768");
     }
 
     #[test]
     fn u32_to_string() {
-        test!(0u32, "0");
-        test!(12u32, "12");
-        test!(123u32, "123");
-        test!(std::u32::MAX, "4294967295");
+        test(0u32, "0");
+        test(12u32, "12");
+        test(123u32, "123");
+        test(std::u32::MAX, "4294967295");
     }
 
     #[test]
     fn i32_to_string() {
-        test!(0i32, "0");
-        test!(-0i32, "0");
+        test(0i32, "0");
+        test(-0i32, "0");
 
-        test!(7i32, "7");
-        test!(-7i32, "-7");
+        test(7i32, "7");
+        test(-7i32, "-7");
 
-        test!(12i32, "12");
-        test!(-12i32, "-12");
+        test(12i32, "12");
+        test(-12i32, "-12");
 
         test!(123i32, "123");
         test!(-123i32, "-123");
 
-        test!(std::i32::MAX, "2147483647");
-        test!(std::i32::MIN, "-2147483648");
+        test(std::i32::MAX, "2147483647");
+        test(std::i32::MIN, "-2147483648");
     }
 
     #[test]
     fn u64_to_string() {
-        test!(0u64, "0");
-        test!(12u64, "12");
-        test!(123u64, "123");
-        test!(std::u64::MAX, "18446744073709551615");
+        test(0u64, "0");
+        test(12u64, "12");
+        test(123u64, "123");
+        test(std::u64::MAX, "18446744073709551615");
     }
 
     #[test]
     fn i64_to_string() {
-        test!(0i64, "0");
-        test!(-0i64, "0");
+        test(0i64, "0");
+        test(-0i64, "0");
 
-        test!(7i64, "7");
-        test!(-7i64, "-7");
+        test(7i64, "7");
+        test(-7i64, "-7");
 
-        test!(12i64, "12");
-        test!(-12i64, "-12");
+        test(12i64, "12");
+        test(-12i64, "-12");
 
-        test!(123i64, "123");
-        test!(-123i64, "-123");
+        test(123i64, "123");
+        test(-123i64, "-123");
 
-        test!(std::i64::MAX, "9223372036854775807");
-        test!(std::i64::MIN, "-9223372036854775808");
+        test(std::i64::MAX, "9223372036854775807");
+        test(std::i64::MIN, "-9223372036854775808");
     }
 }

@@ -17,16 +17,16 @@
 
 #![no_std]
 #![feature(core_intrinsics)]
-#![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 
 mod log;
 pub use log::log;
 
 mod string;
-pub use string::{DecDigit, HexDigit, String, StringBuilder, ToString, ToToken, Token};
+pub use string::{DecDigit, HexDigit, String, StringBuilder, ToString};
 
 /// A replacement for the `core::option::Option` (exposed also as `std::option::Option`)
 mod option;

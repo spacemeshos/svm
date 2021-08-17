@@ -1,6 +1,6 @@
 #![allow(unused_must_use)]
 
-use svm_sdk_std::{HexDigit, String, StringBuilder, ToString, ToToken, Token};
+use svm_sdk_std::{HexDigit, String, StringBuilder, ToString, ToToken, ShortString};
 
 macro_rules! impl_blob_type {
     ($ty:ident, $nbytes:expr) => {
