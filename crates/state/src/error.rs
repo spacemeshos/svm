@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
-pub type Result<T> = std::result::Result<T, GlobalStateError>;
+pub type Result<T> = std::result::Result<T, StorageError>;
 
 #[derive(Debug, thiserror::Error)]
-pub enum GlobalStateError {
+pub enum StorageError {
     #[error("Invalid item.")]
     InvalidItem,
 

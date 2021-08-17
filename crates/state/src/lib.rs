@@ -15,65 +15,71 @@ use std::convert::TryInto;
 
 use svm_hash::{Blake3Hasher, Hasher};
 
-pub use error::{GlobalStateError, Result};
+pub use error::{Result, StorageError};
 
 /// Hashes as well as root fingerprints are 256 bits long.
 pub type Fingerprint = [u8; 32];
 
+type Changes = HashMap<Fingerprint, Vec<u8>>;
+
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
-const ZERO_FINGERPRINT: Fingerprint = [0; 32];
 const INITIAL_COMMIT_ID: i64 = 1;
 
-/// Some external resources:
-///
-/// * https://www.programmersought.com/article/33363860077/
-/// * https://www.youtube.com/watch?v=oEpY4NkkeYQ
-///
-/// Lists of namespaces within [`GlobalState`]:
-///
-/// * 't': templates
-///   * ''
-/// * 'a': accounts
-///   * 'b': balance
-///   * 'n': nonce
-///   * 'a': address
-pub struct GlobalState {
-    sqlite: SqlitePool,
-    next_commit_id: i64,
-    dirty_changes: HashMap<Fingerprint, Vec<u8>>,
+// When initializing [`Fingerprint`]'s on the database, we zero all bits. In
+// memory, however, the initial [`Fingerprint`] is always filled with 1's.
+const FINGERPRINT_ZEROS: Fingerprint = [0; 32];
+const FINGERPRINT_ONES: Fingerprint = [std::u8::MAX; 32];
+
+struct CurrentCommit {
+    id: i64,
+    changes: Changes,
+    changes_xor_fingerprint: Fingerprint,
 }
 
-impl GlobalState {
-    /// Creates a new [`GlobalState`] persisted by the given SQLite database.
+/// A SQLite-backed key-value store that supports root fingerprinting and
+/// historical state queries.
+pub struct Storage {
+    sqlite: SqlitePool,
+    dirty_changes: Changes,
+    current_commit: CurrentCommit,
+}
+
+impl Storage {
+    /// Creates a new [`Storage`] persisted by the given SQLite database.
     /// The SQLite database may or may not be an empty database. If it's empty,
     /// then it will be initialized with the appropriate schema.
     pub async fn new(sqlite_uri: &str) -> Result<Self> {
         let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await?;
         sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
 
-        let next_commit_id = max_commit_id(&sqlite).await?;
+        let current_commit_id = max_commit_id(&sqlite).await?;
 
-        let mut gs = Self {
+        let gs = Self {
             sqlite,
             dirty_changes: HashMap::new(),
-            next_commit_id: next_commit_id.unwrap_or(INITIAL_COMMIT_ID),
+            current_commit: CurrentCommit {
+                id: current_commit_id.unwrap_or(INITIAL_COMMIT_ID),
+                changes: HashMap::new(),
+                changes_xor_fingerprint: FINGERPRINT_ONES,
+            },
         };
 
-        if next_commit_id.is_none() {
-            gs.insert_commit(ZERO_FINGERPRINT).await?;
+        if current_commit_id.is_none() {
+            gs.insert_commit(INITIAL_COMMIT_ID, FINGERPRINT_ZEROS)
+                .await?;
         }
 
         Ok(gs)
     }
 
-    /// Creates a new, empty [`GlobalState`] with no persisted state at all. All
+    /// Creates a new, empty [`Storage`] with no persisted state at all. All
     /// state will be kept in an in-memory SQLite instance.
     pub async fn in_memory() -> Result<Self> {
         Self::new(":memory:").await
     }
 
     /// Fetches the value associated with the Blake3 hash of `key`. See
-    /// [`GlobalState::get_by_hash`] for more information.
+    /// [`Storage::get_by_hash`] for more information.
     pub async fn get(&self, key: &[u8], commit: Option<&Fingerprint>) -> Result<Option<Vec<u8>>> {
         let hash = Blake3Hasher::hash(key);
         self.get_by_hash(&hash, commit).await
@@ -109,10 +115,11 @@ impl GlobalState {
             .await?;
             Ok(value_opt.map(|x| x.0))
         } else if let Some(value) = self.dirty_changes.get(hash) {
-            Ok(Some(value.to_vec()))
+            Ok(Some(value.clone()))
+        } else if let Some(value) = self.current_commit.changes.get(hash) {
+            Ok(Some(value.clone()))
         } else {
-            // No explicit [`Fingerprint`]! We simply must fetch the last record,
-            // which is the most recent one.
+            // Let's fetch the most recent record and see if we find anything.
             let value: Option<(Vec<u8>,)> = sqlx::query_as(
                 r#"
                     SELECT "value"
@@ -131,7 +138,7 @@ impl GlobalState {
     }
 
     /// Sets the `value` associated with the Blake3 hash of `key`. See
-    /// [`GlobalState::upsert_by_hash`] for more information.
+    /// [`Storage::upsert_by_hash`] for more information.
     pub async fn upsert<V>(&mut self, key: &[u8], value: V)
     where
         V: Into<Vec<u8>>,
@@ -141,7 +148,7 @@ impl GlobalState {
     }
 
     /// Sets the `value` associated with a Blake3 `hash`. This change will be
-    /// "dirty" until a [`GlobalState::checkout`].
+    /// "dirty" until a [`Storage::checkout`].
     pub async fn upsert_by_hash<V>(&mut self, hash: Fingerprint, value: V)
     where
         V: Into<Vec<u8>>,
@@ -150,62 +157,80 @@ impl GlobalState {
         self.dirty_changes.entry(hash).or_insert(value);
     }
 
-    pub async fn commit(&mut self) -> Result<Fingerprint> {
-        let commit = self.checkpoint().await?;
-        self.next_commit_id += 1;
-        self.insert_commit(commit).await?;
-        Ok(commit)
+    /// Prepares dirty changes to be commited via [`Storage::commit`]. After
+    /// saving, changes are frozen and can't be removed from the current commit.
+    pub async fn checkpoint(&mut self) {
+        let dirty_changes = std::mem::take(&mut self.dirty_changes);
+
+        let mut fingerprint = self.current_commit.changes_xor_fingerprint;
+
+        for change in dirty_changes {
+            xor_fingerprint(&mut fingerprint, &hash_key_value_pair(&change.0, &change.1));
+            self.current_commit.changes.insert(change.0, change.1);
+        }
     }
 
-    /// Creates a new [`Fingerprint`] with the given fingerprint.
-    async fn insert_commit(&mut self, fingerprint: Fingerprint) -> Result<()> {
+    /// Persists all changes to disk and returns the root fingerprint of the new
+    /// commit. It returns a [`StorageError::DirtyChanges`] in case there's any
+    /// dirty changes that haven't been saved via [`Storage::checkpoint`] before
+    /// this call.
+    pub async fn commit(&mut self) -> Result<Fingerprint> {
+        if !self.dirty_changes.is_empty() {
+            Err(StorageError::DirtyChanges)
+        } else {
+            let mut inserts = vec![];
+            let commit_changes = std::mem::take(&mut self.current_commit.changes);
+
+            for (key_hash, value) in commit_changes {
+                inserts.push(
+                    sqlx::query(
+                        r#"
+                            INSERT INTO "values" ("key_hash", "value", "commit_id")
+                            VALUES (?1, ?2, ?3)
+                        "#,
+                    )
+                    .bind(key_hash.to_vec())
+                    .bind(value)
+                    .bind(self.current_commit.id)
+                    .execute(&self.sqlite),
+                )
+            }
+
+            futures::future::try_join_all(inserts).await?;
+
+            let new_fingerprint = self
+                .update_commit_fingerprint(
+                    self.current_commit.id,
+                    &self.current_commit.changes_xor_fingerprint,
+                )
+                .await?;
+
+            self.current_commit.changes_xor_fingerprint = FINGERPRINT_ONES;
+            self.current_commit.id += 1;
+
+            self.insert_commit(self.current_commit.id, new_fingerprint)
+                .await?;
+
+            Ok(new_fingerprint)
+        }
+    }
+
+    /// Creates a new [`Fingerprint`]-ed commit with the given `id`.
+    async fn insert_commit(&self, id: i64, fingerprint: Fingerprint) -> Result<()> {
         sqlx::query(
             r#"
                 INSERT INTO "commits" ("id", "fingerprint")
                 VALUES (?1, ?2)
             "#,
         )
-        .bind(self.next_commit_id)
+        .bind(id)
         .bind(&fingerprint[..])
         .execute(&self.sqlite)
         .await?;
         Ok(())
     }
 
-    /// Persists all dirty changes from memory to disk. Even though persisted to
-    /// disk, they still don't belong to any commit; look into
-    /// [`GlobalState::commit`].
-    pub async fn checkpoint(&mut self) -> Result<Fingerprint> {
-        let dirty_changes = std::mem::take(&mut self.dirty_changes);
-
-        let mut fingerprint = ZERO_FINGERPRINT;
-
-        for change in dirty_changes {
-            let old_value: Option<Vec<u8>> = self.get_by_hash(&change.0, None).await?;
-            if let Some(old_value) = old_value {
-                xor_fingerprint(
-                    &mut fingerprint,
-                    &hash_key_value_pair(&change.0, &old_value),
-                );
-            }
-            xor_fingerprint(&mut fingerprint, &hash_key_value_pair(&change.0, &change.1));
-
-            sqlx::query(
-                r#"
-                    INSERT INTO "values" ("commit_id", "key_hash", "value")
-                    VALUES (?1, ?2, ?3)
-                "#,
-            )
-            .bind(self.next_commit_id)
-            .bind(&change.0[..])
-            .bind(&change.1)
-            .execute(&self.sqlite)
-            .await?;
-        }
-
-        self.update_commit_fingerprint(&fingerprint).await
-    }
-
+    /// Queries the current [`Fingerprint`] value of `commit_id`.
     async fn commit_fingerprint(&self, commit_id: i64) -> Result<Fingerprint> {
         let bytes: (Vec<u8>,) = sqlx::query_as(
             r#"
@@ -220,13 +245,14 @@ impl GlobalState {
         Ok(bytes.0.try_into().unwrap())
     }
 
+    /// XOR's the [`Fingerprint`] of `commit_id` with `xor`.
     async fn update_commit_fingerprint(
-        &mut self,
-        partial_fingerprint: &Fingerprint,
+        &self,
+        commit_id: i64,
+        xor: &Fingerprint,
     ) -> Result<Fingerprint> {
-        let mut fingerprint: Fingerprint = self.commit_fingerprint(self.next_commit_id).await?;
-        xor_fingerprint(&mut fingerprint, partial_fingerprint);
-        let fingerprint_bytes = &fingerprint[..];
+        let mut fingerprint: Fingerprint = self.commit_fingerprint(self.current_commit.id).await?;
+        xor_fingerprint(&mut fingerprint, xor);
 
         sqlx::query(
             r#"
@@ -235,8 +261,8 @@ impl GlobalState {
                 WHERE "id" = ?2
             "#,
         )
-        .bind(fingerprint_bytes)
-        .bind(self.next_commit_id)
+        .bind(&fingerprint[..])
+        .bind(commit_id)
         .execute(&self.sqlite)
         .await?;
 
@@ -244,24 +270,23 @@ impl GlobalState {
     }
 
     /// Returns the [`Fingerprint`] of the last ever checkpoint; i.e.
-    /// persisted changes without dirty changes.
+    /// persisted changes without dirty and saved changes.
     pub async fn current(&self) -> Result<Fingerprint> {
-        self.commit_fingerprint(self.next_commit_id).await
+        self.commit_fingerprint(self.current_commit.id).await
     }
 
-    /// Returns the current root [`Fingerprint`].
-    ///
-    /// It returns an error in case there's any dirty changes: you must
-    /// [`rollback`](GlobalState::rollback) first.
+    /// Erases all dirty changes and saved data from memory. Persisted data is
+    /// left untouched.
     pub async fn rewind(&mut self, _commit: &Fingerprint) -> Result<()> {
         if self.dirty_changes.is_empty() {
             Ok(())
         } else {
-            Err(GlobalStateError::DirtyChanges)
+            Err(StorageError::DirtyChanges)
         }
     }
 
-    /// Erases all dirty changes from memory. Persisted data is left untouched.
+    /// Erases all dirty changes from memory. Persisted and saved data are left
+    /// untouched.
     pub fn rollback(&mut self) {
         self.dirty_changes.clear();
     }
@@ -301,7 +326,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn retrieval_after_dirty_changes(items: HashMap<String, String>) -> bool {
-        let mut gs = GlobalState::in_memory().await.unwrap();
+        let mut gs = Storage::in_memory().await.unwrap();
 
         for (key, value) in items.iter() {
             gs.upsert(key.as_bytes(), value.as_bytes()).await;
@@ -319,13 +344,13 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn retrieval_after_checkpoint(items: HashMap<String, String>) -> bool {
-        let mut gs = GlobalState::in_memory().await.unwrap();
+        let mut gs = Storage::in_memory().await.unwrap();
 
         for (key, value) in items.iter().filter(|kv| !kv.0.is_empty()) {
             gs.upsert(key.as_bytes(), value.as_bytes()).await;
         }
 
-        gs.checkpoint().await.unwrap();
+        gs.checkpoint().await;
 
         for (key, value) in items.iter().filter(|kv| !kv.0.is_empty()) {
             let stored_value = gs.get(key.as_bytes(), None).await.unwrap().unwrap();
@@ -339,7 +364,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn root_fingerprint_changes_after_inserts() -> bool {
-        let mut gs = GlobalState::in_memory().await.unwrap();
+        let mut gs = Storage::in_memory().await.unwrap();
 
         gs.upsert(b"foo", "bar").await;
         let commit_1 = gs.commit().await.unwrap();
@@ -355,14 +380,14 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_fails_on_empty_global_state(key: Vec<u8>) -> bool {
-        let gs = GlobalState::in_memory().await.unwrap();
+        let gs = Storage::in_memory().await.unwrap();
         matches!(gs.get(&key, None).await, Ok(None))
     }
 
     #[quickcheck_async::tokio]
     async fn rewind_succeeds_when_empty(bytes: Vec<u8>) -> bool {
         let commit = Blake3Hasher::hash(&bytes);
-        let mut gs = GlobalState::in_memory().await.unwrap();
+        let mut gs = Storage::in_memory().await.unwrap();
 
         gs.rewind(&commit).await.is_ok()
     }
@@ -370,7 +395,7 @@ mod test {
     #[quickcheck_async::tokio]
     async fn rewind_fails_after_insert(bytes: Vec<u8>, key: Vec<u8>, value: Vec<u8>) -> bool {
         let commit = Blake3Hasher::hash(&bytes);
-        let mut gs = GlobalState::in_memory().await.unwrap();
+        let mut gs = Storage::in_memory().await.unwrap();
 
         gs.upsert(&key, value).await;
         gs.rewind(&commit).await.is_err()

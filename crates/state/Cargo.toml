@@ -15,12 +15,12 @@ anyhow = "1"
 blake3 = "1"
 # https://github.com/myrrlyn/funty/issues/3
 funty = "=1.1.0"
+futures = "0.3"
 sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite", "macros"] }
 svm-hash = { path = "../hash" }
 thiserror = "1"
 
 [dev-dependencies]
-futures = "0.3"
 quickcheck = "1"
 quickcheck_async = "0.1"
 quickcheck_macros = "1"
