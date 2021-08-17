@@ -10,19 +10,44 @@ use crate::Vec;
 
 /// Fixed-Gas replacement for [`std::string::String`].
 pub enum String {
+    /// A String longer than 8 bytes (data is stored on the `Heap`).
     Long(Vec<u8>),
-    Short { bytes: [u8; 8], length: usize },
+
+    /// A String consisting of at most 8 bytes (data is stored on the `Stack`).
+    Short {
+        /// The String's content padded to 8 bytes.
+        bytes: [u8; 8],
+
+        /// The actual byte length used for storing the data.
+        length: usize,
+    },
 }
 
 impl String {
+    /// Creates a new [`String`] containing a single byte.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if the byte isn't of ASCII code.
     pub fn from_byte(byte: u8) -> Self {
         Self::new_short_inner(&[byte], true)
     }
 
+    /// Creates a new [`String`] containing at most 8 bytes.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if the input is longer than 8 bytes.
+    /// * Panics if one of the bytes isn't of ASCII code.
     pub fn new_short(data: &[u8]) -> Self {
         Self::new_short_inner(data, true)
     }
 
+    /// Creates a new [`String`].
+    ///
+    /// # Safety
+    ///
+    /// The method doesn't enforce ASCII encoding and thus considered `unsafe`.
     pub unsafe fn new_unchecked(data: Vec<u8>) -> Self {
         if data.len() <= 8 {
             Self::new_short_inner(data.as_slice(), false)
