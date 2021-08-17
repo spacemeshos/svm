@@ -9,8 +9,8 @@ pub trait ToString {
 impl ToString for bool {
     fn to_string(&self) -> String {
         match *self {
-            true => String::new_short([b'T', b'r', b'u', b'e']),
-            false => String::new_short([b'F', b'a', b'l', b's', b'e']),
+            true => String::new_short("True".as_bytes()),
+            false => String::new_short("False".as_bytes()),
         }
     }
 }
@@ -133,15 +133,9 @@ mod tests {
 
     extern crate std;
 
-    fn std_string(s: String) -> std::string::String {
-        let bytes = s.as_bytes();
-
-        unsafe { std::string::String::from_utf8_unchecked(bytes.to_vec()) }
-    }
-
     fn test<T: ToString>(value: T, expected: &'static str) {
         assert_eq!(
-            std_string(value.to_string()),
+            value.to_string().to_std_string(),
             std::string::ToString::to_string(expected)
         );
     }

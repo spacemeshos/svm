@@ -19,8 +19,8 @@ impl String {
         Self::new_short_inner(&[byte], true)
     }
 
-    pub fn new_short<const N: usize>(data: [u8; N]) -> Self {
-        Self::new_short_inner(&data, true)
+    pub fn new_short(data: &[u8]) -> Self {
+        Self::new_short_inner(data, true)
     }
 
     pub unsafe fn new_unchecked(data: Vec<u8>) -> Self {
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn string_builder_one_string() {
         let mut sb = StringBuilder::with_capacity(5);
-        sb.push_str(&String::new_short([b'H', b'e', b'l', b'l', b'o']));
+        sb.push_str(&String::new_short("Hello".as_bytes()));
 
         let s = sb.build().to_std_string();
         assert_eq!(s.as_str(), "Hello");
@@ -126,8 +126,8 @@ mod tests {
     fn string_builder_multiple_strings() {
         let mut sb = StringBuilder::with_capacity(6);
         sb.push_str(&String::from_byte(b'H'));
-        sb.push_str(&String::new_short([b'e', b'l']));
-        sb.push_str(&String::new_short([b'l', b'o']));
+        sb.push_str(&String::new_short("el".as_bytes()));
+        sb.push_str(&String::new_short("lo".as_bytes()));
         sb.push_str(&String::from_byte(b'!'));
 
         let s = sb.build().to_std_string();

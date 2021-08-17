@@ -25,3 +25,14 @@ pub use layer_id::LayerId;
 
 mod blob;
 pub use blob::Address;
+
+#[cfg(test)]
+extern crate std;
+
+#[cfg(test)]
+fn to_std_string<T: svm_sdk_std::ToString>(value: T) -> std::string::String {
+    let string: svm_sdk_std::String = value.to_string();
+    let bytes = string.as_bytes();
+
+    unsafe { std::string::String::from_utf8_unchecked(bytes.to_vec()) }
+}

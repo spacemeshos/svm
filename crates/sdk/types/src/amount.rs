@@ -130,7 +130,7 @@ impl ToString for Amount {
 
         let s = self.0.to_string();
         sb.push_str(&s);
-        sb.push_str(&String::new_short([b' ', b'c', b'o', b'i', b'n', b's']));
+        sb.push_str(&String::new_short(" coins".as_bytes()));
         sb.build()
     }
 }
@@ -139,17 +139,12 @@ impl ToString for Amount {
 mod tests {
     use super::*;
 
+    use crate::to_std_string;
+
     #[test]
     fn amount_to_string() {
-        extern crate std;
-
-        let amount = Amount(std::u64::MAX);
-        let string = svm_sdk_std::ToString::to_string(&amount);
-
-        let vec: std::vec::Vec<u8> = string.as_bytes().into();
-        let string = unsafe { std::string::String::from_utf8_unchecked(vec) };
-
-        assert_eq!(string.as_str(), "18446744073709551615 coins");
+        let amount = Amount(core::u64::MAX);
+        assert_eq!(to_std_string(amount), "18446744073709551615 coins");
     }
 
     #[test]

@@ -139,7 +139,7 @@ macro_rules! impl_blob_type {
                 use svm_sdk_std::{HexDigit, StringBuilder, String};
 
                 let mut sb = StringBuilder::with_capacity("0x".len() + Self::len() * 2);
-                sb.push_str(&String::new_short([b'0', b'x']));
+                sb.push_str(&String::new_short("0x".as_bytes()));
 
                 let bytes = self.as_slice();
                 seq_macro::seq!(N in 0..$nbytes {
@@ -165,19 +165,20 @@ impl_blob_type!(Address, 20);
 mod tests {
     use super::*;
 
+    use crate::to_std_string;
+
     #[test]
     fn address_to_string() {
-        extern crate std;
-
-        let addr = Address::repeat(0xAB);
-        let string = svm_sdk_std::ToString::to_string(&addr);
-
-        let vec: std::vec::Vec<u8> = string.as_bytes().into();
-        let string = unsafe { std::string::String::from_utf8_unchecked(vec) };
+        let bytes: &'static [u8] = std::vec![
+            0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78, 0x89, 0x9A, 0xAB, 0xBC, 0xCD, 0xDE,
+            0xEF, 0xFE, 0xD0, 0xC0, 0xB0, 0xA0
+        ]
+        .leak();
+        let addr = Address::from(bytes);
 
         assert_eq!(
-            string.as_str(),
-            "0xABABABABABABABABABABABABABABABABABABABAB"
+            to_std_string(addr),
+            "0x0112233445566778899AABBCCDDEEFFED0C0B0A0"
         );
     }
 }
