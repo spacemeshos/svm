@@ -14,7 +14,7 @@ pub enum Option<T> {
 impl<T> Option<T> {
     /// Returns the wrapped value.
     ///
-    /// # Safety
+    /// # Panics
     ///
     /// Panics when `self` is `None`.
     #[inline]

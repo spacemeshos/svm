@@ -16,6 +16,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 thiserror = "1"
+seq-macro = "0.2"
 tiny-keccak = "1.4.2"
 wasmer = { version = "2", default-features = false, optional = true }
 wee_alloc = { version = "0.4.5", optional = true }

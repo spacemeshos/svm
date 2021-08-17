@@ -6,15 +6,6 @@ pub trait ToString {
     fn to_string(&self) -> String;
 }
 
-impl ToString for bool {
-    fn to_string(&self) -> String {
-        match *self {
-            true => String::new_short("True".as_bytes()),
-            false => String::new_short("False".as_bytes()),
-        }
-    }
-}
-
 #[inline(never)]
 fn num_as_string(num: u64, is_negative: bool) -> String {
     // Important: we allocate 20 digits in order to be able to hold [`std::u64::MAX`].
@@ -138,12 +129,6 @@ mod tests {
             value.to_string().to_std_string(),
             std::string::ToString::to_string(expected)
         );
-    }
-
-    #[test]
-    fn bool_to_string() {
-        test(true, "True");
-        test(false, "False");
     }
 
     #[test]

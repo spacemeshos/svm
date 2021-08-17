@@ -11,7 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-seq-macro = "0.2.2"
+seq-macro = "0.2"
 svm-sdk-alloc = { path = "../alloc", default-features = false }
 
 [features]

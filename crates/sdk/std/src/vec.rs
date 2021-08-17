@@ -59,7 +59,7 @@ impl<T> Vec<T> {
 
     /// Pops the last pushed item and returns it.
     ///
-    /// # Safety
+    /// # Panics
     ///
     /// Panics if the `self` is empty.
     pub fn pop(&mut self) -> T {
