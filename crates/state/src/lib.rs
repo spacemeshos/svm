@@ -97,16 +97,16 @@ impl Storage {
         if let Some(commit) = commit {
             let value_opt: Option<(Vec<u8>,)> = sqlx::query_as(
                 r#"
-                    SELECT "value"
-                    FROM "values"
-                    WHERE
-                        "commit_id" <= (
-                            SELECT "id"
-                            FROM "commits"
-                            WHERE "fingerprint" = ?1
-                        )
-                        AND
-                        "key_hash" = ?2
+                SELECT "value"
+                FROM "values"
+                WHERE
+                    "commit_id" <= (
+                        SELECT "id"
+                        FROM "commits"
+                        WHERE "fingerprint" = ?1
+                    )
+                    AND
+                    "key_hash" = ?2
                 "#,
             )
             .bind(&commit[..])
@@ -122,11 +122,11 @@ impl Storage {
             // Let's fetch the most recent record and see if we find anything.
             let value: Option<(Vec<u8>,)> = sqlx::query_as(
                 r#"
-                    SELECT "value"
-                    FROM "values"
-                    WHERE "key_hash" = ?1
-                    ORDER BY "id" DESC
-                    LIMIT 1
+                SELECT "value"
+                FROM "values"
+                WHERE "key_hash" = ?1
+                ORDER BY "id" DESC
+                LIMIT 1
                 "#,
             )
             .bind(&hash[..])
@@ -185,8 +185,8 @@ impl Storage {
                 inserts.push(
                     sqlx::query(
                         r#"
-                            INSERT INTO "values" ("key_hash", "value", "commit_id")
-                            VALUES (?1, ?2, ?3)
+                        INSERT INTO "values" ("key_hash", "value", "commit_id")
+                        VALUES (?1, ?2, ?3)
                         "#,
                     )
                     .bind(key_hash.to_vec())
@@ -219,8 +219,8 @@ impl Storage {
     async fn insert_commit(&self, id: i64, fingerprint: Fingerprint) -> Result<()> {
         sqlx::query(
             r#"
-                INSERT INTO "commits" ("id", "fingerprint")
-                VALUES (?1, ?2)
+            INSERT INTO "commits" ("id", "fingerprint")
+            VALUES (?1, ?2)
             "#,
         )
         .bind(id)
@@ -234,9 +234,9 @@ impl Storage {
     async fn commit_fingerprint(&self, commit_id: i64) -> Result<Fingerprint> {
         let bytes: (Vec<u8>,) = sqlx::query_as(
             r#"
-                SELECT "fingerprint"
-                FROM "commits"
-                WHERE "id" = ?1
+            SELECT "fingerprint"
+            FROM "commits"
+            WHERE "id" = ?1
             "#,
         )
         .bind(commit_id)
@@ -256,9 +256,9 @@ impl Storage {
 
         sqlx::query(
             r#"
-                UPDATE "commits"
-                SET "fingerprint" = ?1
-                WHERE "id" = ?2
+            UPDATE "commits"
+            SET "fingerprint" = ?1
+            WHERE "id" = ?2
             "#,
         )
         .bind(&fingerprint[..])
@@ -275,10 +275,14 @@ impl Storage {
         self.commit_fingerprint(self.current_commit.id).await
     }
 
-    /// Erases all dirty changes and saved data from memory. Persisted data is
-    /// left untouched.
+    /// Erases all saved data from memory. Persisted data is
+    /// left untouched. It returns a [`StorageError::DirtyChanges`] in case
+    /// there's any dirty changes, i.e. you must call [`Storage::rollback`]
+    /// beforehand.
     pub async fn rewind(&mut self, _commit: &Fingerprint) -> Result<()> {
         if self.dirty_changes.is_empty() {
+            self.current_commit.changes.clear();
+            self.current_commit.changes_xor_fingerprint = FINGERPRINT_ONES;
             Ok(())
         } else {
             Err(StorageError::DirtyChanges)
@@ -295,11 +299,11 @@ impl Storage {
 async fn max_commit_id(pool: &SqlitePool) -> Result<Option<i64>> {
     let max_commit_id: Option<(i64,)> = sqlx::query_as(
         r#"
-                SELECT "id"
-                FROM "commits"
-                ORDER BY "id" DESC
-                LIMIT 1
-            "#,
+        SELECT "id"
+        FROM "commits"
+        ORDER BY "id" DESC
+        LIMIT 1
+        "#,
     )
     .fetch_optional(pool)
     .await?;
@@ -367,12 +371,15 @@ mod test {
         let mut gs = Storage::in_memory().await.unwrap();
 
         gs.upsert(b"foo", "bar").await;
+        gs.checkpoint().await;
         let commit_1 = gs.commit().await.unwrap();
 
         gs.upsert(b"foo", "spam").await;
+        gs.checkpoint().await;
         let commit_2 = gs.commit().await.unwrap();
 
         gs.upsert(b"foo", "bar").await;
+        gs.checkpoint().await;
         let commit_3 = gs.commit().await.unwrap();
 
         commit_1 != commit_2 && commit_1 == commit_3
