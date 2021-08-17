@@ -83,9 +83,9 @@ impl Storage {
 
     /// Fetches the value associated with the Blake3 hash of `key`. See
     /// [`Storage::get_by_hash`] for more information.
-    pub async fn get(&self, key: &[u8], layer: Option<LayerId>) -> Result<Option<Vec<u8>>> {
+    pub async fn get(&self, key: &[u8], layer_id: Option<LayerId>) -> Result<Option<Vec<u8>>> {
         let hash = Blake3Hasher::hash(key);
-        self.get_by_hash(&hash, layer).await
+        self.get_by_hash(&hash, layer_id).await
     }
 
     /// Fetches the value associated with a Blake3 `hash`. If `layer`
@@ -94,9 +94,9 @@ impl Storage {
     pub async fn get_by_hash(
         &self,
         hash: &Fingerprint,
-        layer: Option<LayerId>,
+        layer_id: Option<LayerId>,
     ) -> Result<Option<Vec<u8>>> {
-        if let Some(layer) = layer {
+        if let Some(layer) = layer_id {
             self.get_by_hash_historical(hash, layer).await
         } else if let Some(value) = self.dirty_changes.get(hash) {
             Ok(Some(value.clone()))
@@ -123,7 +123,7 @@ impl Storage {
     async fn get_by_hash_historical(
         &self,
         hash: &Fingerprint,
-        layer: LayerId,
+        layer_id: LayerId,
     ) -> Result<Option<Vec<u8>>> {
         let value_opt: Option<(Vec<u8>,)> = sqlx::query_as(
             r#"
@@ -141,7 +141,7 @@ impl Storage {
                 LIMIT 1
                 "#,
         )
-        .bind(layer as i64)
+        .bind(layer_id as i64)
         .bind(&hash[..])
         .fetch_optional(&self.sqlite)
         .await?;
@@ -169,7 +169,7 @@ impl Storage {
 
     /// Prepares dirty changes to be layered via [`Storage::layer`]. After
     /// saving, changes are frozen and can't be removed from the current layer.
-    pub async fn checkpoint(&mut self) {
+    pub async fn checkpoint(&mut self) -> Result<()> {
         let mut fingerprint = self.current_layer.changes_xor_fingerprint;
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
 
@@ -179,13 +179,15 @@ impl Storage {
 
             self.current_layer.changes.insert(change.0, change.1);
         }
+
+        Ok(())
     }
 
     /// Persists all changes to disk and returns the root fingerprint of the new
     /// layer. It returns a [`StorageError::DirtyChanges`] in case there's any
     /// dirty changes that haven't been saved via [`Storage::checkpoint`] before
     /// this call.
-    pub async fn commit(&mut self) -> Result<Fingerprint> {
+    pub async fn commit(&mut self) -> Result<(LayerId, Fingerprint)> {
         if !self.dirty_changes.is_empty() {
             return Err(StorageError::DirtyChanges);
         }
@@ -223,13 +225,14 @@ impl Storage {
 
         // Reset layer-specific information to default values.
         self.current_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
+        let layer_id = self.current_layer.id;
         self.current_layer.id += 1;
 
         // Finally, create an empty layer for subsequent operations.
         self.insert_layer(self.current_layer.id as i64, new_fingerprint)
             .await?;
 
-        Ok(new_fingerprint)
+        Ok((layer_id, new_fingerprint))
     }
 
     /// Creates a new [`Fingerprint`]-ed layer with the given `id`.
@@ -248,7 +251,7 @@ impl Storage {
     }
 
     /// Queries the current [`Fingerprint`] value of `layer_id`.
-    async fn layer_fingerprint(&self, layer: LayerId) -> Result<Fingerprint> {
+    async fn layer_fingerprint(&self, layer_id: LayerId) -> Result<Fingerprint> {
         let bytes: (Vec<u8>,) = sqlx::query_as(
             r#"
             SELECT "fingerprint"
@@ -256,7 +259,7 @@ impl Storage {
             WHERE "id" = ?1
             "#,
         )
-        .bind(layer as i64)
+        .bind(layer_id as i64)
         .fetch_one(&self.sqlite)
         .await?;
         Ok(bytes.0.try_into().unwrap())
@@ -292,10 +295,11 @@ impl Storage {
         self.layer_fingerprint(self.current_layer.id).await
     }
 
-    /// Completely deletes all layers after `layer` from the SQLite store.
+    /// Completely deletes all layers before (including ) `layer` from the
+    /// SQLite store.
     /// Returns a [`StorageError::Changes`] or [`StorageError::DirtyChanges`] in
     /// case there's in-memory changes that haven't been persisted yet.
-    pub async fn erase_history(&mut self, layer: &Fingerprint) -> Result<()> {
+    pub async fn erase_history(&mut self, layer_id: LayerId) -> Result<()> {
         if !self.dirty_changes.is_empty() {
             Err(StorageError::DirtyChanges)
         } else if !self.current_layer.changes.is_empty() {
@@ -304,14 +308,10 @@ impl Storage {
             sqlx::query(
                 r#"
                 DELETE FROM "layers"
-                WHERE "layer_id" > (
-                    SELECT "id"
-                    FROM "layers"
-                    WHERE "fingerprint" = ?1
-                )
+                WHERE "layer_id" >= ?1
                 "#,
             )
-            .bind(&layer[..])
+            .bind(layer_id as i64)
             .execute(&self.sqlite)
             .await?;
             Ok(())
@@ -322,7 +322,7 @@ impl Storage {
     /// left untouched. It returns a [`StorageError::DirtyChanges`] in case
     /// there's any dirty changes, i.e. you must call [`Storage::rollback`]
     /// beforehand.
-    pub async fn rewind(&mut self, _layer: &Fingerprint) -> Result<()> {
+    pub async fn rewind(&mut self) -> Result<()> {
         if self.dirty_changes.is_empty() {
             self.current_layer.changes.clear();
             self.current_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
@@ -334,8 +334,9 @@ impl Storage {
 
     /// Erases all dirty changes from memory. Persisted and saved data are left
     /// untouched.
-    pub fn rollback(&mut self) {
+    pub async fn rollback(&mut self) -> Result<()> {
         self.dirty_changes.clear();
+        Ok(())
     }
 }
 
@@ -372,16 +373,16 @@ mod test {
     use super::*;
 
     #[quickcheck_async::tokio]
-    async fn retrieval_after_dirty_changes(items: HashMap<String, String>) -> bool {
+    async fn retrieval_after_dirty_changes(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
         for (key, value) in items.iter() {
-            gs.upsert(key.as_bytes(), value.as_bytes()).await;
+            gs.upsert(&key[..], &value[..]).await;
         }
 
         for (key, value) in items {
-            let stored_value = gs.get(key.as_bytes(), None).await.unwrap().unwrap();
-            if stored_value != value.as_bytes() {
+            let stored_value = gs.get(&key, None).await.unwrap().unwrap();
+            if stored_value != value {
                 return false;
             }
         }
@@ -390,18 +391,18 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
-    async fn retrieval_after_checkpoint(items: HashMap<String, String>) -> bool {
+    async fn retrieval_after_checkpoint(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
-        for (key, value) in items.iter().filter(|kv| !kv.0.is_empty()) {
-            gs.upsert(key.as_bytes(), value.as_bytes()).await;
+        for (key, value) in items.iter() {
+            gs.upsert(&key[..], &value[..]).await;
         }
 
-        gs.checkpoint().await;
+        gs.checkpoint().await.unwrap();
 
-        for (key, value) in items.iter().filter(|kv| !kv.0.is_empty()) {
-            let stored_value = gs.get(key.as_bytes(), None).await.unwrap().unwrap();
-            if stored_value != value.as_bytes() {
+        for (key, value) in items {
+            let stored_value = gs.get(&key, None).await.unwrap().unwrap();
+            if stored_value != value {
                 return false;
             }
         }
@@ -410,22 +411,48 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
-    async fn root_fingerprint_changes_after_inserts() -> bool {
+    async fn retrieval_after_commit(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
+        let mut gs = Storage::in_memory().await.unwrap();
+
+        for (key, value) in items.iter() {
+            gs.upsert(&key[..], &value[..]).await;
+        }
+
+        gs.checkpoint().await.unwrap();
+        gs.commit().await.unwrap();
+
+        for (key, value) in items {
+            let stored_value = gs.get(&key, None).await.unwrap().unwrap();
+            if stored_value != value {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    #[quickcheck_async::tokio]
+    async fn layer_info_depends_on_inserts() -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
         gs.upsert(b"foo", "bar").await;
-        gs.checkpoint().await;
+        gs.checkpoint().await.unwrap();
         let layer_1 = gs.commit().await.unwrap();
 
         gs.upsert(b"foo", "spam").await;
-        gs.checkpoint().await;
+        gs.checkpoint().await.unwrap();
         let layer_2 = gs.commit().await.unwrap();
 
         gs.upsert(b"foo", "bar").await;
-        gs.checkpoint().await;
+        gs.checkpoint().await.unwrap();
         let layer_3 = gs.commit().await.unwrap();
 
-        layer_1 != layer_2 && layer_1 == layer_3
+        // Check layer ID ordering
+        layer_1.0 < layer_2.0
+            && layer_2.0 < layer_3.0
+        // Check layer fingerprinting
+            && layer_1.1 != layer_2.1
+            && layer_1.1 == layer_3.1
     }
 
     #[quickcheck_async::tokio]
@@ -435,19 +462,73 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
-    async fn rewind_succeeds_when_empty(bytes: Vec<u8>) -> bool {
-        let layer = Blake3Hasher::hash(&bytes);
+    async fn rollback_succeeds_when_empty() -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
-        gs.rewind(&layer).await.is_ok()
+        gs.rollback().await.is_ok()
     }
 
     #[quickcheck_async::tokio]
-    async fn rewind_fails_after_insert(bytes: Vec<u8>, key: Vec<u8>, value: Vec<u8>) -> bool {
-        let layer = Blake3Hasher::hash(&bytes);
+    async fn rewind_succeeds_when_empty() -> bool {
+        let mut gs = Storage::in_memory().await.unwrap();
+
+        gs.rewind().await.is_ok()
+    }
+
+    #[quickcheck_async::tokio]
+    async fn rewind_fails_after_insert(key: Vec<u8>, value: Vec<u8>) -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
         gs.upsert(&key, value).await;
-        gs.rewind(&layer).await.is_err()
+        gs.rewind().await.is_err()
+    }
+
+    #[quickcheck_async::tokio]
+    async fn rewind_succeeds_after_checkout(key: Vec<u8>, value: Vec<u8>) -> bool {
+        let mut gs = Storage::in_memory().await.unwrap();
+
+        gs.upsert(&key, value).await;
+        gs.checkpoint().await.unwrap();
+        gs.rewind().await.is_ok()
+    }
+
+    #[quickcheck_async::tokio]
+    async fn upsert_after_erasing_layer(key: Vec<u8>, value: Vec<u8>) -> bool {
+        let mut gs = Storage::in_memory().await.unwrap();
+
+        gs.upsert(&key, value).await;
+        gs.checkpoint().await.unwrap();
+        let layer = gs.commit().await.unwrap();
+
+        gs.erase_history(layer.0).await.unwrap();
+
+        matches!(gs.get(&key, None).await, Ok(None))
+    }
+
+    #[quickcheck_async::tokio]
+    async fn rewind_then_overwrite_keys_then_get() -> bool {
+        let mut gs = Storage::in_memory().await.unwrap();
+
+        gs.upsert(b"foo", "1").await;
+        gs.upsert(b"bar", "2").await;
+        gs.checkpoint().await.unwrap();
+
+        gs.upsert(b"xyz", "1337").await;
+        gs.checkpoint().await.unwrap();
+
+        gs.upsert(b"spam", "42").await;
+        gs.upsert(b"super-spam", "100").await;
+        gs.rollback().await.unwrap();
+
+        gs.upsert(b"super-spam", "50").await;
+        gs.checkpoint().await.unwrap();
+
+        gs.commit().await.unwrap();
+
+        gs.get(b"foo", None).await.unwrap().unwrap() == b"1"
+            && gs.get(b"bar", None).await.unwrap().unwrap() == b"2"
+            && gs.get(b"xyz", None).await.unwrap().unwrap() == b"1337"
+            && gs.get(b"spam", None).await.unwrap().is_none()
+            && gs.get(b"super-spam", None).await.unwrap().unwrap() == b"50"
     }
 }
