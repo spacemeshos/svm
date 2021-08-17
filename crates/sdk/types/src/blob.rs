@@ -1,7 +1,5 @@
 #![allow(unused_must_use)]
 
-use svm_sdk_std::{HexDigit, String, StringBuilder, ToString, ToToken, ShortString};
-
 macro_rules! impl_blob_type {
     ($ty:ident, $nbytes:expr) => {
         use core::cmp::{Eq, PartialEq};
@@ -136,10 +134,12 @@ macro_rules! impl_blob_type {
 
         impl Eq for $ty {}
 
-        impl ToString for $ty {
-            fn to_string(&self) -> String {
+        impl svm_sdk_std::ToString for $ty {
+            fn to_string(&self) -> svm_sdk_std::String {
+                use svm_sdk_std::{HexDigit, StringBuilder, String};
+
                 let mut sb = StringBuilder::with_capacity("0x".len() + Self::len() * 2);
-                sb.push_token(Token::Two(b'0', b'x'));
+                sb.push_str(&String::new_short([b'0', b'x']));
 
                 let bytes = self.as_slice();
                 seq_macro::seq!(N in 0..$nbytes {
@@ -149,8 +149,8 @@ macro_rules! impl_blob_type {
                     let left = (byte & 0xF0) >> 4;
                     let right = byte & 0x0F;
 
-                    sb.push_token(HexDigit(left).to_token());
-                    sb.push_token(HexDigit(right).to_token());
+                    sb.push_str(&HexDigit(left).to_string());
+                    sb.push_str(&HexDigit(right).to_string());
                 });
 
                 sb.build()

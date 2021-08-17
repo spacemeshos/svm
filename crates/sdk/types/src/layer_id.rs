@@ -1,4 +1,4 @@
-use svm_sdk_std::{String, StringBuilder, ToString, ShortString};
+use svm_sdk_std::{String, StringBuilder, ToString};
 
 /// Represents a `Layer`
 #[derive(PartialEq, Copy, Clone)]
@@ -17,9 +17,11 @@ impl ToString for LayerId {
         let mut sb = StringBuilder::with_capacity(20 + " coins".len());
 
         let s = self.0.to_string();
-        sb.push_str(&String::new("[Layer "));
+        sb.push_str(&String::new_short([
+            b'[', b'L', b'a', b'y', b'e', b'r', b' ',
+        ]));
         sb.push_str(&s);
-        sb.push_token(ShortString::One(b']'));
+        sb.push_str(&String::from_byte(b']'));
         sb.build()
     }
 }

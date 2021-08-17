@@ -75,7 +75,7 @@ impl String {
     }
 }
 
-#[cfg(feature = "debug")]
+#[cfg(any(test, feature = "debug"))]
 impl core::fmt::Debug for String {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         extern crate std;
@@ -87,6 +87,18 @@ impl core::fmt::Debug for String {
         let string = std::string::String::from_utf8_lossy(bytes);
 
         string.fmt(f)
+    }
+}
+
+#[cfg(test)]
+extern crate std;
+
+#[cfg(test)]
+impl String {
+    pub fn to_std_string(&self) -> std::string::String {
+        let bytes = self.as_bytes();
+
+        unsafe { std::string::String::from_utf8_unchecked(bytes.to_vec()) }
     }
 }
 
@@ -110,39 +122,21 @@ mod tests {
     #[test]
     fn string_builder_one_string() {
         let mut sb = StringBuilder::with_capacity(5);
-        sb.push_str(&String::new("Hello"));
+        sb.push_str(&String::new_short([b'H', b'e', b'l', b'l', b'o']));
 
-        let actual = sb.build();
-        let expected = String::new("Hello");
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn string_builder_push_token() {
-        let mut sb = StringBuilder::with_capacity(6);
-        sb.push_token(ShortString::One(b'H'));
-        sb.push_token(ShortString::Two(b'e', b'l'));
-        sb.push_token(ShortString::Two(b'l', b'o'));
-        sb.push_token(ShortString::One(b'!'));
-
-        let actual = sb.build();
-        let expected = String::new("Hello!");
-
-        assert_eq!(expected, actual);
+        let s = sb.build().to_std_string();
+        assert_eq!(s.as_str(), "Hello");
     }
 
     #[test]
     fn string_builder_multiple_strings() {
-        let mut sb = StringBuilder::with_capacity(100);
+        let mut sb = StringBuilder::with_capacity(6);
+        sb.push_str(&String::from_byte(b'H'));
+        sb.push_str(&String::new_short([b'e', b'l']));
+        sb.push_str(&String::new_short([b'l', b'o']));
+        sb.push_str(&String::from_byte(b'!'));
 
-        sb.push_str(&String::new("Hello"));
-        sb.push_str(&String::new(" "));
-        sb.push_str(&String::new("World!"));
-
-        let actual = sb.build();
-        let expected = String::new("Hello World!");
-
-        assert_eq!(expected, actual);
+        let s = sb.build().to_std_string();
+        assert_eq!(s.as_str(), "Hello!");
     }
 }

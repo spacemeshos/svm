@@ -130,7 +130,7 @@ impl ToString for Amount {
 
         let s = self.0.to_string();
         sb.push_str(&s);
-        sb.push_str(&String::new(" coins"));
+        sb.push_str(&String::new_short([b' ', b'c', b'o', b'i', b'n', b's']));
         sb.build()
     }
 }
