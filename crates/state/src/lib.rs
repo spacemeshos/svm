@@ -20,18 +20,21 @@ pub use error::{Result, StorageError};
 /// Hashes as well as root fingerprints are 256 bits long.
 pub type Fingerprint = [u8; 32];
 
+/// Layer identifiers are unsigned 64-bit integers.
+pub type LayerId = u64;
+
 type Changes = HashMap<Fingerprint, Vec<u8>>;
 
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
-const INITIAL_COMMIT_ID: i64 = 1;
+const INITIAL_LAYER_ID: LayerId = 0;
 
 // When initializing [`Fingerprint`]'s on the database, we zero all bits. In
 // memory, however, the initial [`Fingerprint`] is always filled with 1's.
 const FINGERPRINT_ZEROS: Fingerprint = [0; 32];
 const FINGERPRINT_ONES: Fingerprint = [std::u8::MAX; 32];
 
-struct CurrentCommit {
-    id: i64,
+struct CurrentLayer {
+    id: LayerId,
     changes: Changes,
     changes_xor_fingerprint: Fingerprint,
 }
@@ -41,7 +44,7 @@ struct CurrentCommit {
 pub struct Storage {
     sqlite: SqlitePool,
     dirty_changes: Changes,
-    current_commit: CurrentCommit,
+    current_layer: CurrentLayer,
 }
 
 impl Storage {
@@ -52,20 +55,20 @@ impl Storage {
         let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await?;
         sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
 
-        let current_commit_id = max_commit_id(&sqlite).await?;
+        let current_layer_id = max_layer_id(&sqlite).await?;
 
         let gs = Self {
             sqlite,
             dirty_changes: HashMap::new(),
-            current_commit: CurrentCommit {
-                id: current_commit_id.unwrap_or(INITIAL_COMMIT_ID),
+            current_layer: CurrentLayer {
+                id: current_layer_id.unwrap_or(INITIAL_LAYER_ID),
                 changes: HashMap::new(),
                 changes_xor_fingerprint: FINGERPRINT_ONES,
             },
         };
 
-        if current_commit_id.is_none() {
-            gs.insert_commit(INITIAL_COMMIT_ID, FINGERPRINT_ZEROS)
+        if current_layer_id.is_none() {
+            gs.insert_layer(INITIAL_LAYER_ID as i64, FINGERPRINT_ZEROS)
                 .await?;
         }
 
@@ -80,46 +83,26 @@ impl Storage {
 
     /// Fetches the value associated with the Blake3 hash of `key`. See
     /// [`Storage::get_by_hash`] for more information.
-    pub async fn get(&self, key: &[u8], commit: Option<&Fingerprint>) -> Result<Option<Vec<u8>>> {
+    pub async fn get(&self, key: &[u8], layer: Option<LayerId>) -> Result<Option<Vec<u8>>> {
         let hash = Blake3Hasher::hash(key);
-        self.get_by_hash(&hash, commit).await
+        self.get_by_hash(&hash, layer).await
     }
 
-    /// Fetches the value associated with a Blake3 `hash`. If `commit`
+    /// Fetches the value associated with a Blake3 `hash`. If `layer`
     /// is `None`, the most recent value will be returned; otherwise, only the
-    /// values present at the time of `commit` would be considered.
+    /// values present at the time of `layer` would be considered.
     pub async fn get_by_hash(
         &self,
         hash: &Fingerprint,
-        commit: Option<&Fingerprint>,
+        layer: Option<LayerId>,
     ) -> Result<Option<Vec<u8>>> {
-        // We are given an explicit [`Fingerprint`], so we must add that condition.
-        if let Some(commit) = commit {
-            let value_opt: Option<(Vec<u8>,)> = sqlx::query_as(
-                r#"
-                SELECT "value"
-                FROM "values"
-                WHERE
-                    "commit_id" <= (
-                        SELECT "id"
-                        FROM "commits"
-                        WHERE "fingerprint" = ?1
-                    )
-                    AND
-                    "key_hash" = ?2
-                "#,
-            )
-            .bind(&commit[..])
-            .bind(&hash[..])
-            .fetch_optional(&self.sqlite)
-            .await?;
-            Ok(value_opt.map(|x| x.0))
+        if let Some(layer) = layer {
+            self.get_by_hash_historical(hash, layer).await
         } else if let Some(value) = self.dirty_changes.get(hash) {
             Ok(Some(value.clone()))
-        } else if let Some(value) = self.current_commit.changes.get(hash) {
+        } else if let Some(value) = self.current_layer.changes.get(hash) {
             Ok(Some(value.clone()))
         } else {
-            // Let's fetch the most recent record and see if we find anything.
             let value: Option<(Vec<u8>,)> = sqlx::query_as(
                 r#"
                 SELECT "value"
@@ -135,6 +118,34 @@ impl Storage {
 
             Ok(value.map(|x| x.0))
         }
+    }
+
+    async fn get_by_hash_historical(
+        &self,
+        hash: &Fingerprint,
+        layer: LayerId,
+    ) -> Result<Option<Vec<u8>>> {
+        let value_opt: Option<(Vec<u8>,)> = sqlx::query_as(
+            r#"
+                SELECT "value"
+                FROM "values"
+                WHERE
+                    "layer_id" <= (
+                        SELECT "id"
+                        FROM "layers"
+                        WHERE "layer_id" = ?1
+                    )
+                    AND
+                    "key_hash" = ?2
+                ORDER BY "id" DESC
+                LIMIT 1
+                "#,
+        )
+        .bind(layer as i64)
+        .bind(&hash[..])
+        .fetch_optional(&self.sqlite)
+        .await?;
+        Ok(value_opt.map(|x| x.0))
     }
 
     /// Sets the `value` associated with the Blake3 hash of `key`. See
@@ -153,73 +164,79 @@ impl Storage {
     where
         V: Into<Vec<u8>>,
     {
-        let value = value.into();
-        self.dirty_changes.entry(hash).or_insert(value);
+        self.dirty_changes.entry(hash).or_insert(value.into());
     }
 
-    /// Prepares dirty changes to be commited via [`Storage::commit`]. After
-    /// saving, changes are frozen and can't be removed from the current commit.
+    /// Prepares dirty changes to be layered via [`Storage::layer`]. After
+    /// saving, changes are frozen and can't be removed from the current layer.
     pub async fn checkpoint(&mut self) {
+        let mut fingerprint = self.current_layer.changes_xor_fingerprint;
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
 
-        let mut fingerprint = self.current_commit.changes_xor_fingerprint;
-
         for change in dirty_changes {
-            xor_fingerprint(&mut fingerprint, &hash_key_value_pair(&change.0, &change.1));
-            self.current_commit.changes.insert(change.0, change.1);
+            let xor = hash_key_value_pair(&change.0, &change.1);
+            xor_fingerprint(&mut fingerprint, &xor);
+
+            self.current_layer.changes.insert(change.0, change.1);
         }
     }
 
     /// Persists all changes to disk and returns the root fingerprint of the new
-    /// commit. It returns a [`StorageError::DirtyChanges`] in case there's any
+    /// layer. It returns a [`StorageError::DirtyChanges`] in case there's any
     /// dirty changes that haven't been saved via [`Storage::checkpoint`] before
     /// this call.
     pub async fn commit(&mut self) -> Result<Fingerprint> {
         if !self.dirty_changes.is_empty() {
-            Err(StorageError::DirtyChanges)
-        } else {
-            let mut inserts = vec![];
-            let commit_changes = std::mem::take(&mut self.current_commit.changes);
-
-            for (key_hash, value) in commit_changes {
-                inserts.push(
-                    sqlx::query(
-                        r#"
-                        INSERT INTO "values" ("key_hash", "value", "commit_id")
-                        VALUES (?1, ?2, ?3)
-                        "#,
-                    )
-                    .bind(key_hash.to_vec())
-                    .bind(value)
-                    .bind(self.current_commit.id)
-                    .execute(&self.sqlite),
-                )
-            }
-
-            futures::future::try_join_all(inserts).await?;
-
-            let new_fingerprint = self
-                .update_commit_fingerprint(
-                    self.current_commit.id,
-                    &self.current_commit.changes_xor_fingerprint,
-                )
-                .await?;
-
-            self.current_commit.changes_xor_fingerprint = FINGERPRINT_ONES;
-            self.current_commit.id += 1;
-
-            self.insert_commit(self.current_commit.id, new_fingerprint)
-                .await?;
-
-            Ok(new_fingerprint)
+            return Err(StorageError::DirtyChanges);
         }
+
+        // Note: SQLx 0.5 doesn't support bulk inserts. While tempting,
+        // inserting one by one and `.await`-ing after every operation is
+        // terribly slow. Rather, we store operation futures in a [`Vec`] and we
+        // then use [`futures`] magic.
+        let mut inserts = vec![];
+        let layer_changes = std::mem::take(&mut self.current_layer.changes);
+
+        for (key_hash, value) in layer_changes {
+            inserts.push(
+                sqlx::query(
+                    r#"
+                    INSERT INTO "values" ("key_hash", "value", "layer_id")
+                    VALUES (?1, ?2, ?3)
+                    "#,
+                )
+                .bind(key_hash.to_vec())
+                .bind(value)
+                .bind(self.current_layer.id as i64)
+                .execute(&self.sqlite),
+            )
+        }
+
+        futures::future::try_join_all(inserts).await?;
+
+        let new_fingerprint = self
+            .update_layer_fingerprint(
+                self.current_layer.id as i64,
+                &self.current_layer.changes_xor_fingerprint,
+            )
+            .await?;
+
+        // Reset layer-specific information to default values.
+        self.current_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
+        self.current_layer.id += 1;
+
+        // Finally, create an empty layer for subsequent operations.
+        self.insert_layer(self.current_layer.id as i64, new_fingerprint)
+            .await?;
+
+        Ok(new_fingerprint)
     }
 
-    /// Creates a new [`Fingerprint`]-ed commit with the given `id`.
-    async fn insert_commit(&self, id: i64, fingerprint: Fingerprint) -> Result<()> {
+    /// Creates a new [`Fingerprint`]-ed layer with the given `id`.
+    async fn insert_layer(&self, id: i64, fingerprint: Fingerprint) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO "commits" ("id", "fingerprint")
+            INSERT INTO "layers" ("id", "fingerprint")
             VALUES (?1, ?2)
             "#,
         )
@@ -230,39 +247,39 @@ impl Storage {
         Ok(())
     }
 
-    /// Queries the current [`Fingerprint`] value of `commit_id`.
-    async fn commit_fingerprint(&self, commit_id: i64) -> Result<Fingerprint> {
+    /// Queries the current [`Fingerprint`] value of `layer_id`.
+    async fn layer_fingerprint(&self, layer: LayerId) -> Result<Fingerprint> {
         let bytes: (Vec<u8>,) = sqlx::query_as(
             r#"
             SELECT "fingerprint"
-            FROM "commits"
+            FROM "layers"
             WHERE "id" = ?1
             "#,
         )
-        .bind(commit_id)
+        .bind(layer as i64)
         .fetch_one(&self.sqlite)
         .await?;
         Ok(bytes.0.try_into().unwrap())
     }
 
-    /// XOR's the [`Fingerprint`] of `commit_id` with `xor`.
-    async fn update_commit_fingerprint(
+    /// XOR's the [`Fingerprint`] of `layer_id` with `xor`.
+    async fn update_layer_fingerprint(
         &self,
-        commit_id: i64,
+        layer_id: i64,
         xor: &Fingerprint,
     ) -> Result<Fingerprint> {
-        let mut fingerprint: Fingerprint = self.commit_fingerprint(self.current_commit.id).await?;
+        let mut fingerprint: Fingerprint = self.layer_fingerprint(self.current_layer.id).await?;
         xor_fingerprint(&mut fingerprint, xor);
 
         sqlx::query(
             r#"
-            UPDATE "commits"
+            UPDATE "layers"
             SET "fingerprint" = ?1
             WHERE "id" = ?2
             "#,
         )
         .bind(&fingerprint[..])
-        .bind(commit_id)
+        .bind(layer_id)
         .execute(&self.sqlite)
         .await?;
 
@@ -272,29 +289,29 @@ impl Storage {
     /// Returns the [`Fingerprint`] of the last ever checkpoint; i.e.
     /// persisted changes without dirty and saved changes.
     pub async fn current(&self) -> Result<Fingerprint> {
-        self.commit_fingerprint(self.current_commit.id).await
+        self.layer_fingerprint(self.current_layer.id).await
     }
 
-    /// Completely deletes all commits after `commit` from the SQLite store.
+    /// Completely deletes all layers after `layer` from the SQLite store.
     /// Returns a [`StorageError::Changes`] or [`StorageError::DirtyChanges`] in
     /// case there's in-memory changes that haven't been persisted yet.
-    pub async fn erase_history(&mut self, commit: &Fingerprint) -> Result<()> {
+    pub async fn erase_history(&mut self, layer: &Fingerprint) -> Result<()> {
         if !self.dirty_changes.is_empty() {
             Err(StorageError::DirtyChanges)
-        } else if !self.current_commit.changes.is_empty() {
+        } else if !self.current_layer.changes.is_empty() {
             Err(StorageError::Changes)
         } else {
             sqlx::query(
                 r#"
-                DELETE FROM "commits"
-                WHERE "commit_id" > (
+                DELETE FROM "layers"
+                WHERE "layer_id" > (
                     SELECT "id"
-                    FROM "commits"
+                    FROM "layers"
                     WHERE "fingerprint" = ?1
                 )
                 "#,
             )
-            .bind(&commit[..])
+            .bind(&layer[..])
             .execute(&self.sqlite)
             .await?;
             Ok(())
@@ -305,10 +322,10 @@ impl Storage {
     /// left untouched. It returns a [`StorageError::DirtyChanges`] in case
     /// there's any dirty changes, i.e. you must call [`Storage::rollback`]
     /// beforehand.
-    pub async fn rewind(&mut self, _commit: &Fingerprint) -> Result<()> {
+    pub async fn rewind(&mut self, _layer: &Fingerprint) -> Result<()> {
         if self.dirty_changes.is_empty() {
-            self.current_commit.changes.clear();
-            self.current_commit.changes_xor_fingerprint = FINGERPRINT_ONES;
+            self.current_layer.changes.clear();
+            self.current_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
             Ok(())
         } else {
             Err(StorageError::DirtyChanges)
@@ -322,11 +339,11 @@ impl Storage {
     }
 }
 
-async fn max_commit_id(pool: &SqlitePool) -> Result<Option<i64>> {
-    let max_commit_id: Option<(i64,)> = sqlx::query_as(
+async fn max_layer_id(pool: &SqlitePool) -> Result<Option<LayerId>> {
+    let max_layer_id: Option<(i64,)> = sqlx::query_as(
         r#"
         SELECT "id"
-        FROM "commits"
+        FROM "layers"
         ORDER BY "id" DESC
         LIMIT 1
         "#,
@@ -334,7 +351,7 @@ async fn max_commit_id(pool: &SqlitePool) -> Result<Option<i64>> {
     .fetch_optional(pool)
     .await?;
 
-    Ok(max_commit_id.map(|x| x.0))
+    Ok(max_layer_id.map(|x| x.0.try_into().expect("Negative layer ID!")))
 }
 
 fn hash_key_value_pair(key_hash: &Fingerprint, value: &[u8]) -> Fingerprint {
@@ -398,17 +415,17 @@ mod test {
 
         gs.upsert(b"foo", "bar").await;
         gs.checkpoint().await;
-        let commit_1 = gs.commit().await.unwrap();
+        let layer_1 = gs.commit().await.unwrap();
 
         gs.upsert(b"foo", "spam").await;
         gs.checkpoint().await;
-        let commit_2 = gs.commit().await.unwrap();
+        let layer_2 = gs.commit().await.unwrap();
 
         gs.upsert(b"foo", "bar").await;
         gs.checkpoint().await;
-        let commit_3 = gs.commit().await.unwrap();
+        let layer_3 = gs.commit().await.unwrap();
 
-        commit_1 != commit_2 && commit_1 == commit_3
+        layer_1 != layer_2 && layer_1 == layer_3
     }
 
     #[quickcheck_async::tokio]
@@ -419,18 +436,18 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn rewind_succeeds_when_empty(bytes: Vec<u8>) -> bool {
-        let commit = Blake3Hasher::hash(&bytes);
+        let layer = Blake3Hasher::hash(&bytes);
         let mut gs = Storage::in_memory().await.unwrap();
 
-        gs.rewind(&commit).await.is_ok()
+        gs.rewind(&layer).await.is_ok()
     }
 
     #[quickcheck_async::tokio]
     async fn rewind_fails_after_insert(bytes: Vec<u8>, key: Vec<u8>, value: Vec<u8>) -> bool {
-        let commit = Blake3Hasher::hash(&bytes);
+        let layer = Blake3Hasher::hash(&bytes);
         let mut gs = Storage::in_memory().await.unwrap();
 
         gs.upsert(&key, value).await;
-        gs.rewind(&commit).await.is_err()
+        gs.rewind(&layer).await.is_err()
     }
 }
