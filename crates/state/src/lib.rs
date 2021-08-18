@@ -286,43 +286,47 @@ impl Storage {
         Ok(fingerprint)
     }
 
-    /// Returns the [`Fingerprint`] of the last ever checkpoint; i.e.
+    /// Returns the [`Fingerprint`] of the last ever committed layer; i.e.
     /// persisted changes without dirty and saved changes.
     pub async fn current(&self) -> Result<Fingerprint> {
         self.layer_fingerprint(self.current_layer.id).await
     }
 
-    /// Completely deletes all layers before (including ) `layer` from the
-    /// SQLite store.
-    /// Returns a [`StorageError::Changes`] or [`StorageError::DirtyChanges`] in
-    /// case there's in-memory changes that haven't been persisted yet.
-    pub async fn erase_history(&mut self, layer_id: LayerId) -> Result<()> {
-        if !self.dirty_changes.is_empty() {
-            Err(StorageError::DirtyChanges)
-        } else if !self.current_layer.changes.is_empty() {
-            Err(StorageError::SavedChanges)
-        } else {
+    /// Erases all saved data from memory and completely deletes all layers
+    /// after `layer_id`, excluded, from the SQLite store. Persisted data is
+    /// left untouched. It returns a [`StorageError::DirtyChanges`] in case
+    /// there's any dirty changes, i.e. you must call [`Storage::rollback`]
+    /// beforehand.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given `layer_id` is invalid, i.e. nonexistant.
+    pub async fn rewind(&mut self, layer_id: LayerId) -> Result<()> {
+        // `self.current_layer_id` is not a "real" layer yet, so it's not a
+        // valid target.
+        assert!(layer_id < self.current_layer.id);
+
+        if self.dirty_changes.is_empty() {
             sqlx::query(
                 r#"
                 DELETE FROM "layers"
-                WHERE "layer_id" >= ?1
+                WHERE "layer_id" > ?1
                 "#,
             )
             .bind(layer_id as i64)
             .execute(&self.sqlite)
             .await?;
-            Ok(())
-        }
-    }
 
-    /// Erases all saved data from memory. Persisted data is
-    /// left untouched. It returns a [`StorageError::DirtyChanges`] in case
-    /// there's any dirty changes, i.e. you must call [`Storage::rollback`]
-    /// beforehand.
-    pub async fn rewind(&mut self) -> Result<()> {
-        if self.dirty_changes.is_empty() {
+            // We must now bring `self.current_layer` in a good state.
+            self.current_layer.id = layer_id + 1;
             self.current_layer.changes.clear();
             self.current_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
+
+            // Recreate last layer information in SQLite.
+            let fingerprint = self.layer_fingerprint(layer_id).await?;
+            self.insert_layer(self.current_layer.id as i64, fingerprint)
+                .await?;
+
             Ok(())
         } else {
             Err(StorageError::DirtyChanges)
@@ -370,7 +374,7 @@ mod test {
     use super::*;
 
     #[quickcheck_async::tokio]
-    async fn retrieval_after_dirty_changes(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
+    async fn get_after_dirty_changes(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
         for (key, value) in items.iter() {
@@ -388,7 +392,7 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
-    async fn retrieval_after_checkpoint(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
+    async fn get_after_checkpoint(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
         for (key, value) in items.iter() {
@@ -408,7 +412,7 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
-    async fn retrieval_after_commit(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
+    async fn get_after_commit(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
         for (key, value) in items.iter() {
@@ -429,7 +433,27 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
-    async fn layer_info_depends_on_inserts() -> bool {
+    async fn get_after_rewind(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
+        let mut gs = Storage::in_memory().await.unwrap();
+
+        for (key, value) in items.iter() {
+            gs.upsert(&key[..], &value[..]).await;
+        }
+
+        gs.checkpoint().await.unwrap();
+        gs.commit().await.unwrap();
+
+        for key in items.keys() {
+            if gs.get(&key, None).await.unwrap().is_some() {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    #[quickcheck_async::tokio]
+    async fn consistent_layer_information_after_commits() -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
         gs.upsert(b"foo", "bar").await;
@@ -453,7 +477,7 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
-    async fn get_fails_on_empty_global_state(key: Vec<u8>) -> bool {
+    async fn get_immediately_after_new(key: Vec<u8>) -> bool {
         let gs = Storage::in_memory().await.unwrap();
         matches!(gs.get(&key, None).await, Ok(None))
     }
@@ -465,39 +489,60 @@ mod test {
         gs.rollback().await.is_ok()
     }
 
-    #[quickcheck_async::tokio]
-    async fn rewind_succeeds_when_empty() -> bool {
+    #[tokio::test]
+    #[should_panic]
+    async fn rewind_panics_without_commits() {
         let mut gs = Storage::in_memory().await.unwrap();
-
-        gs.rewind().await.is_ok()
+        gs.rewind(INITIAL_LAYER_ID).await.unwrap();
     }
 
     #[quickcheck_async::tokio]
-    async fn rewind_fails_after_insert(key: Vec<u8>, value: Vec<u8>) -> bool {
+    async fn rewind_succeeds_after_commit() -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
-        gs.upsert(&key, value).await;
-        gs.rewind().await.is_err()
+        gs.upsert(b"foo", "bar").await;
+        gs.checkpoint().await.unwrap();
+        let layer_id = gs.commit().await.unwrap().0;
+
+        gs.rewind(layer_id).await.is_ok()
     }
 
     #[quickcheck_async::tokio]
-    async fn rewind_succeeds_after_checkout(key: Vec<u8>, value: Vec<u8>) -> bool {
+    async fn rewind_fails_with_dirty_changes() -> bool {
+        let mut gs = Storage::in_memory().await.unwrap();
+
+        gs.upsert(b"foo", "bar").await;
+        gs.checkpoint().await.unwrap();
+        let layer_id = gs.commit().await.unwrap().0;
+
+        gs.upsert(b"spam", "foo").await;
+
+        gs.rewind(layer_id).await.is_err()
+    }
+
+    #[quickcheck_async::tokio]
+    async fn rewind_succeeds_with_saved_changes() -> bool {
+        let mut gs = Storage::in_memory().await.unwrap();
+
+        gs.upsert(b"foo", "bar").await;
+        gs.checkpoint().await.unwrap();
+        let layer_id = gs.commit().await.unwrap().0;
+
+        gs.upsert(b"spam", "foo").await;
+        gs.checkpoint().await.unwrap();
+
+        gs.rewind(layer_id).await.is_ok()
+    }
+
+    #[quickcheck_async::tokio]
+    async fn rewind_effectively_deletes_data(key: Vec<u8>, value: Vec<u8>) -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
         gs.upsert(&key, value).await;
         gs.checkpoint().await.unwrap();
-        gs.rewind().await.is_ok()
-    }
+        let layer_id = gs.commit().await.unwrap().0;
 
-    #[quickcheck_async::tokio]
-    async fn upsert_after_erasing_layer(key: Vec<u8>, value: Vec<u8>) -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
-
-        gs.upsert(&key, value).await;
-        gs.checkpoint().await.unwrap();
-        let layer = gs.commit().await.unwrap();
-
-        gs.erase_history(layer.0).await.unwrap();
+        gs.rewind(layer_id).await.unwrap();
 
         matches!(gs.get(&key, None).await, Ok(None))
     }
