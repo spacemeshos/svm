@@ -11,10 +11,11 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
+seq-macro = "0.2"
 svm-sdk-std = { path = "../std", default-features = false }
 
 [features]
 default = []
-debug = ["svm-sdk-std/debug"] 
+debug = ["svm-sdk-std/debug"]
 static-alloc = ["svm-sdk-std/static-alloc"]
 dynamic-alloc = ["svm-sdk-std/dynamic-alloc"]

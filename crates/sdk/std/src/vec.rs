@@ -16,17 +16,15 @@ extern crate svm_sdk_alloc;
 
 use svm_sdk_alloc::alloc;
 
-use core::fmt;
 use core::mem::size_of;
 use core::ops::{Deref, DerefMut};
 
 use crate::ensure;
 
+/// Fixed-Gas replacement for [`std::vec::Vec`].
 pub struct Vec<T> {
     len: usize,
-
     cap: usize,
-
     ptr: *mut T,
 }
 
@@ -38,75 +36,96 @@ impl<T> Vec<T> {
         Self { len: 0, cap, ptr }
     }
 
+    /// Initializes a new [`Vec`] given a raw pointer to the first item and the number of items.
+    pub unsafe fn from_raw_parts(ptr: *const T, len: usize) -> Self {
+        Self {
+            len,
+            cap: len,
+            ptr: ptr as *mut T,
+        }
+    }
+
+    /// Appends a new item.
     pub fn push(&mut self, value: T) {
         ensure!(self.len() < self.capacity());
 
         unsafe {
-            let dest = self.get_ptr_mut(self.len());
-
+            let dest = self.as_ptr_mut(self.len());
             core::ptr::write(dest, value);
         }
 
         self.len += 1;
     }
 
+    /// Pops the last pushed item and returns it.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `self` is empty.
     pub fn pop(&mut self) -> T {
         ensure!(self.is_empty() == false);
 
         let last = self.len() - 1;
-
         let value = unsafe { self.take(last) };
-
         self.len = last;
 
         value
     }
 
+    /// Returns a shared view over the underlying items.
     pub fn as_slice(&self) -> &[T] {
         unsafe { core::slice::from_raw_parts(self.ptr, self.len) }
     }
 
+    /// Returns a mutable view over the underlying items.
     pub fn as_mut(&mut self) -> &mut [T] {
         unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 
+    /// Clears the `self`, turns it into an empty [`Vec`].
     pub fn clear(&mut self) {
         self.len = 0;
     }
 
+    /// Leaks the underlying items and returns a slice to it with a `static` lifetime.
     pub fn leak(self) -> &'static [T] {
         let slice = self.as_slice();
 
         let vec = unsafe { core::mem::transmute(slice) };
-
         core::mem::forget(self);
 
         vec
     }
 
+    /// Returns the number of taken items.
     #[inline]
     pub fn len(&self) -> usize {
         self.len
     }
 
+    /// Returns the number of items that `self` can hold.
     #[inline]
     pub fn capacity(&self) -> usize {
         self.cap
     }
 
+    /// Returns whether `self` is empty.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// Returns an iterator over the contained items.
     pub fn iter(&self) -> Iter<T> {
         Iter::new(self)
     }
 
+    /// Returns a mutable iterator over the contained items.
     pub fn iter_mut(&mut self) -> Iter<T> {
         Iter::new(self)
     }
 
+    /// Transfers ownership of self and returns [`IntoIter`].
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter::new(self)
     }
@@ -114,8 +133,7 @@ impl<T> Vec<T> {
     unsafe fn take(&mut self, offset: usize) -> T {
         ensure!(self.len() > offset);
 
-        let dest = self.get_ptr_mut(offset);
-
+        let dest = self.as_ptr_mut(offset);
         core::ptr::read(dest)
     }
 
@@ -125,33 +143,20 @@ impl<T> Vec<T> {
         unsafe { self.get_unchecked(offset) }
     }
 
-    fn get_mut(&mut self, offset: usize) -> &mut T {
-        ensure!(self.len() > offset);
-
-        unsafe { self.get_mut_unchecked(offset) }
-    }
-
     #[inline]
     unsafe fn get_unchecked(&self, offset: usize) -> &T {
-        let ptr = self.get_ptr(offset);
+        let ptr = self.as_ptr(offset);
 
         &*ptr
     }
 
     #[inline]
-    unsafe fn get_mut_unchecked(&mut self, offset: usize) -> &mut T {
-        let ptr = self.get_ptr_mut(offset);
-
-        &mut *ptr
-    }
-
-    #[inline]
-    unsafe fn get_ptr(&self, offset: usize) -> *const T {
+    unsafe fn as_ptr(&self, offset: usize) -> *const T {
         self.ptr.add(offset)
     }
 
     #[inline]
-    unsafe fn get_ptr_mut(&self, offset: usize) -> *mut T {
+    unsafe fn as_ptr_mut(&self, offset: usize) -> *mut T {
         self.ptr.add(offset)
     }
 
@@ -163,7 +168,7 @@ impl<T> Vec<T> {
     }
 }
 
-#[cfg(feature = "debug")]
+#[cfg(any(test, feature = "debug"))]
 impl<T> core::fmt::Debug for Vec<T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("svm_sdk::Vec")
@@ -173,6 +178,7 @@ impl<T> core::fmt::Debug for Vec<T> {
     }
 }
 
+#[cfg(any(test, feature = "debug"))]
 impl<T: PartialEq> PartialEq for Vec<T> {
     fn eq(&self, other: &Self) -> bool {
         self.as_slice() == other.as_slice()
@@ -195,7 +201,6 @@ impl<T> DerefMut for Vec<T> {
 
 pub struct Iter<'a, T> {
     pos: usize,
-
     vec: &'a Vec<T>,
 }
 
@@ -214,7 +219,6 @@ impl<'a, T> core::iter::Iterator for Iter<'a, T> {
         }
 
         let item = self.vec.get(self.pos);
-
         self.pos += 1;
 
         Some(item)
@@ -223,7 +227,6 @@ impl<'a, T> core::iter::Iterator for Iter<'a, T> {
 
 pub struct IntoIter<T> {
     pos: usize,
-
     vec: Vec<T>,
 }
 
@@ -242,7 +245,6 @@ impl<T> core::iter::Iterator for IntoIter<T> {
         }
 
         let v = unsafe { self.vec.take(self.pos) };
-
         self.pos += 1;
 
         Some(v)

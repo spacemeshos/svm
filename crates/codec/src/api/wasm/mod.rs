@@ -1,16 +1,16 @@
 //! WASM API
 
 mod call;
-mod calldata;
 mod deploy;
 mod error;
+mod inputdata;
 mod receipt;
 mod spawn;
 
 pub use call::{decode_call, encode_call};
-pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy::encode_deploy;
 pub use error::{error_as_string, into_error_buffer};
+pub use inputdata::{decode_inputdata, encode_inputdata};
 pub use receipt::decode_receipt;
 pub use spawn::{decode_spawn, encode_spawn};
 

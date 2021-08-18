@@ -124,9 +124,9 @@ function generateAddress(s) {
   return repeatString(s, 20);
 }
 
-function encodeCallData(instance, object) {
+function encodeInput(instance, object) {
   const buf = wasmNewBuffer(instance, object);
-  const result = instanceCall(instance, "wasm_encode_calldata", buf);
+  const result = instanceCall(instance, "wasm_encode_inputdata", buf);
 
   const encoded = loadWasmBufferDataAsJson(instance, result);
 
@@ -136,9 +136,9 @@ function encodeCallData(instance, object) {
   return encoded;
 }
 
-function decodeCallData(instance, encodedData) {
+function decodeInput(instance, encodedData) {
   const buf = wasmNewBuffer(instance, encodedData);
-  const result = instanceCall(instance, "wasm_decode_calldata", buf);
+  const result = instanceCall(instance, "wasm_decode_inputdata", buf);
   const json = loadWasmBufferDataAsJson(instance, result);
 
   wasmBufferFree(instance, buf);
@@ -163,58 +163,58 @@ function binToString(array) {
   return result;
 }
 
-describe("Encode Calldata", function () {
-  function testCallData(instance, abi, data) {
+describe("Encode InputData", function () {
+  function testInputData(instance, abi, data) {
     const calldata = {
       abi: abi,
       data: data,
     };
 
-    let encoded = encodeCallData(instance, calldata);
-    let decoded = decodeCallData(instance, encoded);
+    let encoded = encodeInput(instance, calldata);
+    let decoded = decodeInput(instance, encoded);
 
     assert.deepStrictEqual(decoded, calldata);
   }
 
   it("i8", function () {
     return compileWasmCodec().then((instance) => {
-      testCallData(instance, ["i8"], [-10]);
+      testInputData(instance, ["i8"], [-10]);
     });
   });
 
   it("u8", function () {
     return compileWasmCodec().then((instance) => {
-      testCallData(instance, ["u8"], [10]);
+      testInputData(instance, ["u8"], [10]);
     });
   });
 
   it("i16", function () {
     return compileWasmCodec().then((instance) => {
-      testCallData(instance, ["i16"], [-10]);
+      testInputData(instance, ["i16"], [-10]);
     });
   });
 
   it("u16", function () {
     return compileWasmCodec().then((instance) => {
-      testCallData(instance, ["u16"], [10]);
+      testInputData(instance, ["u16"], [10]);
     });
   });
 
   it("i32", function () {
     return compileWasmCodec().then((instance) => {
-      testCallData(instance, ["i32"], [-10]);
+      testInputData(instance, ["i32"], [-10]);
     });
   });
 
   it("u32", function () {
     return compileWasmCodec().then((instance) => {
-      testCallData(instance, ["u32"], [10]);
+      testInputData(instance, ["u32"], [10]);
     });
   });
 
   it("amount", function () {
     return compileWasmCodec().then((instance) => {
-      testCallData(instance, ["amount"], [10]);
+      testInputData(instance, ["amount"], [10]);
     });
   });
 
@@ -226,8 +226,8 @@ describe("Encode Calldata", function () {
         data: [addr],
       };
 
-      let encoded = encodeCallData(instance, object);
-      let decoded = decodeCallData(instance, encoded);
+      let encoded = encodeInput(instance, object);
+      let decoded = decodeInput(instance, encoded);
 
       assert.deepStrictEqual(decoded, {
         abi: ["address"],
@@ -246,8 +246,8 @@ describe("Encode Calldata", function () {
         data: [[addr1, addr2]],
       };
 
-      let encoded = encodeCallData(instance, object);
-      let decoded = decodeCallData(instance, encoded);
+      let encoded = encodeInput(instance, object);
+      let decoded = decodeInput(instance, encoded);
 
       assert.deepStrictEqual(decoded, {
         abi: [["address"]],
@@ -312,10 +312,7 @@ describe("Deploy Template", function () {
       const result = instanceCall(instance, "wasm_encode_deploy", buf);
 
       const error = loadWasmBufferError(instance, result);
-      assert.strictEqual(
-        error,
-        'A non-optional field was missing (`name`).'
-      );
+      assert.strictEqual(error, "A non-optional field was missing (`name`).");
 
       wasmBufferFree(instance, buf);
       wasmBufferFree(instance, result);
@@ -369,7 +366,7 @@ describe("Spawn Account", function () {
         data: [10, 20],
       };
 
-      let calldata = encodeCallData(instance, object);
+      let calldata = encodeInput(instance, object);
       const bytes = encodeSpawn(instance, template, name, calldata["data"]);
       const json = decodeSpawn(instance, bytes);
 
@@ -398,7 +395,7 @@ describe("Spawn Account", function () {
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
         error,
-        'The value of a specific field is invalid (`template`).'
+        "The value of a specific field is invalid (`template`)."
       );
 
       wasmBufferFree(instance, buf);
@@ -408,11 +405,12 @@ describe("Spawn Account", function () {
 });
 
 describe("Call Account", function () {
-  function encodeCall(instance, target, calldata) {
+  function encodeCall(instance, target, verifydata, calldata) {
     let tx = {
       version: 0,
       target: target,
       func_name: "do_something",
+      verifydata: verifydata,
       calldata: calldata,
     };
 
@@ -446,19 +444,32 @@ describe("Call Account", function () {
     return compileWasmCodec().then((instance) => {
       const target = generateAddress("1020304050");
 
-      const object = {
+      let verifydata = encodeInput(instance, {
+        abi: ["bool", "i8"],
+        data: [true, 5],
+      });
+
+      let calldata = encodeInput(instance, {
         abi: ["i32", "i64"],
         data: [10, 20],
-      };
+      });
 
-      let calldata = encodeCallData(instance, object);
-      const bytes = encodeCall(instance, target, calldata["data"]);
+      const bytes = encodeCall(
+        instance,
+        target,
+        verifydata["data"],
+        calldata["data"]
+      );
       const json = decodeCall(instance, bytes);
 
       assert.deepStrictEqual(json, {
         version: 0,
         target: target,
         func_name: "do_something",
+        verifydata: {
+          abi: ["bool", "i8"],
+          data: [true, 5],
+        },
         calldata: {
           abi: ["i32", "i64"],
           data: [10, 20],
@@ -476,7 +487,7 @@ describe("Call Account", function () {
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
         error,
-        'The value of a specific field is invalid (`target`).'
+        "The value of a specific field is invalid (`target`)."
       );
 
       wasmBufferFree(instance, buf);

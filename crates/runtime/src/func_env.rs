@@ -31,18 +31,22 @@ impl FuncEnv {
         storage: AccountStorage,
         envelope: &Envelope,
         context: &Context,
-        template_addr: &TemplateAddr,
-        target_addr: &Address,
+        template_addr: TemplateAddr,
+        target_addr: Address,
+        mode: ProtectedMode,
     ) -> Self {
         let inner = Inner::new(storage);
 
-        Self {
+        let env = Self {
             inner: Rc::new(RefCell::new(inner)),
-            template_addr: template_addr.clone(),
-            target_addr: target_addr.clone(),
+            template_addr: template_addr,
+            target_addr: target_addr,
             envelope: envelope.clone(),
             context: context.clone(),
-        }
+        };
+        env.set_protected_mode(mode);
+
+        env
     }
 
     /// New instance with explicit memory
@@ -51,13 +55,14 @@ impl FuncEnv {
         storage: AccountStorage,
         envelope: &Envelope,
         context: &Context,
-        template_addr: &TemplateAddr,
-        target_addr: &Address,
+        template_addr: TemplateAddr,
+        target_addr: Address,
+        mode: ProtectedMode,
     ) -> Self {
-        let func_env = Self::new(storage, envelope, context, template_addr, target_addr);
-        func_env.borrow_mut().set_memory(memory);
+        let env = Self::new(storage, envelope, context, template_addr, target_addr, mode);
+        env.borrow_mut().set_memory(memory);
 
-        func_env
+        env
     }
 
     /// Returns the `Address` of the `Template` associated with the currently executed `Account`.
@@ -81,17 +86,29 @@ impl FuncEnv {
     pub fn borrow_mut(&self) -> RefMut<Inner> {
         self.inner.borrow_mut()
     }
+
+    /// Sets the [`ProtectedMode`] and overrides the existing value.
+    pub fn set_protected_mode(&self, mode: ProtectedMode) {
+        let mut borrow = self.borrow_mut();
+        borrow.set_protected_mode(mode);
+    }
+
+    /// Returns the current [`ProtectedMode`].
+    pub fn protected_mode(&self) -> ProtectedMode {
+        let borrow = self.borrow();
+        borrow.mode
+    }
 }
 
 pub struct Inner {
     /// An accessor to the `Account`'s storage.
-    pub storage: AccountStorage,
+    storage: AccountStorage,
 
     /// Collected logs during execution.
-    pub logs: Vec<ReceiptLog>,
+    logs: Vec<ReceiptLog>,
 
     /// Pointer to `returndata`. Tuple stores `(offset, len)`.
-    pub returndata: Option<(usize, usize)>,
+    returndata: Option<(usize, usize)>,
 
     /// Instance's allocated memory.
     memory: Option<Memory>,
@@ -101,6 +118,18 @@ pub struct Inner {
 
     /// Pointer to `calldata`. Tuple stores `(offset, len)`.
     calldata: Option<(usize, usize)>,
+
+    mode: ProtectedMode,
+}
+
+/// Denotes the capabilities allowed to the executing Account at a given point in time.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum ProtectedMode {
+    /// Access to [`AccountStorage`] is not allowed.
+    AccessDenied,
+
+    /// Full-Access to [`AccountStorage`] is allowed.
+    FullAccess,
 }
 
 impl Inner {
@@ -114,7 +143,32 @@ impl Inner {
             calldata: None,
             returndata: None,
             used_memory: 0,
+            mode: ProtectedMode::AccessDenied,
         }
+    }
+
+    pub fn set_protected_mode(&mut self, mode: ProtectedMode) {
+        self.mode = mode;
+    }
+
+    pub fn storage(&self) -> &AccountStorage {
+        assert!(self.can_read());
+
+        &self.storage
+    }
+
+    pub fn storage_mut(&mut self) -> &mut AccountStorage {
+        assert!(self.can_write());
+
+        &mut self.storage
+    }
+
+    pub fn logs(&self) -> &[ReceiptLog] {
+        &self.logs
+    }
+
+    pub fn logs_mut(&mut self) -> &mut Vec<ReceiptLog> {
+        &mut self.logs
     }
 
     pub fn set_calldata(&mut self, offset: usize, len: usize) {
@@ -137,6 +191,10 @@ impl Inner {
         debug_assert!(self.returndata.is_none());
 
         self.returndata = Some((offset, len));
+    }
+
+    pub fn returndata(&self) -> Option<(usize, usize)> {
+        self.returndata
     }
 
     pub fn set_memory(&mut self, memory: Memory) {
@@ -163,5 +221,15 @@ impl Inner {
 
     pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
         std::mem::take(&mut self.logs)
+    }
+
+    #[inline]
+    fn can_read(&self) -> bool {
+        self.mode != ProtectedMode::AccessDenied
+    }
+
+    #[inline]
+    fn can_write(&self) -> bool {
+        matches!(self.mode, ProtectedMode::FullAccess)
     }
 }

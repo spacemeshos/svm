@@ -21,7 +21,7 @@ pub use rocksdb::create_rocksdb_runtime;
 pub use config::Config;
 pub use default::DefaultRuntime;
 
-use svm_types::{CallReceipt, Context, DeployReceipt, Envelope, RuntimeError, SpawnReceipt};
+use svm_types::{CallReceipt, Context, DeployReceipt, Envelope, SpawnReceipt};
 
 use crate::error::ValidateError;
 
@@ -49,12 +49,7 @@ pub trait Runtime {
     fn spawn(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> SpawnReceipt;
 
     /// Verifies a [`Transaction`](svm_types::Transaction) before execution.
-    fn verify(
-        &self,
-        envelope: &Envelope,
-        message: &[u8],
-        context: &Context,
-    ) -> Result<bool, RuntimeError>;
+    fn verify(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt;
 
     /// Executes a [`Transaction`](svm_types::Transaction) and returns its output [`CallReceipt`].
     ///

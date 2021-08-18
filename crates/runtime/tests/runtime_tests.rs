@@ -24,7 +24,83 @@ fn memory_runtime_validate_deploy_not_enough_bytes() {
 }
 
 #[test]
-fn memory_runtime_validate_deploy_invalid_wasm() {
+fn memory_runtime_validate_deploy_missing_svm_verify_export() {
+    let runtime = testing::create_memory_runtime();
+
+    let message = testing::build_deploy(
+        0,
+        "My Template",
+        FixedLayout::default(),
+        &[],
+        include_str!("wasm/missing_svm_verify.wast").into(),
+    );
+
+    let error = ProgramError::FunctionNotFound("svm_verify".to_string());
+    let expected = Err(ValidateError::Program(error));
+
+    let actual = runtime.validate_deploy(&message);
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn memory_runtime_validate_deploy_missing_svm_alloc_export() {
+    let runtime = testing::create_memory_runtime();
+
+    let message = testing::build_deploy(
+        0,
+        "My Template",
+        FixedLayout::default(),
+        &[],
+        include_str!("wasm/missing_svm_alloc.wast").into(),
+    );
+
+    let error = ProgramError::FunctionNotFound("svm_alloc".to_string());
+    let expected = Err(ValidateError::Program(error));
+
+    let actual = runtime.validate_deploy(&message);
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn memory_runtime_validate_deploy_svm_alloc_export_invalid_signature() {
+    let runtime = testing::create_memory_runtime();
+
+    let message = testing::build_deploy(
+        0,
+        "My Template",
+        FixedLayout::default(),
+        &[],
+        include_str!("wasm/svm_alloc_invalid_sig.wast").into(),
+    );
+
+    let error = ProgramError::InvalidExportFunctionSignature("svm_alloc".to_string());
+    let expected = Err(ValidateError::Program(error));
+
+    let actual = runtime.validate_deploy(&message);
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn memory_runtime_validate_deploy_svm_verify_export_invalid_signature() {
+    let runtime = testing::create_memory_runtime();
+
+    let message = testing::build_deploy(
+        0,
+        "My Template",
+        FixedLayout::default(),
+        &[],
+        include_str!("wasm/svm_verify_invalid_sig.wast").into(),
+    );
+
+    let error = ProgramError::InvalidExportFunctionSignature("svm_verify".to_string());
+    let expected = Err(ValidateError::Program(error));
+
+    let actual = runtime.validate_deploy(&message);
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn memory_runtime_validate_deploy_floats_not_allowed() {
     let runtime = testing::create_memory_runtime();
 
     // An invalid Wasm (has floats)
@@ -41,6 +117,22 @@ fn memory_runtime_validate_deploy_invalid_wasm() {
 
     let actual = runtime.validate_deploy(&message);
     assert_eq!(expected, actual);
+}
+
+#[test]
+fn memory_runtime_validate_deploy_ok() {
+    let runtime = testing::create_memory_runtime();
+
+    let message = testing::build_deploy(
+        0,
+        "My Template",
+        FixedLayout::default(),
+        &[],
+        include_bytes!("wasm/runtime_calldata.wasm")[..].into(),
+    );
+
+    let result = runtime.validate_deploy(&message);
+    assert!(result.is_ok());
 }
 
 #[test]

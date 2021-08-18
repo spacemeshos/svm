@@ -11,15 +11,15 @@ use svm_program::Program;
 use svm_storage::account::AccountStorage;
 use svm_types::{
     Address, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError, ReceiptLog,
-    RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr,
+    RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr, Transaction,
 };
 
 use super::{Call, Failure, Function, Outcome};
 use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
 use crate::error::ValidateError;
 use crate::storage::StorageBuilderFn;
-use crate::vmcalls;
 use crate::Env;
+use crate::{vmcalls, ProtectedMode};
 use crate::{Config, FuncEnv, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
@@ -116,23 +116,22 @@ where
     fn call_ctor(
         &mut self,
         spawn: &ExtSpawn,
-        target: &Address,
-        gas_used: Gas,
+        target: Address,
         gas_left: Gas,
         envelope: &Envelope,
         context: &Context,
     ) -> SpawnReceipt {
-        let template_addr = spawn.template_addr();
+        let template = spawn.template_addr().clone();
 
         let call = Call {
             func_name: spawn.ctor_name(),
-            calldata: spawn.ctor_data(),
+            func_input: spawn.ctor_data(),
             state: &State::zeros(),
-            target_template: template_addr,
-            target_addr: target,
+            template,
+            target: target.clone(),
             within_spawn: true,
-            gas_used,
-            gas_left,
+            gas_limit: gas_left,
+            protected_mode: ProtectedMode::FullAccess,
             envelope,
             context,
         };
@@ -140,7 +139,7 @@ where
         let receipt = self.exec_call::<(), ()>(&call);
 
         // TODO: move the `into_spawn_receipt` to a `From / TryFrom`
-        svm_types::into_spawn_receipt(receipt, target)
+        svm_types::into_spawn_receipt(receipt, &target)
     }
 
     fn exec_call<Args, Rets>(&mut self, call: &Call) -> CallReceipt {
@@ -155,17 +154,17 @@ where
         Rets: WasmTypeList,
         F: Fn(&FuncEnv, Outcome<Box<[wasmer::Val]>>) -> R,
     {
-        match self.account_template(call.target_addr) {
+        match self.account_template(&call.target) {
             Ok(template) => {
-                let storage =
-                    self.open_storage(call.target_addr, call.state, template.fixed_layout());
+                let storage = self.open_storage(&call.target, call.state, template.fixed_layout());
 
                 let mut env = FuncEnv::new(
                     storage,
                     call.envelope,
                     call.context,
-                    call.target_template,
-                    call.target_addr,
+                    call.template.clone(),
+                    call.target.clone(),
+                    call.protected_mode,
                 );
 
                 let store = crate::wasm_store::new_store();
@@ -192,17 +191,17 @@ where
     {
         self.validate_call(call, template, func_env)?;
 
-        let module = self.compile_template(store, func_env, &template, call.gas_left)?;
+        let module = self.compile_template(store, func_env, &template, call.gas_limit)?;
         let instance = self.instantiate(func_env, &module, import_object)?;
 
         self.set_memory(func_env, &instance);
 
         let func = self.func::<Args, Rets>(&instance, func_env, call.func_name)?;
 
-        let mut out = if call.calldata.len() > 0 {
-            self.call_with_alloc(&instance, func_env, call.calldata, &func, &[])?
+        let mut out = if call.func_input.len() > 0 {
+            self.call_with_alloc(&instance, func_env, call.func_input, &func, &[])?
         } else {
-            self.call(&instance, func_env, &func, &[])?
+            self.wasmer_call(&instance, func_env, &func, &[])?
         };
 
         let logs = out.take_logs();
@@ -244,14 +243,24 @@ where
         let wasm_ptr = out.returns();
         self.set_calldata(env, calldata, wasm_ptr);
 
-        self.call(instance, env, func, params)
+        self.wasmer_call(instance, env, func, params)
     }
 
     fn call_alloc(&self, instance: &Instance, env: &FuncEnv, size: usize) -> Result<WasmPtr<u8>> {
+        // Backups the current [`ProtectedMode`].
+        let origin_mode = env.protected_mode();
+
+        // Sets `Access Denied` mode while running `svm_alloc`.
+        env.set_protected_mode(ProtectedMode::AccessDenied);
+
         let func_name = "svm_alloc";
 
         let func = self.func::<u32, u32>(&instance, env, func_name);
         if func.is_err() {
+            // ### Notes:
+            //
+            // We don't restore the original [`ProtectedMode`]
+            // since `svm_alloc` has failed and the transaction will halt.
             let err = self.func_not_found(env, func_name);
             return Err(err);
         }
@@ -259,7 +268,7 @@ where
         let func = func.unwrap();
         let params: [wasmer::Val; 1] = [(size as i32).into()];
 
-        let out = self.call(instance, env, &func, &params)?;
+        let out = self.wasmer_call(instance, env, &func, &params)?;
         let out = out.map(|rets| {
             let ret = &rets[0];
             let offset = ret.i32().unwrap() as u32;
@@ -267,10 +276,13 @@ where
             WasmPtr::new(offset)
         });
 
+        // Restores the original [`ProtectedMode`].
+        env.set_protected_mode(origin_mode);
+
         Ok(out)
     }
 
-    fn call<Args, Rets>(
+    fn wasmer_call<Args, Rets>(
         &self,
         instance: &Instance,
         env: &FuncEnv,
@@ -304,17 +316,18 @@ where
 
     #[inline]
     fn commit_changes(&self, env: &FuncEnv) -> State {
-        let storage = &mut env.borrow_mut().storage;
+        let mut borrow = env.borrow_mut();
+        let storage = borrow.storage_mut();
         storage.commit()
     }
 
     #[inline]
     fn assert_no_returndata(&self, env: &FuncEnv) {
-        assert!(env.borrow().returndata.is_none())
+        assert!(env.borrow().returndata().is_none())
     }
 
     fn take_returndata(&self, env: &FuncEnv) -> Vec<u8> {
-        let data = env.borrow().returndata;
+        let data = env.borrow().returndata();
 
         match data {
             Some((offset, length)) => self.read_memory(env, offset, length),
@@ -477,6 +490,11 @@ where
         template: &Template,
         env: &FuncEnv,
     ) -> std::result::Result<(), Failure> {
+        // TODO: validate there is enough gas for running the `Transaction`.
+        // * verify
+        // * call
+        // * other factors
+
         let spawning = call.within_spawn;
         let ctor = template.is_ctor(call.func_name);
 
@@ -495,6 +513,36 @@ where
         }
 
         Ok(())
+    }
+
+    fn build_call<'a>(
+        &self,
+        tx: &'a Transaction,
+        envelope: &'a Envelope,
+        context: &'a Context,
+        protected_mode: ProtectedMode,
+        func_name: &'a str,
+        func_input: &'a [u8],
+    ) -> Call<'a> {
+        let target = tx.target();
+        let template = self.env.resolve_template_addr(target);
+
+        if let Some(template) = template {
+            Call {
+                func_name,
+                func_input,
+                target: target.clone(),
+                template,
+                state: context.state(),
+                gas_limit: envelope.gas_limit(),
+                protected_mode,
+                within_spawn: false,
+                envelope,
+                context,
+            }
+        } else {
+            unreachable!("Should have failed earlier when doing `validate_call`");
+        }
     }
 
     /// Errors
@@ -705,24 +753,39 @@ where
         match gas_left {
             Ok(gas_left) => {
                 let account = ExtAccount::new(spawn.account(), &spawner);
-                let addr = self.env.compute_account_addr(&spawn);
+                let target = self.env.compute_account_addr(&spawn);
 
-                self.env.store_account(&account, &addr);
-                let gas_used = payload_price.into();
-
-                self.call_ctor(&spawn, &addr, gas_used, gas_left, envelope, context)
+                self.env.store_account(&account, &target);
+                self.call_ctor(&spawn, target, gas_left, envelope, context)
             }
             Err(..) => SpawnReceipt::new_oog(Vec::new()),
         }
     }
 
-    fn verify(
-        &self,
-        _envelope: &Envelope,
-        _message: &[u8],
-        _context: &Context,
-    ) -> std::result::Result<bool, RuntimeError> {
-        todo!("https://github.com/spacemeshos/svm/issues/248")
+    fn verify(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
+        let tx = self
+            .env
+            .parse_call(message)
+            .expect("Should have called `validate_call` first");
+
+        // ### Important:
+        //
+        // Right now we disallow any `Storage` access while running `svm_verify`.
+        // This hard restriction might be mitigated in future versions.
+        //
+        // In that case, the current behavior should be backward-compatible since
+        // we could always executed `Access Denied` logic when partial `Storage` access will be allowed by SVM.
+        let call = self.build_call(
+            &tx,
+            envelope,
+            context,
+            ProtectedMode::AccessDenied,
+            "svm_verify",
+            tx.verifydata(),
+        );
+
+        // TODO: override the `call.gas_limit` with `VERIFY_MAX_GAS`
+        self.exec_call::<(), ()>(&call)
     }
 
     fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
@@ -731,25 +794,15 @@ where
             .parse_call(message)
             .expect("Should have called `validate_call` first");
 
-        let template = self.env.resolve_template_addr(tx.target());
+        let call = self.build_call(
+            &tx,
+            envelope,
+            context,
+            ProtectedMode::FullAccess,
+            tx.func_name(),
+            tx.calldata(),
+        );
 
-        if let Some(template) = template {
-            let call = Call {
-                func_name: tx.function(),
-                calldata: tx.calldata(),
-                target_addr: tx.target(),
-                target_template: &template,
-                state: context.state(),
-                gas_used: Gas::with(0),
-                gas_left: envelope.gas_limit(),
-                within_spawn: false,
-                envelope,
-                context,
-            };
-
-            self.exec_call::<(), ()>(&call)
-        } else {
-            unreachable!("Should have failed earlier when doing `validate_call`");
-        }
+        self.exec_call::<(), ()>(&call)
     }
 }

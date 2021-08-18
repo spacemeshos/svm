@@ -1,18 +1,18 @@
 //! JSON API
 
 mod call;
-mod calldata;
 mod deploy;
 mod error;
+mod inputdata;
 mod receipt;
 mod spawn;
 
 pub(crate) mod serde_types;
 
 pub use call::{decode_call, encode_call, encode_call_raw};
-pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy::deploy_template;
 pub use error::JsonError;
+pub use inputdata::{decode_inputdata, encode_inputdata};
 pub use receipt::decode_receipt;
 pub use spawn::{decode_spawn, encode_spawn};
 
@@ -58,11 +58,10 @@ pub(crate) fn gas_to_json(gas: &Gas) -> i64 {
 pub(crate) fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Json> {
     logs.iter()
         .map(|log| {
-            let msg = unsafe { String::from_utf8_unchecked(log.msg.clone()) };
+            let data = unsafe { String::from_utf8_unchecked(log.as_bytes().to_vec()) };
 
             json!({
-                "msg": msg,
-                "code": log.code
+                "data": data,
             })
         })
         .collect()

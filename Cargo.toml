@@ -25,6 +25,7 @@ log = "0.4"
 indexmap = "1.6.2"
 parity-wasm = "0.42.2"
 # rocksdb = { version = "0.15.0", features = ["lz4"], default-features = false, optional = true }
+seq-macro = "0.2"
 svm-cli = { path = "crates/cli" }
 svm-hash = { path = "crates/hash" }
 svm-kv = { path = "crates/kv", default-features = false }
@@ -51,7 +52,7 @@ svm-abi-tests = { path = "crates/abi/tests" }
 thiserror = "1"
 tracing = "0.1"
 tracing-subscriber = "0.2"
-wasmer = { version = "2.0.0-rc1", default-features = false }
+wasmer = { version = "2", default-features = false, optional = true }
 wee_alloc = { version = "0.4.5", optional = true }
 
 [build-dependencies]

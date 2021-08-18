@@ -1815,6 +1815,7 @@ dependencies = [
  "log",
  "maplit",
  "parity-wasm",
+ "seq-macro",
  "svm-abi-layout",
  "svm-abi-tests",
  "svm-cli",
@@ -2072,6 +2073,7 @@ dependencies = [
 name = "svm-sdk-std"
 version = "0.0.0"
 dependencies = [
+ "seq-macro",
  "svm-sdk-alloc",
 ]
 
@@ -2099,6 +2101,7 @@ dependencies = [
 name = "svm-sdk-types"
 version = "0.0.0"
 dependencies = [
+ "seq-macro",
  "svm-sdk-std",
 ]
 

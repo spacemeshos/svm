@@ -207,8 +207,6 @@ fn decode_call(receipt: &CallReceipt, ty: &'static str) -> Value {
 mod tests {
     use super::*;
 
-    use super::json;
-
     use svm_types::{Address, Gas, ReceiptLog, State, TemplateAddr};
 
     #[test]
@@ -216,14 +214,8 @@ mod tests {
         let template = TemplateAddr::repeat(0x10);
 
         let logs = vec![
-            ReceiptLog {
-                msg: b"Log entry #1".to_vec(),
-                code: 100,
-            },
-            ReceiptLog {
-                msg: b"Log entry #2".to_vec(),
-                code: 200,
-            },
+            ReceiptLog::new(b"Log entry #1".to_vec()),
+            ReceiptLog::new(b"Log entry #2".to_vec()),
         ];
 
         let receipt = DeployReceipt {
@@ -247,8 +239,8 @@ mod tests {
                 "addr": "1010101010101010101010101010101010101010",
                 "gas_used": 10,
                 "logs": [
-                    {"msg": "Log entry #1", "code": 100},
-                    {"msg": "Log entry #2", "code": 200}
+                    {"data": "Log entry #1"},
+                    {"data": "Log entry #2"}
                 ]
             })
         );
@@ -260,14 +252,8 @@ mod tests {
         let state = State::repeat(0xA0);
 
         let logs = vec![
-            ReceiptLog {
-                msg: b"Log entry #1".to_vec(),
-                code: 100,
-            },
-            ReceiptLog {
-                msg: b"Log entry #2".to_vec(),
-                code: 200,
-            },
+            ReceiptLog::new(b"Log entry #1".to_vec()),
+            ReceiptLog::new(b"Log entry #2".to_vec()),
         ];
 
         let receipt = SpawnReceipt {
@@ -295,8 +281,8 @@ mod tests {
                 "returndata": "102030",
                 "state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
                 "logs": [
-                    {"msg": "Log entry #1", "code": 100},
-                    {"msg": "Log entry #2", "code": 200}
+                    {"data": "Log entry #1"},
+                    {"data": "Log entry #2"}
                 ]
             })
         );
@@ -304,10 +290,7 @@ mod tests {
 
     #[test]
     fn decode_receipt_spawn_error() {
-        let logs = vec![ReceiptLog {
-            msg: b"Reached OOG".to_vec(),
-            code: 0,
-        }];
+        let logs = vec![ReceiptLog::new(b"Reached OOG".to_vec())];
 
         let receipt = SpawnReceipt {
             version: 0,
@@ -330,7 +313,7 @@ mod tests {
                "type": "spawn-account",
                "success": false,
                "err_type": "oog",
-               "logs": [{"code": 0, "msg": "Reached OOG"}],
+               "logs": [{"data": "Reached OOG"}],
             })
         );
     }
@@ -340,14 +323,8 @@ mod tests {
         let state = State::repeat(0xA0);
 
         let logs = vec![
-            ReceiptLog {
-                msg: b"Log entry #1".to_vec(),
-                code: 100,
-            },
-            ReceiptLog {
-                msg: b"Log entry #2".to_vec(),
-                code: 200,
-            },
+            ReceiptLog::new(b"Log entry #1".to_vec()),
+            ReceiptLog::new(b"Log entry #2".to_vec()),
         ];
 
         let receipt = CallReceipt {
@@ -373,8 +350,8 @@ mod tests {
                 "returndata": "1020",
                 "new_state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
                 "logs": [
-                    {"msg": "Log entry #1", "code": 100},
-                    {"msg": "Log entry #2", "code": 200}
+                    {"data": "Log entry #1"},
+                    {"data": "Log entry #2"}
                 ]
             })
         );

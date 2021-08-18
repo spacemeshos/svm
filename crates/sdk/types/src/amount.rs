@@ -1,10 +1,11 @@
 use core::cmp::{Ordering, PartialOrd};
 use core::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
-use svm_sdk_std::ensure;
+use svm_sdk_std::{ensure, String, StringBuilder, ToString};
 
 use crate::types::PrimitiveMarker;
 
+/// A type for representing an amount of `Coins`.
 #[derive(PartialEq, Copy, Clone, Hash)]
 #[repr(transparent)]
 pub struct Amount(pub u64);
@@ -123,9 +124,28 @@ impl PartialOrd for Amount {
     }
 }
 
+impl ToString for Amount {
+    fn to_string(&self) -> String {
+        let mut sb = StringBuilder::with_capacity("18446744073709551615 coins".len());
+
+        let s = self.0.to_string();
+        sb.push_str(&s);
+        sb.push_str(&String::new_short(" coins".as_bytes()));
+        sb.build()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use crate::to_std_string;
+
+    #[test]
+    fn amount_to_string() {
+        let amount = Amount(core::u64::MAX);
+        assert_eq!(to_std_string(amount), "18446744073709551615 coins");
+    }
 
     #[test]
     fn amount_add() {

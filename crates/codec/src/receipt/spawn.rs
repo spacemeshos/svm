@@ -155,11 +155,7 @@ mod tests {
     fn encode_decode_spawn_receipt_success_without_returns() {
         let addr = Address::of("@Account").into();
         let init_state = State::of("some-state");
-
-        let logs = vec![ReceiptLog {
-            msg: b"something happened".to_vec(),
-            code: 200,
-        }];
+        let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
         let receipt = SpawnReceipt {
             version: 0,
@@ -183,10 +179,7 @@ mod tests {
         let addr = Address::of("@Account");
         let init_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
-        let logs = vec![ReceiptLog {
-            msg: b"something happened".to_vec(),
-            code: 200,
-        }];
+        let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
         let receipt = SpawnReceipt {
             version: 0,

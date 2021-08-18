@@ -1,6 +1,7 @@
+#![allow(unused_must_use)]
+
 macro_rules! impl_blob_type {
     ($ty:ident, $nbytes:expr) => {
-        use core::char;
         use core::cmp::{Eq, PartialEq};
 
         use svm_sdk_std::{ensure, Vec};
@@ -55,7 +56,6 @@ macro_rules! impl_blob_type {
             #[inline]
             fn from(offset: u32) -> Self {
                 let ptr = offset as *const u8;
-
                 ptr.into()
             }
         }
@@ -82,9 +82,9 @@ macro_rules! impl_blob_type {
         }
 
         impl $ty {
+            /// Generates an instance consisting only of the input `byte` in repetitive manner.
             pub fn repeat(byte: u8) -> Self {
                 let bytes = [byte; Self::len()];
-
                 bytes.into()
             }
         }
@@ -92,6 +92,9 @@ macro_rules! impl_blob_type {
         impl From<[u8; $nbytes]> for $ty {
             #[inline]
             fn from(value: [u8; $nbytes]) -> Self {
+                extern crate alloc;
+                use alloc::boxed::Box;
+
                 let slice = Box::leak(Box::new(value));
                 let ptr = slice.as_ptr();
 
@@ -130,7 +133,52 @@ macro_rules! impl_blob_type {
         }
 
         impl Eq for $ty {}
+
+        impl svm_sdk_std::ToString for $ty {
+            fn to_string(&self) -> svm_sdk_std::String {
+                use svm_sdk_std::{HexDigit, StringBuilder, String};
+
+                let mut sb = StringBuilder::with_capacity("0x".len() + Self::len() * 2);
+                sb.push_str(&String::new_short("0x".as_bytes()));
+
+                let bytes = self.as_slice();
+                seq_macro::seq!(N in 0..$nbytes {
+                    let byte: u8 = bytes[N];
+
+                    // extracting nibbles
+                    let left = (byte & 0xF0) >> 4;
+                    let right = byte & 0x0F;
+
+                    sb.push_str(&HexDigit(left).to_string());
+                    sb.push_str(&HexDigit(right).to_string());
+                });
+
+                sb.build()
+            }
+        }
     };
 }
 
 impl_blob_type!(Address, 20);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::to_std_string;
+
+    #[test]
+    fn address_to_string() {
+        let bytes: &'static [u8] = std::vec![
+            0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78, 0x89, 0x9A, 0xAB, 0xBC, 0xCD, 0xDE,
+            0xEF, 0xFE, 0xD0, 0xC0, 0xB0, 0xA0
+        ]
+        .leak();
+        let addr = Address::from(bytes);
+
+        assert_eq!(
+            to_std_string(addr),
+            "0x0112233445566778899AABBCCDDEEFFED0C0B0A0"
+        );
+    }
+}
