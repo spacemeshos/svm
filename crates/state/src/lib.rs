@@ -320,7 +320,6 @@ impl Storage {
         assert!(layer_id < self.current_layer.id);
 
         if self.dirty_changes.is_empty() {
-            println!("NO DIRTY CHANGES");
             sqlx::query(
                 r#"
                 DELETE FROM "layers"
@@ -331,7 +330,6 @@ impl Storage {
             .execute(&self.sqlite)
             .await?;
 
-            println!("DELETED ALL LAYERS");
             // We must now bring `self.current_layer` in a good state.
             self.current_layer.id = layer_id + 1;
             self.current_layer.changes.clear();
@@ -339,10 +337,8 @@ impl Storage {
 
             // Recreate last layer information in SQLite.
             let fingerprint = self.layer_fingerprint(layer_id).await?;
-            println!("FOUND OLD FINGERPRINT");
             self.insert_layer(self.current_layer.id as i64, fingerprint)
                 .await?;
-            println!("INSERT NEW FINGERPRINT");
 
             Ok(())
         } else {
@@ -575,13 +571,15 @@ mod test {
     async fn checkpoint_ordering_doesnt_change_fingerprint() -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
+        let layer_id = gs.commit().await.unwrap().0;
+
         gs.upsert(b"foo", "bar").await;
         gs.checkpoint().await.unwrap();
 
         gs.upsert(b"bar", "foo").await;
         gs.checkpoint().await.unwrap();
 
-        let (layer_id, fingeprint_0) = gs.commit().await.unwrap();
+        let fingeprint_0 = gs.commit().await.unwrap().1;
 
         gs.rewind(layer_id).await.unwrap();
 
@@ -602,7 +600,7 @@ mod test {
         gs.upsert(b"foo", "bar").await;
         gs.checkpoint().await.unwrap();
 
-        gs.upsert(b"bar", "foo").await;
+        gs.upsert(b"foo", "spam").await;
         matches!(
             gs.checkpoint().await,
             Err(StorageError::KeyCollision { key_hash: _ })
