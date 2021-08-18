@@ -1,6 +1,7 @@
 use crate::String;
 
 /// The external function (a.k.a host function) to be called from `log`.
+#[allow(unused)]
 #[cfg(target_arch = "wasm32")]
 #[link_section = "svm"]
 extern "C" {
