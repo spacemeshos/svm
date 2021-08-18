@@ -293,7 +293,7 @@ impl Storage {
     }
 
     /// Erases all saved data from memory and completely deletes all layers
-    /// after `layer_id`, excluded, from the SQLite store. Persisted data is
+    /// after and excluding `layer_id` from the SQLite store. Persisted data is
     /// left untouched. It returns a [`StorageError::DirtyChanges`] in case
     /// there's any dirty changes, i.e. you must call [`Storage::rollback`]
     /// beforehand.
@@ -307,16 +307,18 @@ impl Storage {
         assert!(layer_id < self.current_layer.id);
 
         if self.dirty_changes.is_empty() {
+            println!("NO DIRTY CHANGES");
             sqlx::query(
                 r#"
                 DELETE FROM "layers"
-                WHERE "layer_id" > ?1
+                WHERE "id" > ?1
                 "#,
             )
             .bind(layer_id as i64)
             .execute(&self.sqlite)
             .await?;
 
+            println!("DELETED ALL LAYERS");
             // We must now bring `self.current_layer` in a good state.
             self.current_layer.id = layer_id + 1;
             self.current_layer.changes.clear();
@@ -324,8 +326,10 @@ impl Storage {
 
             // Recreate last layer information in SQLite.
             let fingerprint = self.layer_fingerprint(layer_id).await?;
+            println!("FOUND OLD FINGERPRINT");
             self.insert_layer(self.current_layer.id as i64, fingerprint)
                 .await?;
+            println!("INSERT NEW FINGERPRINT");
 
             Ok(())
         } else {
@@ -433,26 +437,6 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
-    async fn get_after_rewind(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
-
-        for (key, value) in items.iter() {
-            gs.upsert(&key[..], &value[..]).await;
-        }
-
-        gs.checkpoint().await.unwrap();
-        gs.commit().await.unwrap();
-
-        for key in items.keys() {
-            if gs.get(&key, None).await.unwrap().is_some() {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    #[quickcheck_async::tokio]
     async fn consistent_layer_information_after_commits() -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
@@ -538,10 +522,10 @@ mod test {
     async fn rewind_effectively_deletes_data(key: Vec<u8>, value: Vec<u8>) -> bool {
         let mut gs = Storage::in_memory().await.unwrap();
 
-        gs.upsert(&key, value).await;
-        gs.checkpoint().await.unwrap();
         let layer_id = gs.commit().await.unwrap().0;
 
+        gs.upsert(&key, value).await;
+        gs.checkpoint().await.unwrap();
         gs.rewind(layer_id).await.unwrap();
 
         matches!(gs.get(&key, None).await, Ok(None))
