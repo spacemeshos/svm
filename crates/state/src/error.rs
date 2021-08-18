@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+use crate::Fingerprint;
+
 /// An alias for [`Result`](std::result::Result)'s with [`StorageError`].
 pub type Result<T> = std::result::Result<T, StorageError>;
 
@@ -10,6 +12,14 @@ pub enum StorageError {
     /// or rollbacked before attempting such operation.
     #[error("Please checkout dirty changes or rollback to avoid data loss.")]
     DirtyChanges,
+
+    /// Two checkpoints have resulted in key collision, which prevents unordered
+    /// transaction replaying.
+    #[error("Key collision from two different checkpoints.")]
+    KeyCollision {
+        /// They Blake3 hash of the key that caused this collision.
+        key_hash: Fingerprint,
+    },
 
     /// A SQLite error happened.
     #[error("SQLite error.")]

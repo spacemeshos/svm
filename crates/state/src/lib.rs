@@ -42,6 +42,9 @@ struct CurrentLayer {
 
 /// A SQLite-backed key-value store that supports root fingerprinting and
 /// historical state queries.
+///
+/// Please note that **all** operations might trigger a
+/// [`StorageError::Sqlite`], unless otherwise specified.
 pub struct Storage {
     sqlite: SqlitePool,
     dirty_changes: Changes,
@@ -156,7 +159,7 @@ impl Storage {
     }
 
     /// Sets the `value` associated with a Blake3 `hash`. This change will be
-    /// "dirty" until a [`Storage::checkout`].
+    /// "dirty" until a [`Storage::checkpoint`].
     pub async fn upsert_by_hash<V>(&mut self, hash: Fingerprint, value: V)
     where
         V: Into<Vec<u8>>,
@@ -166,6 +169,9 @@ impl Storage {
 
     /// Saves dirty changes in preparation of [`Storage::commit`]. After
     /// saving, changes are frozen and can't be removed from the current layer.
+    ///
+    /// This might return a [`StorageError::KeyCollision`] depending on the
+    /// content of the dirty changes, so beware.
     pub async fn checkpoint(&mut self) -> Result<()> {
         let mut fingerprint = self.current_layer.changes_xor_fingerprint;
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
@@ -174,7 +180,14 @@ impl Storage {
             let xor = hash_key_value_pair(&change.0, &change.1);
             xor_fingerprint(&mut fingerprint, &xor);
 
-            self.current_layer.changes.insert(change.0, change.1);
+            if self
+                .current_layer
+                .changes
+                .insert(change.0, change.1)
+                .is_some()
+            {
+                return Err(StorageError::KeyCollision { key_hash: change.0 });
+            }
         }
 
         Ok(())
@@ -556,5 +569,43 @@ mod test {
             && gs.get(b"xyz", None).await.unwrap().unwrap() == b"1337"
             && gs.get(b"spam", None).await.unwrap().is_none()
             && gs.get(b"super-spam", None).await.unwrap().unwrap() == b"50"
+    }
+
+    #[quickcheck_async::tokio]
+    async fn checkpoint_ordering_doesnt_change_fingerprint() -> bool {
+        let mut gs = Storage::in_memory().await.unwrap();
+
+        gs.upsert(b"foo", "bar").await;
+        gs.checkpoint().await.unwrap();
+
+        gs.upsert(b"bar", "foo").await;
+        gs.checkpoint().await.unwrap();
+
+        let (layer_id, fingeprint_0) = gs.commit().await.unwrap();
+
+        gs.rewind(layer_id).await.unwrap();
+
+        gs.upsert(b"bar", "foo").await;
+        gs.checkpoint().await.unwrap();
+
+        gs.upsert(b"foo", "bar").await;
+        gs.checkpoint().await.unwrap();
+
+        let fingerprint_1 = gs.commit().await.unwrap().1;
+        fingeprint_0 == fingerprint_1
+    }
+
+    #[quickcheck_async::tokio]
+    async fn checkpoint_collision_detection() -> bool {
+        let mut gs = Storage::in_memory().await.unwrap();
+
+        gs.upsert(b"foo", "bar").await;
+        gs.checkpoint().await.unwrap();
+
+        gs.upsert(b"bar", "foo").await;
+        matches!(
+            gs.checkpoint().await,
+            Err(StorageError::KeyCollision { key_hash: _ })
+        )
     }
 }
