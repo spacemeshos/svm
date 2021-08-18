@@ -1,25 +1,32 @@
 use core::cmp::{Eq, PartialEq};
 
-use crate::{panic, Result};
+use crate::Result;
 
-/// A re-implementation for `core::option::Option`
-/// Other parts of the SDK will use it. This way we can have maximum control
-/// over the final emitted Wasm.
+/// Fixed-Gas replacement for [`std::option::Option`].
 pub enum Option<T> {
+    /// Represents Missing `value`
     None,
 
+    /// Has a `value`
     Some(T),
 }
 
 impl<T> Option<T> {
+    /// Returns the wrapped value.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `self` is `None`.
     #[inline]
     pub fn unwrap(self) -> T {
         match self {
-            Self::None => panic(),
+            Self::None => crate::panic(),
             Self::Some(val) => val,
         }
     }
 
+    /// Casts when `self` is a `Option::Some(..) to `Result::Ok(..)`.
+    /// Otherwise, returns `Result::Error(err)` (the `err` is given as a parameter).
     #[inline]
     pub fn ok_or<E>(self, err: E) -> Result<T, E> {
         match self {

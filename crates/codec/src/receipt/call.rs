@@ -117,10 +117,7 @@ mod tests {
         let account = Address::of("@Account");
         let error = RuntimeError::AccountNotFound(account.into());
 
-        let logs = vec![ReceiptLog {
-            msg: b"something happened".to_vec(),
-            code: 200,
-        }];
+        let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
         let receipt = CallReceipt {
             version: 0,
@@ -141,11 +138,7 @@ mod tests {
     #[test]
     fn encode_decode_call_receipt_success_without_returns() {
         let new_state = State::of("some-state");
-
-        let logs = vec![ReceiptLog {
-            msg: b"something happened".to_vec(),
-            code: 200,
-        }];
+        let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
         let receipt = CallReceipt {
             version: 0,
@@ -168,10 +161,7 @@ mod tests {
         let new_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
 
-        let logs = vec![ReceiptLog {
-            msg: b"something happened".to_vec(),
-            code: 200,
-        }];
+        let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
         let receipt = CallReceipt {
             version: 0,

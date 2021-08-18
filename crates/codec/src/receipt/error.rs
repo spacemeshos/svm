@@ -325,14 +325,8 @@ mod tests {
 
     fn test_logs() -> Vec<ReceiptLog> {
         vec![
-            ReceiptLog {
-                msg: b"Log entry #1".to_vec(),
-                code: 0,
-            },
-            ReceiptLog {
-                msg: b"Log entry #2".to_vec(),
-                code: 1,
-            },
+            ReceiptLog::new(b"Log entry #1".to_vec()),
+            ReceiptLog::new(b"Log entry #2".to_vec()),
         ]
     }
 
