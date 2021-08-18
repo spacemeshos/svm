@@ -11,15 +11,10 @@ pub enum StorageError {
     DirtyChanges,
 
     #[error("You must rewind before erasing commit data.")]
-    Changes,
+    SavedChanges,
 
-    #[error("Hash collision. Make sure that you're not using the hash of a known item.")]
+    #[error("Changing the same value multiple times within the same layer is ")]
     Collision,
-
-    #[error(
-        "Possible self-reference at the database layer. We couldn't reach the leaf fast enough."
-    )]
-    Cyclic,
 
     #[error("SQLite error.")]
     Sqlite(#[from] sqlx::Error),

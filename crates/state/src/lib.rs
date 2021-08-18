@@ -25,13 +25,14 @@ pub type LayerId = u64;
 
 type Changes = HashMap<Fingerprint, Vec<u8>>;
 
-const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
-const INITIAL_LAYER_ID: LayerId = 0;
-
 // When initializing [`Fingerprint`]'s on the database, we zero all bits. In
-// memory, however, the initial [`Fingerprint`] is always filled with 1's.
+// memory, however, the initial [`Fingerprint`] is always filled with 1's (by
+// XOR-ing them together, we still get 0).
 const FINGERPRINT_ZEROS: Fingerprint = [0; 32];
 const FINGERPRINT_ONES: Fingerprint = [std::u8::MAX; 32];
+
+const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
+const INITIAL_LAYER_ID: LayerId = 0;
 
 struct CurrentLayer {
     id: LayerId,
@@ -130,11 +131,7 @@ impl Storage {
                 SELECT "value"
                 FROM "values"
                 WHERE
-                    "layer_id" <= (
-                        SELECT "id"
-                        FROM "layers"
-                        WHERE "layer_id" = ?1
-                    )
+                    "layer_id" <= ?1
                     AND
                     "key_hash" = ?2
                 ORDER BY "id" DESC
@@ -167,7 +164,7 @@ impl Storage {
         self.dirty_changes.entry(hash).or_insert(value.into());
     }
 
-    /// Prepares dirty changes to be layered via [`Storage::layer`]. After
+    /// Saves dirty changes in preparation of [`Storage::commit`]. After
     /// saving, changes are frozen and can't be removed from the current layer.
     pub async fn checkpoint(&mut self) -> Result<()> {
         let mut fingerprint = self.current_layer.changes_xor_fingerprint;
@@ -303,7 +300,7 @@ impl Storage {
         if !self.dirty_changes.is_empty() {
             Err(StorageError::DirtyChanges)
         } else if !self.current_layer.changes.is_empty() {
-            Err(StorageError::Changes)
+            Err(StorageError::SavedChanges)
         } else {
             sqlx::query(
                 r#"
