@@ -5,5 +5,5 @@
 
   (func (export "sayHello") 
   	i32.const 0   ;; `data` offset
-	i32.const 11  ;; `data` length = len('Hello World')
-	call $log))
+	  i32.const 11  ;; `data` length = len('Hello World')
+	  call $log))

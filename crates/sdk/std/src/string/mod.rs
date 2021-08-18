@@ -158,4 +158,19 @@ mod tests {
         let s = sb.build().to_std_string();
         assert_eq!(s.as_str(), "Hello!");
     }
+
+    #[test]
+    fn string_builder_panics_when_not_enough_capacity() {
+        extern crate std;
+
+        use std::boxed::Box;
+        std::panic::set_hook(Box::new(|_info| {}));
+
+        let res = std::panic::catch_unwind(|| {
+            let mut sb = StringBuilder::with_capacity(4);
+            sb.push_str(&String::new_short("Hello".as_bytes()));
+        });
+
+        assert!(res.is_err());
+    }
 }
