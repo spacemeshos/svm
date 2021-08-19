@@ -1,3 +1,7 @@
+//! A CLI tool that exposes SVM internals and makes it easy to craft
+//! transactions by compiling human-readable JSON files down to the SVM-specific
+//! ABI.
+
 #![allow(unused)]
 
 mod subcmd_craft_deploy;

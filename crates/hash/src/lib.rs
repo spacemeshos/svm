@@ -1,4 +1,5 @@
-//! Hashing utilities for the SVM.
+//! A [`Hasher`] trait for wide-digest algorithms and its [`DefaultHasher`]
+//! implementation.
 
 #![deny(missing_docs)]
 #![deny(unused)]
