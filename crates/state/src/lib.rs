@@ -157,7 +157,9 @@ impl Storage {
                 SELECT "values.value"
                 FROM "values"
                 INNER JOIN "layers" ON
-                    "key_hash" = ?1
+                    "values.key_hash" = ?1
+                    AND
+                    "layers.id" = "values.layer_id"
                     AND
                     "layers.ready" = 1
                 ORDER BY "values.id" DESC
@@ -184,10 +186,12 @@ impl Storage {
                 INNER JOIN "layers" ON
                     "layers.id" <= ?1
                     AND
+                    "layers.id" = "values.layer_id"
+                    AND
                     "layers.ready" = 1
                     AND
                     "values.key_hash" = ?2
-                ORDER BY "layers.id" DESC
+                ORDER BY "values.id" DESC
                 LIMIT 1
                 "#,
         )
