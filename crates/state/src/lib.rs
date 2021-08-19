@@ -459,12 +459,29 @@ mod test {
             storage.upsert(&key[..], &value[..]).await;
         }
 
-        storage.checkpoint().await.unwrap();
-        storage.commit().await.unwrap();
+        for key in items.keys() {
+            let stored_value = storage.get(&key, Some(INITIAL_LAYER_ID)).await.unwrap();
+            if stored_value.is_some() {
+                return false;
+            }
+        }
 
-        for (key, value) in items {
-            let stored_value = storage.get(&key, None).await.unwrap().unwrap();
-            if stored_value != value {
+        true
+    }
+
+    #[quickcheck_async::tokio]
+    async fn get_historical_after_checkpoint(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
+        let mut storage = Storage::in_memory().await.unwrap();
+
+        for (key, value) in items.iter() {
+            storage.upsert(&key[..], &value[..]).await;
+        }
+
+        storage.checkpoint().await.unwrap();
+
+        for key in items.keys() {
+            let stored_value = storage.get(&key, Some(INITIAL_LAYER_ID)).await.unwrap();
+            if stored_value.is_some() {
                 return false;
             }
         }
