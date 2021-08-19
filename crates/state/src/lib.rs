@@ -154,15 +154,13 @@ impl Storage {
         } else {
             let value: Option<(Vec<u8>,)> = sqlx::query_as(
                 r#"
-                SELECT "values.value"
+                SELECT "value"
                 FROM "values"
                 INNER JOIN "layers" ON
-                    "values.key_hash" = ?1
+                    "ready" = 1
                     AND
-                    "layers.id" = "values.layer_id"
-                    AND
-                    "layers.ready" = 1
-                ORDER BY "values.id" DESC
+                    "key_hash" = ?1
+                ORDER BY "layer_id" DESC
                 LIMIT 1
                 "#,
             )
@@ -181,19 +179,17 @@ impl Storage {
     ) -> Result<Option<Vec<u8>>> {
         let value_opt: Option<(Vec<u8>,)> = sqlx::query_as(
             r#"
-                SELECT "values.value"
-                FROM "values"
-                INNER JOIN "layers" ON
-                    "layers.id" <= ?1
-                    AND
-                    "layers.id" = "values.layer_id"
-                    AND
-                    "layers.ready" = 1
-                    AND
-                    "values.key_hash" = ?2
-                ORDER BY "values.id" DESC
-                LIMIT 1
-                "#,
+            SELECT "value"
+            FROM "values"
+            INNER JOIN "layers" ON
+                "layer_id" <= ?1
+                AND
+                "ready" = 1
+                AND
+                "key_hash" = ?2
+            ORDER BY "layer_id" DESC
+            LIMIT 1
+            "#,
         )
         .bind(layer_id as i64)
         .bind(&hash[..])
@@ -251,6 +247,8 @@ impl Storage {
             return Err(StorageError::DirtyChanges);
         }
 
+        let layer_id = self.next_layer.id;
+
         // Note: SQLx 0.5 doesn't support bulk inserts. While tempting,
         // inserting one by one and `.await`-ing after every operation is
         // terribly slow. Rather, we store operation futures in a [`Vec`] and we
@@ -258,10 +256,10 @@ impl Storage {
         let mut inserts = vec![];
         let layer_changes = std::mem::take(&mut self.next_layer.changes);
 
-        let mut fingerprint = self.layer_fingerprint(self.next_layer.id - 1, true).await?;
+        let mut fingerprint = self.layer_fingerprint(layer_id - 1, true).await?;
         xor_fingerprint(&mut fingerprint, &self.next_layer.changes_xor_fingerprint);
 
-        self.insert_layer(self.next_layer.id as i64, fingerprint, false)
+        self.insert_layer(layer_id as i64, fingerprint, false)
             .await?;
 
         for (key_hash, value) in layer_changes {
@@ -274,7 +272,7 @@ impl Storage {
                 )
                 .bind(key_hash.to_vec())
                 .bind(value)
-                .bind(self.next_layer.id as i64)
+                .bind(layer_id as i64)
                 .execute(&self.sqlite),
             )
         }
@@ -289,13 +287,12 @@ impl Storage {
             "#,
         )
         .bind(&fingerprint[..])
-        .bind(self.next_layer.id as i64)
+        .bind(layer_id as i64)
         .execute(&self.sqlite)
         .await?;
 
         // Reset layer-specific information to default values.
         self.next_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
-        let layer_id = self.next_layer.id;
         self.next_layer.id += 1;
 
         Ok((layer_id, fingerprint))
@@ -497,6 +494,28 @@ mod test {
         for key in items.keys() {
             let stored_value = storage.get(&key, Some(INITIAL_LAYER_ID)).await.unwrap();
             if stored_value.is_some() {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    #[quickcheck_async::tokio]
+    async fn get_and_get_historical_might_be_the_same(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
+        let mut storage = Storage::in_memory().await.unwrap();
+
+        for (key, value) in items.iter() {
+            storage.upsert(&key[..], &value[..]).await;
+        }
+
+        storage.checkpoint().await.unwrap();
+        let layer_id = storage.commit().await.unwrap().0;
+
+        for key in items.keys() {
+            let val_1 = storage.get(&key, Some(layer_id)).await.unwrap();
+            let val_2 = storage.get(&key, None).await.unwrap();
+            if val_1 != val_2 || val_1.is_none() {
                 return false;
             }
         }
