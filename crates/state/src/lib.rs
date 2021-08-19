@@ -154,10 +154,13 @@ impl Storage {
         } else {
             let value: Option<(Vec<u8>,)> = sqlx::query_as(
                 r#"
-                SELECT "value"
+                SELECT "values.value"
                 FROM "values"
-                WHERE "key_hash" = ?1
-                ORDER BY "id" DESC
+                INNER JOIN "layers" ON
+                    "key_hash" = ?1
+                    AND
+                    "layers.ready" = 1
+                ORDER BY "values.id" DESC
                 LIMIT 1
                 "#,
             )
