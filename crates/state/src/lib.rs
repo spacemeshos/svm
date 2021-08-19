@@ -33,7 +33,7 @@ const FINGERPRINT_ONES: Fingerprint = [std::u8::MAX; 32];
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
 const INITIAL_LAYER_ID: LayerId = 0;
 
-struct CurrentLayer {
+struct NextLayer {
     id: LayerId,
     changes: Changes,
     changes_xor_fingerprint: Fingerprint,
@@ -48,7 +48,7 @@ struct CurrentLayer {
 pub struct Storage {
     sqlite: SqlitePool,
     dirty_changes: Changes,
-    current_layer: CurrentLayer,
+    next_layer: NextLayer,
 }
 
 impl Storage {
@@ -59,28 +59,45 @@ impl Storage {
         let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await?;
         sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
 
-        let current_layer_id = max_layer_id(&sqlite).await?;
+        let next_layer_id = max_layer_id(&sqlite).await?;
 
         let storage = Self {
             sqlite,
             dirty_changes: HashMap::new(),
-            current_layer: CurrentLayer {
-                id: current_layer_id.unwrap_or(INITIAL_LAYER_ID + 1),
+            next_layer: NextLayer {
+                id: next_layer_id.unwrap_or(INITIAL_LAYER_ID + 1),
                 changes: HashMap::new(),
                 changes_xor_fingerprint: FINGERPRINT_ONES,
             },
         };
 
-        if current_layer_id.is_none() {
+        if next_layer_id.is_none() {
             storage
                 .insert_layer(INITIAL_LAYER_ID as i64, FINGERPRINT_ZEROS, true)
                 .await?;
-            storage
-                .insert_layer(INITIAL_LAYER_ID as i64 + 1, FINGERPRINT_ZEROS, false)
-                .await?;
         }
 
+        storage.delete_bad_layers().await?;
+
         Ok(storage)
+    }
+
+    async fn delete_bad_layers(&self) -> Result<u64> {
+        let count_rows: u64 = sqlx::query(
+            r#"
+            DELETE FROM "values"
+            WHERE "layer_id" IN (
+                SELECT "id"
+                FROM "layers"
+                WHERE "ready" = 0
+            )
+            "#,
+        )
+        .execute(&self.sqlite)
+        .await?
+        .rows_affected();
+
+        Ok(count_rows)
     }
 
     /// Creates a new, empty [`Storage`] with no persisted state at all. All
@@ -89,8 +106,19 @@ impl Storage {
         Self::new(":memory:").await
     }
 
+    /// Returns the [`LayerId`] and [`Fingerprint`] of the last ever committed
+    /// layer; i.e. persisted changes without dirty and saved changes.
+    pub async fn last_layer(&self) -> Result<(LayerId, Fingerprint)> {
+        assert!(self.next_layer.id > INITIAL_LAYER_ID);
+
+        let layer_id = self.next_layer.id - 1;
+        let fingerprint = self.layer_fingerprint(layer_id, true).await?;
+
+        Ok((layer_id, fingerprint))
+    }
+
     fn assert_layer_id_is_ready(&self, layer_id: LayerId) {
-        assert!(layer_id < self.current_layer.id);
+        assert!(layer_id < self.next_layer.id);
     }
 
     /// Fetches the value associated with the Blake3 hash of `key`. See
@@ -121,7 +149,7 @@ impl Storage {
             self.get_by_hash_historical(hash, layer_id).await
         } else if let Some(value) = self.dirty_changes.get(hash) {
             Ok(Some(value.clone()))
-        } else if let Some(value) = self.current_layer.changes.get(hash) {
+        } else if let Some(value) = self.next_layer.changes.get(hash) {
             Ok(Some(value.clone()))
         } else {
             let value: Option<(Vec<u8>,)> = sqlx::query_as(
@@ -192,19 +220,14 @@ impl Storage {
     /// This might return a [`StorageError::KeyCollision`] depending on the
     /// content of the dirty changes, so beware.
     pub async fn checkpoint(&mut self) -> Result<()> {
-        let mut fingerprint = self.current_layer.changes_xor_fingerprint;
+        let mut fingerprint = self.next_layer.changes_xor_fingerprint;
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
 
         for change in dirty_changes {
             let xor = hash_key_value_pair(&change.0, &change.1);
             xor_fingerprint(&mut fingerprint, &xor);
 
-            if self
-                .current_layer
-                .changes
-                .insert(change.0, change.1)
-                .is_some()
-            {
+            if self.next_layer.changes.insert(change.0, change.1).is_some() {
                 return Err(StorageError::KeyCollision { key_hash: change.0 });
             }
         }
@@ -226,7 +249,13 @@ impl Storage {
         // terribly slow. Rather, we store operation futures in a [`Vec`] and we
         // then use [`futures`] magic.
         let mut inserts = vec![];
-        let layer_changes = std::mem::take(&mut self.current_layer.changes);
+        let layer_changes = std::mem::take(&mut self.next_layer.changes);
+
+        let mut fingerprint = self.layer_fingerprint(self.next_layer.id - 1, true).await?;
+        xor_fingerprint(&mut fingerprint, &self.next_layer.changes_xor_fingerprint);
+
+        self.insert_layer(self.next_layer.id as i64, fingerprint, false)
+            .await?;
 
         for (key_hash, value) in layer_changes {
             inserts.push(
@@ -238,30 +267,31 @@ impl Storage {
                 )
                 .bind(key_hash.to_vec())
                 .bind(value)
-                .bind(self.current_layer.id as i64)
+                .bind(self.next_layer.id as i64)
                 .execute(&self.sqlite),
             )
         }
 
         futures::future::try_join_all(inserts).await?;
 
-        let new_fingerprint = self
-            .release_layer(
-                self.current_layer.id as i64,
-                &self.current_layer.changes_xor_fingerprint,
-            )
-            .await?;
+        sqlx::query(
+            r#"
+            UPDATE "layers"
+            SET "fingerprint" = ?1, "ready" = 1
+            WHERE "id" = ?2 AND "ready" = 0
+            "#,
+        )
+        .bind(&fingerprint[..])
+        .bind(self.next_layer.id as i64)
+        .execute(&self.sqlite)
+        .await?;
 
         // Reset layer-specific information to default values.
-        self.current_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
-        let layer_id = self.current_layer.id;
-        self.current_layer.id += 1;
+        self.next_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
+        let layer_id = self.next_layer.id;
+        self.next_layer.id += 1;
 
-        // Finally, create an empty layer for subsequent operations.
-        self.insert_layer(self.current_layer.id as i64, new_fingerprint, false)
-            .await?;
-
-        Ok((layer_id, new_fingerprint))
+        Ok((layer_id, fingerprint))
     }
 
     /// Creates a new [`Fingerprint`]-ed layer with the given `id`.
@@ -296,34 +326,6 @@ impl Storage {
         Ok(bytes.0.try_into().unwrap())
     }
 
-    /// XOR's the [`Fingerprint`] of `layer_id` with `xor` and marks it as
-    /// "ready", i.e. becomes part of history and can be queried.
-    async fn release_layer(&self, layer_id: i64, xor: &Fingerprint) -> Result<Fingerprint> {
-        let mut fingerprint: Fingerprint =
-            self.layer_fingerprint(self.current_layer.id, false).await?;
-        xor_fingerprint(&mut fingerprint, xor);
-
-        sqlx::query(
-            r#"
-            UPDATE "layers"
-            SET "fingerprint" = ?1, "ready" = 1
-            WHERE "id" = ?2
-            "#,
-        )
-        .bind(&fingerprint[..])
-        .bind(layer_id)
-        .execute(&self.sqlite)
-        .await?;
-
-        Ok(fingerprint)
-    }
-
-    /// Returns the [`Fingerprint`] of the last ever committed layer; i.e.
-    /// persisted changes without dirty and saved changes.
-    pub async fn current(&self) -> Result<Fingerprint> {
-        self.layer_fingerprint(self.current_layer.id, true).await
-    }
-
     /// Erases all saved data from memory and completely deletes all layers
     /// after and excluding `layer_id` from the SQLite store. Persisted data is
     /// left untouched. It returns a [`StorageError::DirtyChanges`] in case
@@ -336,31 +338,26 @@ impl Storage {
     pub async fn rewind(&mut self, layer_id: LayerId) -> Result<()> {
         self.assert_layer_id_is_ready(layer_id);
 
-        if self.dirty_changes.is_empty() {
-            sqlx::query(
-                r#"
-                DELETE FROM "layers"
-                WHERE "id" > ?1
-                "#,
-            )
-            .bind(layer_id as i64)
-            .execute(&self.sqlite)
-            .await?;
-
-            // We must now bring `self.current_layer` in a good state.
-            self.current_layer.id = layer_id + 1;
-            self.current_layer.changes.clear();
-            self.current_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
-
-            // Recreate last layer information in SQLite.
-            let fingerprint = self.layer_fingerprint(layer_id, true).await?;
-            self.insert_layer(self.current_layer.id as i64, fingerprint, false)
-                .await?;
-
-            Ok(())
-        } else {
-            Err(StorageError::DirtyChanges)
+        if !self.dirty_changes.is_empty() {
+            return Err(StorageError::DirtyChanges);
         }
+
+        sqlx::query(
+            r#"
+            DELETE FROM "layers"
+            WHERE "id" > ?1
+            "#,
+        )
+        .bind(layer_id as i64)
+        .execute(&self.sqlite)
+        .await?;
+
+        // We must now bring `self.next_layer` in a good state.
+        self.next_layer.id = layer_id + 1;
+        self.next_layer.changes.clear();
+        self.next_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
+
+        Ok(())
     }
 
     /// Erases all dirty changes from memory. Persisted and saved data are left
