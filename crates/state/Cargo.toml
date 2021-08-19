@@ -1,0 +1,25 @@
+[package]
+name = "svm-state"
+version = "0.0.0"
+authors = ["Spacemesh SVM Team"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[dependencies]
+anyhow = "1"
+blake3 = "1"
+futures = "0.3"
+sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite", "macros"] }
+svm-hash = { path = "../hash" }
+thiserror = "1"
+
+[dev-dependencies]
+quickcheck = "1"
+quickcheck_async = "0.1"
+quickcheck_macros = "1"
+tokio = { version = "1", features = ["rt", "macros"] }
