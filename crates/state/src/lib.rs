@@ -40,7 +40,8 @@ struct CurrentLayer {
 }
 
 /// A SQLite-backed key-value store that supports root fingerprinting and
-/// historical state queries.
+/// historical state queries. This is the data structure that ultimately backs
+/// the higher-level Global State APIs.
 ///
 /// Please note that **all** operations might trigger a
 /// [`StorageError::Sqlite`], unless otherwise specified.
@@ -60,7 +61,7 @@ impl Storage {
 
         let current_layer_id = max_layer_id(&sqlite).await?;
 
-        let gs = Self {
+        let storage = Self {
             sqlite,
             dirty_changes: HashMap::new(),
             current_layer: CurrentLayer {
@@ -71,11 +72,12 @@ impl Storage {
         };
 
         if current_layer_id.is_none() {
-            gs.insert_layer(INITIAL_LAYER_ID as i64, FINGERPRINT_ZEROS)
+            storage
+                .insert_layer(INITIAL_LAYER_ID as i64, FINGERPRINT_ZEROS)
                 .await?;
         }
 
-        Ok(gs)
+        Ok(storage)
     }
 
     /// Creates a new, empty [`Storage`] with no persisted state at all. All
@@ -387,14 +389,14 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_after_dirty_changes(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
         for (key, value) in items.iter() {
-            gs.upsert(&key[..], &value[..]).await;
+            storage.upsert(&key[..], &value[..]).await;
         }
 
         for (key, value) in items {
-            let stored_value = gs.get(&key, None).await.unwrap().unwrap();
+            let stored_value = storage.get(&key, None).await.unwrap().unwrap();
             if stored_value != value {
                 return false;
             }
@@ -405,16 +407,16 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_after_checkpoint(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
         for (key, value) in items.iter() {
-            gs.upsert(&key[..], &value[..]).await;
+            storage.upsert(&key[..], &value[..]).await;
         }
 
-        gs.checkpoint().await.unwrap();
+        storage.checkpoint().await.unwrap();
 
         for (key, value) in items {
-            let stored_value = gs.get(&key, None).await.unwrap().unwrap();
+            let stored_value = storage.get(&key, None).await.unwrap().unwrap();
             if stored_value != value {
                 return false;
             }
@@ -425,17 +427,17 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_after_commit(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
         for (key, value) in items.iter() {
-            gs.upsert(&key[..], &value[..]).await;
+            storage.upsert(&key[..], &value[..]).await;
         }
 
-        gs.checkpoint().await.unwrap();
-        gs.commit().await.unwrap();
+        storage.checkpoint().await.unwrap();
+        storage.commit().await.unwrap();
 
         for (key, value) in items {
-            let stored_value = gs.get(&key, None).await.unwrap().unwrap();
+            let stored_value = storage.get(&key, None).await.unwrap().unwrap();
             if stored_value != value {
                 return false;
             }
@@ -446,19 +448,19 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn consistent_layer_information_after_commits() -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
-        gs.upsert(b"foo", "bar").await;
-        gs.checkpoint().await.unwrap();
-        let layer_1 = gs.commit().await.unwrap();
+        storage.upsert(b"foo", "bar").await;
+        storage.checkpoint().await.unwrap();
+        let layer_1 = storage.commit().await.unwrap();
 
-        gs.upsert(b"foo", "spam").await;
-        gs.checkpoint().await.unwrap();
-        let layer_2 = gs.commit().await.unwrap();
+        storage.upsert(b"foo", "spam").await;
+        storage.checkpoint().await.unwrap();
+        let layer_2 = storage.commit().await.unwrap();
 
-        gs.upsert(b"foo", "bar").await;
-        gs.checkpoint().await.unwrap();
-        let layer_3 = gs.commit().await.unwrap();
+        storage.upsert(b"foo", "bar").await;
+        storage.checkpoint().await.unwrap();
+        let layer_3 = storage.commit().await.unwrap();
 
         // Check layer ID ordering
         layer_1.0 < layer_2.0
@@ -470,138 +472,138 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_immediately_after_new(key: Vec<u8>) -> bool {
-        let gs = Storage::in_memory().await.unwrap();
-        matches!(gs.get(&key, None).await, Ok(None))
+        let storage = Storage::in_memory().await.unwrap();
+        matches!(storage.get(&key, None).await, Ok(None))
     }
 
     #[quickcheck_async::tokio]
     async fn rollback_succeeds_when_empty() -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
-        gs.rollback().await.is_ok()
+        storage.rollback().await.is_ok()
     }
 
     #[tokio::test]
     #[should_panic]
     async fn rewind_panics_without_commits() {
-        let mut gs = Storage::in_memory().await.unwrap();
-        gs.rewind(INITIAL_LAYER_ID).await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
+        storage.rewind(INITIAL_LAYER_ID).await.unwrap();
     }
 
     #[quickcheck_async::tokio]
     async fn rewind_succeeds_after_commit() -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
-        gs.upsert(b"foo", "bar").await;
-        gs.checkpoint().await.unwrap();
-        let layer_id = gs.commit().await.unwrap().0;
+        storage.upsert(b"foo", "bar").await;
+        storage.checkpoint().await.unwrap();
+        let layer_id = storage.commit().await.unwrap().0;
 
-        gs.rewind(layer_id).await.is_ok()
+        storage.rewind(layer_id).await.is_ok()
     }
 
     #[quickcheck_async::tokio]
     async fn rewind_fails_with_dirty_changes() -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
-        gs.upsert(b"foo", "bar").await;
-        gs.checkpoint().await.unwrap();
-        let layer_id = gs.commit().await.unwrap().0;
+        storage.upsert(b"foo", "bar").await;
+        storage.checkpoint().await.unwrap();
+        let layer_id = storage.commit().await.unwrap().0;
 
-        gs.upsert(b"spam", "foo").await;
+        storage.upsert(b"spam", "foo").await;
 
-        gs.rewind(layer_id).await.is_err()
+        storage.rewind(layer_id).await.is_err()
     }
 
     #[quickcheck_async::tokio]
     async fn rewind_succeeds_with_saved_changes() -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
-        gs.upsert(b"foo", "bar").await;
-        gs.checkpoint().await.unwrap();
-        let layer_id = gs.commit().await.unwrap().0;
+        storage.upsert(b"foo", "bar").await;
+        storage.checkpoint().await.unwrap();
+        let layer_id = storage.commit().await.unwrap().0;
 
-        gs.upsert(b"spam", "foo").await;
-        gs.checkpoint().await.unwrap();
+        storage.upsert(b"spam", "foo").await;
+        storage.checkpoint().await.unwrap();
 
-        gs.rewind(layer_id).await.is_ok()
+        storage.rewind(layer_id).await.is_ok()
     }
 
     #[quickcheck_async::tokio]
     async fn rewind_effectively_deletes_data(key: Vec<u8>, value: Vec<u8>) -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
-        let layer_id = gs.commit().await.unwrap().0;
+        let layer_id = storage.commit().await.unwrap().0;
 
-        gs.upsert(&key, value).await;
-        gs.checkpoint().await.unwrap();
-        gs.rewind(layer_id).await.unwrap();
+        storage.upsert(&key, value).await;
+        storage.checkpoint().await.unwrap();
+        storage.rewind(layer_id).await.unwrap();
 
-        matches!(gs.get(&key, None).await, Ok(None))
+        matches!(storage.get(&key, None).await, Ok(None))
     }
 
     #[quickcheck_async::tokio]
     async fn rewind_then_overwrite_keys_then_get() -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
-        gs.upsert(b"foo", "1").await;
-        gs.upsert(b"bar", "2").await;
-        gs.checkpoint().await.unwrap();
+        storage.upsert(b"foo", "1").await;
+        storage.upsert(b"bar", "2").await;
+        storage.checkpoint().await.unwrap();
 
-        gs.upsert(b"xyz", "1337").await;
-        gs.checkpoint().await.unwrap();
+        storage.upsert(b"xyz", "1337").await;
+        storage.checkpoint().await.unwrap();
 
-        gs.upsert(b"spam", "42").await;
-        gs.upsert(b"super-spam", "100").await;
-        gs.rollback().await.unwrap();
+        storage.upsert(b"spam", "42").await;
+        storage.upsert(b"super-spam", "100").await;
+        storage.rollback().await.unwrap();
 
-        gs.upsert(b"super-spam", "50").await;
-        gs.checkpoint().await.unwrap();
+        storage.upsert(b"super-spam", "50").await;
+        storage.checkpoint().await.unwrap();
 
-        gs.commit().await.unwrap();
+        storage.commit().await.unwrap();
 
-        gs.get(b"foo", None).await.unwrap().unwrap() == b"1"
-            && gs.get(b"bar", None).await.unwrap().unwrap() == b"2"
-            && gs.get(b"xyz", None).await.unwrap().unwrap() == b"1337"
-            && gs.get(b"spam", None).await.unwrap().is_none()
-            && gs.get(b"super-spam", None).await.unwrap().unwrap() == b"50"
+        storage.get(b"foo", None).await.unwrap().unwrap() == b"1"
+            && storage.get(b"bar", None).await.unwrap().unwrap() == b"2"
+            && storage.get(b"xyz", None).await.unwrap().unwrap() == b"1337"
+            && storage.get(b"spam", None).await.unwrap().is_none()
+            && storage.get(b"super-spam", None).await.unwrap().unwrap() == b"50"
     }
 
     #[quickcheck_async::tokio]
     async fn checkpoint_ordering_doesnt_change_fingerprint() -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
-        let layer_id = gs.commit().await.unwrap().0;
+        let layer_id = storage.commit().await.unwrap().0;
 
-        gs.upsert(b"foo", "bar").await;
-        gs.checkpoint().await.unwrap();
+        storage.upsert(b"foo", "bar").await;
+        storage.checkpoint().await.unwrap();
 
-        gs.upsert(b"bar", "foo").await;
-        gs.checkpoint().await.unwrap();
+        storage.upsert(b"bar", "foo").await;
+        storage.checkpoint().await.unwrap();
 
-        let fingeprint_0 = gs.commit().await.unwrap().1;
+        let fingeprint_0 = storage.commit().await.unwrap().1;
 
-        gs.rewind(layer_id).await.unwrap();
+        storage.rewind(layer_id).await.unwrap();
 
-        gs.upsert(b"bar", "foo").await;
-        gs.checkpoint().await.unwrap();
+        storage.upsert(b"bar", "foo").await;
+        storage.checkpoint().await.unwrap();
 
-        gs.upsert(b"foo", "bar").await;
-        gs.checkpoint().await.unwrap();
+        storage.upsert(b"foo", "bar").await;
+        storage.checkpoint().await.unwrap();
 
-        let fingerprint_1 = gs.commit().await.unwrap().1;
+        let fingerprint_1 = storage.commit().await.unwrap().1;
         fingeprint_0 == fingerprint_1
     }
 
     #[quickcheck_async::tokio]
     async fn checkpoint_collision_detection() -> bool {
-        let mut gs = Storage::in_memory().await.unwrap();
+        let mut storage = Storage::in_memory().await.unwrap();
 
-        gs.upsert(b"foo", "bar").await;
-        gs.checkpoint().await.unwrap();
+        storage.upsert(b"foo", "bar").await;
+        storage.checkpoint().await.unwrap();
 
-        gs.upsert(b"foo", "spam").await;
+        storage.upsert(b"foo", "spam").await;
         matches!(
-            gs.checkpoint().await,
+            storage.checkpoint().await,
             Err(StorageError::KeyCollision { key_hash: _ })
         )
     }
