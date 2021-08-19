@@ -1,4 +1,9 @@
-//! Global State implementation for the SVM.
+//! Storage data structure that back the Spacemesh Global State.
+//!
+//! At the time of writing, [`Storage`] is a "LinkedHashX", as explained in
+//! https://eprint.iacr.org/2021/773.pdf, pg. 5-6. This enables fast root
+//! fingerprinting and rewinding and we will later transition to Erigon-like
+//! Merklelization walks.
 
 #![deny(missing_docs)]
 #![deny(unused)]
