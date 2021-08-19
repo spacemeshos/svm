@@ -89,8 +89,16 @@ impl Storage {
         Self::new(":memory:").await
     }
 
+    fn assert_layer_id_is_ready(&self, layer_id: LayerId) {
+        assert!(layer_id < self.current_layer.id);
+    }
+
     /// Fetches the value associated with the Blake3 hash of `key`. See
     /// [`Storage::get_by_hash`] for more information.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `layer_id` is invalid.
     pub async fn get(&self, key: &[u8], layer_id: Option<LayerId>) -> Result<Option<Vec<u8>>> {
         let hash = Blake3Hasher::hash(key);
         self.get_by_hash(&hash, layer_id).await
@@ -99,13 +107,18 @@ impl Storage {
     /// Fetches the value associated with a Blake3 `hash`. If `layer`
     /// is `None`, the most recent value will be returned; otherwise, only the
     /// values present at the time of `layer` would be considered.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `layer_id` is invalid.
     pub async fn get_by_hash(
         &self,
         hash: &Fingerprint,
         layer_id: Option<LayerId>,
     ) -> Result<Option<Vec<u8>>> {
-        if let Some(layer) = layer_id {
-            self.get_by_hash_historical(hash, layer).await
+        if let Some(layer_id) = layer_id {
+            self.assert_layer_id_is_ready(layer_id);
+            self.get_by_hash_historical(hash, layer_id).await
         } else if let Some(value) = self.dirty_changes.get(hash) {
             Ok(Some(value.clone()))
         } else if let Some(value) = self.current_layer.changes.get(hash) {
@@ -319,11 +332,9 @@ impl Storage {
     ///
     /// # Panics
     ///
-    /// Panics if the given `layer_id` is invalid, i.e. nonexistant.
+    /// Panics if `layer_id` is invalid.
     pub async fn rewind(&mut self, layer_id: LayerId) -> Result<()> {
-        // `self.current_layer_id` is not a "real" layer yet, so it's not a
-        // valid target.
-        assert!(layer_id < self.current_layer.id);
+        self.assert_layer_id_is_ready(layer_id);
 
         if self.dirty_changes.is_empty() {
             sqlx::query(
