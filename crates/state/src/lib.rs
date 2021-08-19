@@ -143,7 +143,7 @@ impl Storage {
                     "layers.ready" = 1
                     AND
                     "values.key_hash" = ?2
-                ORDER BY "id" DESC
+                ORDER BY "layers.id" DESC
                 LIMIT 1
                 "#,
         )
