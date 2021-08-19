@@ -65,7 +65,7 @@ impl Storage {
             sqlite,
             dirty_changes: HashMap::new(),
             current_layer: CurrentLayer {
-                id: current_layer_id.unwrap_or(INITIAL_LAYER_ID),
+                id: current_layer_id.unwrap_or(INITIAL_LAYER_ID + 1),
                 changes: HashMap::new(),
                 changes_xor_fingerprint: FINGERPRINT_ONES,
             },
@@ -73,7 +73,10 @@ impl Storage {
 
         if current_layer_id.is_none() {
             storage
-                .insert_layer(INITIAL_LAYER_ID as i64, FINGERPRINT_ZEROS)
+                .insert_layer(INITIAL_LAYER_ID as i64, FINGERPRINT_ZEROS, true)
+                .await?;
+            storage
+                .insert_layer(INITIAL_LAYER_ID as i64 + 1, FINGERPRINT_ZEROS, false)
                 .await?;
         }
 
@@ -132,12 +135,14 @@ impl Storage {
     ) -> Result<Option<Vec<u8>>> {
         let value_opt: Option<(Vec<u8>,)> = sqlx::query_as(
             r#"
-                SELECT "value"
+                SELECT "values.value"
                 FROM "values"
-                WHERE
-                    "layer_id" <= ?1
+                INNER JOIN "layers" ON
+                    "layers.id" <= ?1
                     AND
-                    "key_hash" = ?2
+                    "layers.ready" = 1
+                    AND
+                    "values.key_hash" = ?2
                 ORDER BY "id" DESC
                 LIMIT 1
                 "#,
@@ -228,7 +233,7 @@ impl Storage {
         futures::future::try_join_all(inserts).await?;
 
         let new_fingerprint = self
-            .update_layer_fingerprint(
+            .release_layer(
                 self.current_layer.id as i64,
                 &self.current_layer.changes_xor_fingerprint,
             )
@@ -240,55 +245,55 @@ impl Storage {
         self.current_layer.id += 1;
 
         // Finally, create an empty layer for subsequent operations.
-        self.insert_layer(self.current_layer.id as i64, new_fingerprint)
+        self.insert_layer(self.current_layer.id as i64, new_fingerprint, false)
             .await?;
 
         Ok((layer_id, new_fingerprint))
     }
 
     /// Creates a new [`Fingerprint`]-ed layer with the given `id`.
-    async fn insert_layer(&self, id: i64, fingerprint: Fingerprint) -> Result<()> {
+    async fn insert_layer(&self, id: i64, fingerprint: Fingerprint, ready: bool) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO "layers" ("id", "fingerprint")
-            VALUES (?1, ?2)
+            INSERT INTO "layers" ("id", "fingerprint", "ready")
+            VALUES (?1, ?2, ?3)
             "#,
         )
         .bind(id)
         .bind(&fingerprint[..])
+        .bind(if ready { 1 } else { 0 })
         .execute(&self.sqlite)
         .await?;
         Ok(())
     }
 
     /// Queries the current [`Fingerprint`] value of `layer_id`.
-    async fn layer_fingerprint(&self, layer_id: LayerId) -> Result<Fingerprint> {
+    async fn layer_fingerprint(&self, layer_id: LayerId, ready: bool) -> Result<Fingerprint> {
         let bytes: (Vec<u8>,) = sqlx::query_as(
             r#"
             SELECT "fingerprint"
             FROM "layers"
-            WHERE "id" = ?1
+            WHERE "id" = ?1 AND "ready" = ?2
             "#,
         )
         .bind(layer_id as i64)
+        .bind(if ready { 1 } else { 0 })
         .fetch_one(&self.sqlite)
         .await?;
         Ok(bytes.0.try_into().unwrap())
     }
 
-    /// XOR's the [`Fingerprint`] of `layer_id` with `xor`.
-    async fn update_layer_fingerprint(
-        &self,
-        layer_id: i64,
-        xor: &Fingerprint,
-    ) -> Result<Fingerprint> {
-        let mut fingerprint: Fingerprint = self.layer_fingerprint(self.current_layer.id).await?;
+    /// XOR's the [`Fingerprint`] of `layer_id` with `xor` and marks it as
+    /// "ready", i.e. becomes part of history and can be queried.
+    async fn release_layer(&self, layer_id: i64, xor: &Fingerprint) -> Result<Fingerprint> {
+        let mut fingerprint: Fingerprint =
+            self.layer_fingerprint(self.current_layer.id, false).await?;
         xor_fingerprint(&mut fingerprint, xor);
 
         sqlx::query(
             r#"
             UPDATE "layers"
-            SET "fingerprint" = ?1
+            SET "fingerprint" = ?1, "ready" = 1
             WHERE "id" = ?2
             "#,
         )
@@ -303,7 +308,7 @@ impl Storage {
     /// Returns the [`Fingerprint`] of the last ever committed layer; i.e.
     /// persisted changes without dirty and saved changes.
     pub async fn current(&self) -> Result<Fingerprint> {
-        self.layer_fingerprint(self.current_layer.id).await
+        self.layer_fingerprint(self.current_layer.id, true).await
     }
 
     /// Erases all saved data from memory and completely deletes all layers
@@ -337,8 +342,8 @@ impl Storage {
             self.current_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
 
             // Recreate last layer information in SQLite.
-            let fingerprint = self.layer_fingerprint(layer_id).await?;
-            self.insert_layer(self.current_layer.id as i64, fingerprint)
+            let fingerprint = self.layer_fingerprint(layer_id, true).await?;
+            self.insert_layer(self.current_layer.id as i64, fingerprint, false)
                 .await?;
 
             Ok(())
@@ -427,6 +432,27 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_after_commit(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
+        let mut storage = Storage::in_memory().await.unwrap();
+
+        for (key, value) in items.iter() {
+            storage.upsert(&key[..], &value[..]).await;
+        }
+
+        storage.checkpoint().await.unwrap();
+        storage.commit().await.unwrap();
+
+        for (key, value) in items {
+            let stored_value = storage.get(&key, None).await.unwrap().unwrap();
+            if stored_value != value {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    #[quickcheck_async::tokio]
+    async fn get_historical_after_dirty_changes(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut storage = Storage::in_memory().await.unwrap();
 
         for (key, value) in items.iter() {

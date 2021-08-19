@@ -3,6 +3,7 @@ BEGIN TRANSACTION;
 CREATE TABLE IF NOT EXISTS "layers" (
 	"id" INTEGER NOT NULL UNIQUE,
 	"fingerprint" BLOB NOT NULL CHECK(length("fingerprint") == 32),
+	"ready" INTEGER NOT NULL,
 	PRIMARY KEY("id")
 );
 
