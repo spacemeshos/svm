@@ -30,9 +30,15 @@ impl Metrics {
 
 impl Default for Metrics {
     fn default() -> Self {
-        let metric_validates = IntCounter::new("validates", "").unwrap();
-        let metric_validate_errs = IntCounter::new("validates_errs", "").unwrap();
-        let metric_capi_calls = IntCounter::new("capi_calls", "").unwrap();
+        let metric_validates =
+            IntCounter::new("validates", "Number of successful transaction validations.").unwrap();
+        let metric_validate_errs = IntCounter::new(
+            "validates_errs",
+            "Number of errors during transaction validation.",
+        )
+        .unwrap();
+        let metric_capi_calls =
+            IntCounter::new("capi_calls", "Total number of SVM C API calls.").unwrap();
 
         let registry = Registry::new();
         registry
