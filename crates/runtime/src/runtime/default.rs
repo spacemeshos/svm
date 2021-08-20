@@ -14,6 +14,7 @@ use svm_types::{
     RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr, Transaction,
 };
 
+use super::metrics::Metrics;
 use super::{Call, Failure, Function, Outcome};
 use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
 use crate::error::ValidateError;
@@ -48,6 +49,8 @@ where
     /// [`PriceResolver`](svm_gas::PriceResolver) should be used (possibly an
     /// `u16`?).
     template_prices: Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>,
+
+    metrics: Metrics,
 }
 
 impl<T> DefaultRuntime<T>
@@ -77,6 +80,7 @@ where
             storage_builder,
             config,
             template_prices,
+            metrics: Metrics::default(),
         }
     }
 

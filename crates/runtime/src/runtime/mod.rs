@@ -5,6 +5,7 @@ mod config;
 mod default;
 mod failure;
 mod function;
+mod metrics;
 mod outcome;
 
 pub use call::Call;
