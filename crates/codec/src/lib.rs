@@ -21,6 +21,7 @@ mod version;
 pub mod call;
 pub mod spawn;
 pub mod template;
+use api::json::JsonError;
 pub use ext::{ReadExt, WriteExt};
 pub use field::Field;
 pub mod api;
@@ -77,20 +78,6 @@ pub use error::ParseError;
 /// ```
 ///
 
-#[cfg(target_arch = "wasm32")]
-macro_rules! wasm_func_call {
-    ($func:ident, $buf_offset:expr) => {{
-        match api::wasm::$func($buf_offset as usize) {
-            Ok(tx_offset) => tx_offset as _,
-            Err(err) => {
-                let err_offset = api::wasm::into_error_buffer(err);
-
-                err_offset as _
-            }
-        }
-    }};
-}
-
 /// ## WASM `Deploy Template`
 ///
 /// Reads the WASM buffer given at parameter `offset` containing a JSON value.
@@ -99,9 +86,8 @@ macro_rules! wasm_func_call {
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_deploy(offset: i32) -> i32 {
-    wasm_func_call!(encode_deploy, offset)
+    wasm_func_call(api::wasm::encode_deploy, offset)
 }
 
 /// ## WASM `Spawn Account`
@@ -112,9 +98,8 @@ pub extern "C" fn wasm_encode_deploy(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_spawn(offset: i32) -> i32 {
-    wasm_func_call!(encode_spawn, offset)
+    wasm_func_call(api::wasm::encode_spawn, offset)
 }
 
 /// Decodes the encoded `Spawn Account` given as a WASM buffer (parameter `offset`).
@@ -122,9 +107,8 @@ pub extern "C" fn wasm_encode_spawn(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded transaction.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_spawn(offset: i32) -> i32 {
-    wasm_func_call!(decode_spawn, offset)
+    wasm_func_call(api::wasm::decode_spawn, offset)
 }
 
 /// ## WASM `Call Account`
@@ -135,9 +119,8 @@ pub extern "C" fn wasm_decode_spawn(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_call(offset: i32) -> i32 {
-    wasm_func_call!(encode_call, offset)
+    wasm_func_call(api::wasm::encode_call, offset)
 }
 
 /// Decodes the encoded `Call Account` given as a WASM buffer (parameter `offset`).
@@ -145,9 +128,8 @@ pub extern "C" fn wasm_encode_call(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded transaction.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_call(offset: i32) -> i32 {
-    wasm_func_call!(decode_call, offset)
+    wasm_func_call(api::wasm::decode_call, offset)
 }
 
 /// ## WASM Buffer Allocation
@@ -156,7 +138,6 @@ pub extern "C" fn wasm_decode_call(offset: i32) -> i32 {
 ///
 /// For more info read: `api::wasm::alloc`
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_alloc(length: i32) -> i32 {
     let offset = api::wasm::alloc(length as usize);
 
@@ -169,7 +150,6 @@ pub extern "C" fn wasm_alloc(length: i32) -> i32 {
 ///
 /// For more info read: `api::wasm::free`
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_free(offset: i32) {
     api::wasm::free(offset as usize);
 }
@@ -178,7 +158,6 @@ pub extern "C" fn wasm_free(offset: i32) {
 ///
 /// Returns the buffer `Data` byte-length
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_buffer_length(offset: i32) -> i32 {
     let buf_len = api::wasm::wasm_buf_len(offset as usize);
 
@@ -189,7 +168,6 @@ pub extern "C" fn wasm_buffer_length(offset: i32) -> i32 {
 ///
 /// Returns a pointer to the buffer `Data`
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_buffer_data(offset: i32) -> i32 {
     let (data_offset, _len) = api::wasm::wasm_buf_data_offset(offset as usize);
 
@@ -202,9 +180,8 @@ pub extern "C" fn wasm_buffer_data(offset: i32) -> i32 {
 /// Encodes the `Input Data`, and returns a pointer to a new WASM buffer holding the encoded `Input Data`.
 /// If the encoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_inputdata(offset: i32) -> i32 {
-    wasm_func_call!(encode_inputdata, offset)
+    wasm_func_call(api::wasm::encode_inputdata, offset)
 }
 
 /// Decodes the encoded `Input Data` given as a WASM buffer (parameter `offset`).
@@ -212,9 +189,8 @@ pub extern "C" fn wasm_encode_inputdata(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded `Input Data`.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_inputdata(offset: i32) -> i32 {
-    wasm_func_call!(decode_inputdata, offset)
+    wasm_func_call(api::wasm::decode_inputdata, offset)
 }
 
 /// Decodes the encoded `Receipt` given as a WASM buffer (parameter `offset`).
@@ -222,7 +198,20 @@ pub extern "C" fn wasm_decode_inputdata(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded `Receipt`.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-#[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_receipt(offset: i32) -> i32 {
-    wasm_func_call!(decode_receipt, offset)
+    wasm_func_call(api::wasm::decode_receipt, offset)
+}
+
+fn wasm_func_call<F>(f: F, offset: i32) -> i32
+where
+    F: Fn(usize) -> Result<usize, JsonError>,
+{
+    match f(offset as usize) {
+        Ok(tx_offset) => tx_offset as i32,
+        Err(err) => {
+            let err_offset = api::wasm::into_error_buffer(err);
+
+            err_offset as _
+        }
+    }
 }
