@@ -9,7 +9,7 @@ use super::call::EncodedOrDecodedCalldata;
 use super::inputdata::DecodedInputData;
 use super::serde_types::{EncodedData, TemplateAddrWrapper};
 use super::{JsonError, JsonSerdeUtils};
-use crate::spawn;
+use crate::Codec;
 
 ///
 /// ```json
@@ -23,11 +23,9 @@ use crate::spawn;
 /// ```
 pub fn encode_spawn(json: &str) -> Result<Vec<u8>, JsonError> {
     let decoded = DecodedSpawn::from_json_str(json)?;
-    let spawn = decoded.into();
+    let spawn = SpawnAccount::from(decoded);
 
-    let mut buf = Vec::new();
-    spawn::encode(&spawn, &mut buf);
-    Ok(buf)
+    Ok(spawn.encode_to_vec())
 }
 
 /// Given a binary [`SpawnAccount`] transaction wrapped inside a JSON,
@@ -36,7 +34,7 @@ pub fn decode_spawn(json: &str) -> Result<Value, JsonError> {
     let encoded_spawn = EncodedData::from_json_str(json)?;
 
     let mut cursor = Cursor::new(&encoded_spawn.data.0[..]);
-    let spawn = spawn::decode(&mut cursor).unwrap();
+    let spawn = SpawnAccount::decode(&mut cursor).unwrap();
 
     Ok(DecodedSpawn::from(spawn).to_json())
 }

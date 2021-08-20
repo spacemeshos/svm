@@ -71,10 +71,10 @@ unsafe fn into_raw_runtime<R: Runtime + 'static>(
 #[must_use]
 unsafe fn decode_envelope(envelope: svm_byte_array) -> std::io::Result<Envelope> {
     use std::io::Cursor;
-    use svm_codec::envelope;
+    use svm_codec::impls;
 
     let mut cursor = Cursor::new(envelope.as_slice());
-    envelope::decode(&mut cursor)
+    impls::decode(&mut cursor)
 }
 
 #[must_use]
@@ -160,9 +160,9 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 #[must_use]
 #[no_mangle]
 pub extern "C" fn svm_envelope_alloc() -> svm_byte_array {
-    use svm_codec::envelope;
+    use svm_codec::impls;
 
-    let size = envelope::byte_size();
+    let size = impls::byte_size();
     svm_byte_array::with_capacity(size, ENVELOPE_TYPE)
 }
 

@@ -60,12 +60,12 @@ fn call_message(target: &Address, func_name: &str, calldata: &[u8]) -> svm_byte_
 }
 
 fn encode_envelope(env: &Envelope) -> svm_byte_array {
-    use svm_codec::envelope;
+    use svm_codec::impls;
 
     let mut byte_array = api::svm_envelope_alloc();
 
     let mut bytes = Vec::new();
-    envelope::encode(env, &mut bytes);
+    impls::encode(env, &mut bytes);
 
     byte_array_copy(&mut byte_array, &bytes);
     byte_array
