@@ -1,7 +1,6 @@
 //! Implements common functionality to be consumed by tests.
 
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use svm_codec::api::builder::{CallBuilder, SpawnBuilder, TemplateBuilder};
 use svm_codec::template;
@@ -58,13 +57,13 @@ pub fn blank_storage(account_addr: &Address, layout: &FixedLayout) -> AccountSto
 }
 
 /// Returns a new in-memory [`StatefulKV`].
-pub fn memory_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
-    Rc::new(RefCell::new(FakeKV::new()))
+pub fn memory_kv_init() -> Arc<Mutex<dyn StatefulKV + Send>> {
+    Arc::new(Mutex::new(FakeKV::new()))
 }
 
 /// Creates an in-memory `Runtime` backed by a `state_kv`.
 pub fn create_memory_runtime() -> DefaultRuntime<DefaultMemEnvTypes> {
-    let kv: Rc<RefCell<dyn StatefulKV>> = Rc::new(RefCell::new(FakeKV::new()));
+    let kv: Arc<Mutex<dyn StatefulKV + Send>> = Arc::new(Mutex::new(FakeKV::new()));
     let storage_builder = runtime_memory_storage_builder(&kv);
 
     let template_store = DefaultMemTemplateStore::new();
@@ -78,8 +77,8 @@ pub fn create_memory_runtime() -> DefaultRuntime<DefaultMemEnvTypes> {
 }
 
 /// Returns a function (wrapped inside [`Box`]) that initializes an `Account`'s storage client.
-fn runtime_memory_storage_builder(kv: &Rc<RefCell<dyn StatefulKV>>) -> Box<StorageBuilderFn> {
-    let kv = Rc::clone(kv);
+fn runtime_memory_storage_builder(kv: &Arc<Mutex<dyn StatefulKV + Send>>) -> Box<StorageBuilderFn> {
+    let kv = kv.clone();
 
     let func =
         move |account_addr: &Address, state: &State, layout: &FixedLayout, _config: &Config| {
