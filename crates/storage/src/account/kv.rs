@@ -1,5 +1,4 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::kv::StatefulKV;
 
@@ -13,7 +12,7 @@ use svm_types::{Address, State};
 pub struct AccountKVStore {
     pub(crate) account_addr: Address,
 
-    pub(crate) kv: Rc<RefCell<dyn StatefulKV>>,
+    pub(crate) kv: Arc<Mutex<dyn StatefulKV + Send>>,
 }
 
 impl StatefulKV for AccountKVStore {
@@ -21,43 +20,42 @@ impl StatefulKV for AccountKVStore {
     #[must_use]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         let key = self.build_key(key);
-
-        self.kv.borrow().get(&key)
+        self.kv().get(&key)
     }
 
     #[inline]
     fn set(&mut self, key: &[u8], value: &[u8]) {
         let key = self.build_key(key);
 
-        self.kv.borrow_mut().set(&key, value);
+        self.kv().set(&key, value);
     }
 
     #[inline]
     fn discard(&mut self) {
-        self.kv.borrow_mut().discard();
+        self.kv().discard();
     }
 
     #[inline]
     fn flush(&mut self) {
-        self.kv.borrow_mut().flush();
+        self.kv().flush();
     }
 
     #[inline]
     #[must_use]
     fn checkpoint(&mut self) -> State {
-        self.kv.borrow_mut().checkpoint()
+        self.kv().checkpoint()
     }
 
     #[inline]
     #[must_use]
     fn rewind(&mut self, state: &State) {
-        self.kv.borrow_mut().rewind(state);
+        self.kv().rewind(state)
     }
 
     #[inline]
     #[must_use]
     fn head(&self) -> State {
-        self.kv.borrow().head()
+        self.kv().head()
     }
 }
 
@@ -65,8 +63,8 @@ impl AccountKVStore {
     /// Create a new `AccountStore` instance for `Address` `account_addr`.
     ///
     /// Delegates work to underlying key-value store `kv`.
-    pub fn new(account_addr: Address, kv: &Rc<RefCell<dyn StatefulKV>>) -> Self {
-        let kv = Rc::clone(&kv);
+    pub fn new(account_addr: Address, kv: &Arc<Mutex<dyn StatefulKV + Send>>) -> Self {
+        let kv = Arc::clone(&kv);
 
         Self { account_addr, kv }
     }
@@ -87,13 +85,17 @@ impl AccountKVStore {
     fn hash(&self, bytes: &[u8]) -> Vec<u8> {
         Blake3Hasher::hash(bytes).to_vec()
     }
+
+    fn kv(&self) -> MutexGuard<dyn StatefulKV + Send + 'static> {
+        self.kv.try_lock().unwrap()
+    }
 }
 
 impl Clone for AccountKVStore {
     fn clone(&self) -> Self {
         Self {
             account_addr: self.account_addr.clone(),
-            kv: Rc::clone(&self.kv),
+            kv: Arc::clone(&self.kv),
         }
     }
 }

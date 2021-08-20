@@ -2,8 +2,7 @@
 
 use wasmer::Memory;
 
-use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use svm_storage::account::AccountStorage;
 use svm_types::{Address, Context, Envelope, ReceiptLog, TemplateAddr};
@@ -11,19 +10,12 @@ use svm_types::{Address, Context, Envelope, ReceiptLog, TemplateAddr};
 /// [`FuncEnv`] is a container for the accessible data by running [`Wasmer instance`](wasmer::Instance).
 #[derive(wasmer::WasmerEnv, Clone)]
 pub struct FuncEnv {
-    inner: Rc<RefCell<Inner>>,
+    inner: Arc<RwLock<Inner>>,
     template_addr: TemplateAddr,
     target_addr: Address,
     envelope: Envelope,
     context: Context,
 }
-
-/// # Safety
-///
-/// SVM is single-threaded.
-/// `Send`, `Sync` and `Clone` are required by `wasmer::WasmerEnv`.
-unsafe impl Send for FuncEnv {}
-unsafe impl Sync for FuncEnv {}
 
 impl FuncEnv {
     /// Creates a new instance
@@ -38,9 +30,9 @@ impl FuncEnv {
         let inner = Inner::new(storage);
 
         let env = Self {
-            inner: Rc::new(RefCell::new(inner)),
-            template_addr: template_addr,
-            target_addr: target_addr,
+            inner: Arc::new(RwLock::new(inner)),
+            template_addr,
+            target_addr,
             envelope: envelope.clone(),
             context: context.clone(),
         };
@@ -77,14 +69,18 @@ impl FuncEnv {
 
     /// Borrows the `FuncEnv`
     #[inline]
-    pub fn borrow(&self) -> Ref<Inner> {
-        self.inner.borrow()
+    pub fn borrow(&self) -> RwLockReadGuard<Inner> {
+        self.inner
+            .read()
+            .expect("Attempted read but RwLock is poisoned")
     }
 
     /// Mutably Borrows the `FuncEnv`
     #[inline]
-    pub fn borrow_mut(&self) -> RefMut<Inner> {
-        self.inner.borrow_mut()
+    pub fn borrow_mut(&self) -> RwLockWriteGuard<Inner> {
+        self.inner
+            .write()
+            .expect("Attempted write but RwLock is poisoned")
     }
 
     /// Sets the [`ProtectedMode`] and overrides the existing value.
