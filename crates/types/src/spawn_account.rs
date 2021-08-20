@@ -20,6 +20,24 @@ pub struct SpawnAccount {
 
 #[doc(hidden)]
 impl SpawnAccount {
+    pub fn new<V>(
+        version: u16,
+        template: &TemplateAddr,
+        name: &str,
+        ctor_name: &str,
+        calldata: V,
+    ) -> Self
+    where
+        V: Into<Vec<u8>>,
+    {
+        SpawnAccount {
+            version,
+            account: Account::new(template.clone(), name.to_string()),
+            ctor_name: ctor_name.to_string(),
+            calldata: calldata.into(),
+        }
+    }
+
     pub fn account(&self) -> &Account {
         &self.account
     }

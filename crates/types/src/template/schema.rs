@@ -32,11 +32,6 @@ impl SchemaSection {
     pub fn vars(&self) -> &[SymbolicVar] {
         &self.vars
     }
-
-    /// Returns the number of `SymbolicVar` within the `Schema`
-    pub fn var_count(&self) -> usize {
-        self.vars.len()
-    }
 }
 
 impl SectionLike for SchemaSection {

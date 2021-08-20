@@ -1,13 +1,12 @@
-use std::u16;
-
 use indexmap::IndexMap;
+
+use std::u16;
 
 use svm_types::{Section, SectionKind, Sections};
 
-use crate::WriteExt;
-
 use super::preview;
 use super::SectionPreview;
+use crate::WriteExt;
 
 /// A trait to be implemented by [`Section`] encoders.
 pub trait SectionEncoder {

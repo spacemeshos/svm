@@ -48,7 +48,7 @@ pub use error::ParseError;
 ///
 /// The CI of the `SVM` also runs the js tests and outputs `svm_codec.wasm` under the artifacts.
 ///
-
+///
 /// ## WASM API Usage
 ///
 /// Before calling `wasm_deploy / wasm_spawn / wasm_call` we need first to allocate

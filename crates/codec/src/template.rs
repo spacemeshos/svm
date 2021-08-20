@@ -43,14 +43,13 @@
 //!
 //! ```
 
-use svm_types::{SectionKind, Template};
-
 use std::collections::HashSet;
 use std::io::Cursor;
 
 use crate::section::decode::decode_sections;
 use crate::section::SectionsEncoder;
 use crate::ParseError;
+use svm_types::{SectionKind, Template};
 
 /// Encodes a `Template` into binary
 ///
@@ -59,30 +58,30 @@ pub fn encode(template: &Template) -> Vec<u8> {
     let sections = template.sections();
 
     let mut encoder = SectionsEncoder::with_capacity(sections.len());
-    encoder.encode(sections);
+    encoder.encode(&sections);
 
     let bytes = encoder.finish();
 
     bytes
 }
 
-/// Decodes a list of `Section`s that we're interested at (see `interest` parameter) and returns them wrapped within a `Template`
+/// Decodes a list of `Section`s that we're interested at (see `interest`
+/// parameter) and returns them wrapped within a `Template`.
 ///
-/// If the input `interests` is `None` - decodes any kind `Section` belonging to the `Template` pointed by the input `cursor`
+/// If the input `interests` is `None` - decodes any kind `Section` belonging to
+/// the `Template` pointed by the input `cursor`.
 pub fn decode(
     cursor: Cursor<&[u8]>,
     interests: Option<HashSet<SectionKind>>,
 ) -> Result<Template, ParseError> {
     let sections = decode_sections(cursor, interests)?;
 
-    let template = Template::new(sections);
+    let template = Template::from_sections(sections);
     Ok(template)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::api::builder::TemplateBuilder;
-
     use super::*;
 
     use maplit::hashset;
@@ -137,15 +136,10 @@ mod tests {
         let ctors = make_ctors_section();
         let header = make_header_section();
 
-        let mut template = TemplateBuilder::default()
-            .with_code(code)
-            .with_data(data)
-            .with_ctors(ctors)
-            .with_header(header)
-            .build();
+        let mut template = Template::new(code, data, ctors).with_header(header);
 
         let deploy = make_deploy_section();
-        template.set_deploy_section(deploy);
+        template.deploy_section = Some(deploy);
 
         let bytes = encode(&template);
 
@@ -161,6 +155,6 @@ mod tests {
 
         let sections = decode_sections(cursor, Some(interests)).unwrap();
 
-        assert_eq!(template.sections(), &sections);
+        assert_eq!(template.sections(), sections);
     }
 }

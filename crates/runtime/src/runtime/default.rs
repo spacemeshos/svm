@@ -692,9 +692,8 @@ where
             .template(template_addr, None)
             .expect("Should have failed earlier when doing `validate_spawn`");
 
-        let code_section = template.code_section();
-        let code = code_section.code();
-        let gas_mode = code_section.gas_mode();
+        let code = template.code();
+        let gas_mode = template.code_section.gas_mode();
         let program = Program::new(code, false).unwrap();
 
         // We're using a naive memoization mechanism: we only ever add, never

@@ -19,9 +19,10 @@ mod test {
     use std::vec;
 
     use svm_layout::Layout;
-    use svm_types::{CodeKind, CodeSection, CtorsSection, DataSection, GasMode, HeaderSection};
+    use svm_types::{
+        CodeKind, CodeSection, CtorsSection, DataSection, GasMode, HeaderSection, Template,
+    };
 
-    use crate::api::builder::TemplateBuilder;
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };
@@ -60,12 +61,7 @@ mod test {
         let ctors = CtorsSection::new(vec!["init".into(), "start".into()]);
         let header = HeaderSection::new(2, "My Template".into(), "A few words".into());
 
-        let expected = TemplateBuilder::default()
-            .with_code(code)
-            .with_data(data)
-            .with_ctors(ctors)
-            .with_header(header)
-            .build();
+        let expected = Template::new(code, data, ctors).with_header(header);
 
         assert_eq!(actual, expected);
 

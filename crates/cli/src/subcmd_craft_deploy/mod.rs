@@ -7,9 +7,9 @@ use serde_json::Value;
 use std::fs::File;
 use std::io::Write;
 
-use svm_codec::{api::builder::TemplateBuilder, SectionsEncoder};
+use svm_codec::SectionsEncoder;
 use svm_layout::{FixedLayout, FixedLayoutBuilder, Id, Layout};
-use svm_types::{CodeSection, CtorsSection, DataSection, Section, Sections};
+use svm_types::{CodeSection, CtorsSection, DataSection, Section, Sections, Template};
 
 use meta::TemplateMeta;
 

@@ -43,46 +43,106 @@ use svm_layout::FixedLayout;
 
 use crate::TemplateAddr;
 
-/// An in-memory representation of a `Template`
+/// An in-memory representation of a `Template`.
 #[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Template {
-    sections: Sections,
+    // Mandatory sections.
+    pub code_section: CodeSection,
+    pub data_section: DataSection,
+    pub ctors_section: CtorsSection,
+    // Optional sections.
+    pub header_section: Option<HeaderSection>,
+    pub deploy_section: Option<DeploySection>,
+    pub api_section: Option<ApiSection>,
+    pub schema_section: Option<SchemaSection>,
 }
 
 impl Template {
-    /// Creates a new `Template`
-    ///
-    /// Usually, should be called by `TemplateBuilder#build"
-    pub fn new(sections: Sections) -> Self {
-        Self { sections }
+    /// Creates a new [`Template`] only with the mandatory sections.
+    pub fn new(
+        code_section: CodeSection,
+        data_section: DataSection,
+        ctors_section: CtorsSection,
+    ) -> Self {
+        Self {
+            code_section,
+            ctors_section,
+            data_section,
+            header_section: None,
+            deploy_section: None,
+            api_section: None,
+            schema_section: None,
+        }
     }
 
-    /// Borrows the `Sections` of the `Template`
-    pub fn sections(&self) -> &Sections {
-        &self.sections
+    /// Adds a [`HeaderSection`] to `self`.
+    pub fn with_header(mut self, header: HeaderSection) -> Self {
+        self.header_section = Some(header);
+        self
     }
 
-    /// Borrows the `Header Section`
+    /// Creates a new [`Template`] from a collection of [`Sections`].
     ///
     /// # Panics
     ///
-    /// Panics if there is no `Header Section`
-    pub fn header_section(&self) -> &HeaderSection {
-        let section = self.get(SectionKind::Header);
+    /// Panics if and only if `sections` does *not* contain all mandatory
+    /// [`Template`] sections.
+    pub fn from_sections(sections: Sections) -> Self {
+        let code_section = sections.get(SectionKind::Code).as_code().clone();
+        let ctors_section = sections.get(SectionKind::Ctors).as_ctors().clone();
+        let data_section = sections.get(SectionKind::Data).as_data().clone();
 
-        section.as_header()
+        let header_section = sections
+            .try_get(SectionKind::Header)
+            .map(Section::as_header)
+            .cloned();
+        let deploy_section = sections
+            .try_get(SectionKind::Deploy)
+            .map(Section::as_deploy)
+            .cloned();
+        let api_section = sections
+            .try_get(SectionKind::Api)
+            .map(Section::as_api)
+            .cloned();
+        let schema_section = sections
+            .try_get(SectionKind::Schema)
+            .map(Section::as_schema)
+            .cloned();
+
+        Self {
+            code_section,
+            ctors_section,
+            data_section,
+            header_section,
+            deploy_section,
+            api_section,
+            schema_section,
+        }
     }
 
-    /// Borrows the `Code Section`
-    ///
-    /// # Panics
-    ///
-    /// Panics if there is no `Code Section`
-    pub fn code_section(&self) -> &CodeSection {
-        let section = self.get(SectionKind::Code);
+    /// Creates, populates and finally returns a [`Sections`] of `self`.
+    pub fn sections(&self) -> Sections {
+        let mut sections = Sections::default();
 
-        section.as_code()
+        sections.insert(Section::Code(self.code_section.clone()));
+        sections.insert(Section::Data(self.data_section.clone()));
+        sections.insert(Section::Ctors(self.ctors_section.clone()));
+
+        if let Some(ref s) = self.header_section {
+            sections.insert(Section::Header(s.clone()));
+        }
+        if let Some(ref s) = self.deploy_section {
+            sections.insert(Section::Deploy(s.clone()));
+        }
+        if let Some(ref s) = self.api_section {
+            sections.insert(Section::Api(s.clone()));
+        }
+        if let Some(ref s) = self.schema_section {
+            sections.insert(Section::Schema(s.clone()));
+        }
+
+        sections
     }
 
     /// Borrows the `Template's` code (a blob)
@@ -91,26 +151,13 @@ impl Template {
     ///
     /// Panics if there is no `Code Section`
     pub fn code(&self) -> &[u8] {
-        let section = self.code_section();
-
-        section.code()
-    }
-
-    /// Borrows the `Data Section`
-    ///
-    /// # Panics
-    ///
-    /// Panics if there is no `Data Section`
-    pub fn data_section(&self) -> &DataSection {
-        let section = self.get(SectionKind::Data);
-
-        section.as_data()
+        self.code_section.code()
     }
 
     /// Returns an immutable borrow of `self`'s [`FixedLayout`].
     pub fn fixed_layout(&self) -> &FixedLayout {
         // See <https://github.com/spacemeshos/svm/issues/281>.
-        let data = self.data_section();
+        let data = &self.data_section;
         let layouts = data.layouts();
 
         let layout = layouts.first().unwrap();
@@ -124,9 +171,7 @@ impl Template {
     ///
     /// Panics if there is no `Ctors Section`
     pub fn ctors_section(&self) -> &CtorsSection {
-        let section = self.get(SectionKind::Ctors);
-
-        section.as_ctors()
+        &self.ctors_section
     }
 
     /// Returns the `Ctors` of the `Template`
@@ -160,27 +205,7 @@ impl Template {
     ///
     /// Panics if there is no `Schema Section`
     pub fn schema_section(&self) -> &SchemaSection {
-        let section = self.get(SectionKind::Schema);
-
-        section.as_schema()
-    }
-
-    /// Sets the `DeploySection` to a `Template`
-    pub fn set_deploy_section(&mut self, section: DeploySection) {
-        debug_assert!(self.sections.contains(SectionKind::Deploy) == false);
-
-        self.sections.insert(section.into());
-    }
-
-    /// Borrows the `Deploy Section`
-    ///
-    /// # Panics
-    ///
-    /// Panics if there is no `Deploy Section`
-    pub fn deploy_section(&self) -> &DeploySection {
-        let section = self.get(SectionKind::Deploy);
-
-        section.as_deploy()
+        self.schema_section.as_ref().unwrap()
     }
 
     /// Returns the `Address` of a deployed `Template`
@@ -189,24 +214,6 @@ impl Template {
     ///
     /// Panics if there is no `Deploy Section`
     pub fn template_addr(&self) -> &TemplateAddr {
-        let section = self.deploy_section();
-
-        section.template()
-    }
-
-    /// Borrows the `Section` of the requested `SectionKind`
-    ///
-    /// # Panics
-    ///
-    /// Panics if there is no `Section` having the requested `SectionKind`
-    pub fn get(&self, kind: SectionKind) -> &Section {
-        self.sections.get(kind)
-    }
-
-    /// Borrows the `Section` of the requested `SectionKind`
-    ///
-    /// Returns `None` when there is no `Section` of the specified `SectionKind`
-    pub fn try_get(&self, kind: SectionKind) -> Option<&Section> {
-        self.sections.try_get(kind)
+        self.deploy_section.as_ref().unwrap().template()
     }
 }
