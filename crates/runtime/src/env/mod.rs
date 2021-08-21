@@ -4,7 +4,7 @@ use std::io::Cursor;
 use std::rc::Rc;
 
 use svm_codec::ParseError;
-use svm_codec::{call, spawn, template};
+use svm_codec::{template, Codec};
 use svm_gas::{resolvers, PriceResolver};
 use svm_types::{Address, SectionKind, SpawnAccount, Template, TemplateAddr, Transaction};
 
@@ -144,7 +144,7 @@ where
     /// On failure returns [`ParseError`].
     pub fn parse_spawn(&self, bytes: &[u8]) -> Result<SpawnAccount, ParseError> {
         let mut cursor = Cursor::new(bytes);
-        let spawn = spawn::decode(&mut cursor)?;
+        let spawn = SpawnAccount::decode(&mut cursor)?;
 
         Ok(spawn)
     }
@@ -155,7 +155,7 @@ where
     /// On failure returns [`ParseError`].
     pub fn parse_call(&self, bytes: &[u8]) -> Result<Transaction, ParseError> {
         let mut cursor = Cursor::new(bytes);
-        let call = call::decode_call(&mut cursor)?;
+        let call = Transaction::decode(&mut cursor)?;
 
         Ok(call)
     }

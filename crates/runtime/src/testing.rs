@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use svm_codec::template;
+use svm_codec::{template, Codec};
 use svm_layout::{FixedLayout, Layout};
 use svm_storage::{
     account::{AccountKVStore, AccountStorage},
@@ -115,9 +115,7 @@ pub fn build_deploy(
 pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
     let spawn = SpawnAccount::new(0, template, name, ctor, calldata);
 
-    let mut w = vec![];
-    svm_codec::spawn::encode(&spawn, &mut w);
-    w
+    spawn.encode_to_vec()
 }
 
 /// Builds a binary `Call Account` transaction. (a.k.a a `Transaction`).
@@ -130,7 +128,5 @@ pub fn build_call(target: &Address, func: &str, calldata: &[u8]) -> Vec<u8> {
         verifydata: vec![],
     };
 
-    let mut w = vec![];
-    svm_codec::call::encode_call(&tx, &mut w);
-    w
+    tx.encode_to_vec()
 }

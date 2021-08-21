@@ -6,11 +6,11 @@ use std::convert::TryFrom;
 use svm_runtime_ffi as api;
 use svm_runtime_ffi::{svm_byte_array, tracking};
 
-use svm_codec::receipt;
+use svm_codec::Codec;
 use svm_runtime::testing;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
-use svm_types::{Address, Context, Envelope, TemplateAddr, Type};
+use svm_types::{Address, Context, Envelope, Receipt, TemplateAddr, Type};
 
 fn byte_array_copy(dst: &mut svm_byte_array, src: &[u8]) {
     let dst = dst.as_slice_mut();
@@ -60,24 +60,20 @@ fn call_message(target: &Address, func_name: &str, calldata: &[u8]) -> svm_byte_
 }
 
 fn encode_envelope(env: &Envelope) -> svm_byte_array {
-    use svm_codec::impls;
-
     let mut byte_array = api::svm_envelope_alloc();
 
     let mut bytes = Vec::new();
-    impls::encode(env, &mut bytes);
+    env.encode(&mut bytes);
 
     byte_array_copy(&mut byte_array, &bytes);
     byte_array
 }
 
 fn encode_context(ctx: &Context) -> svm_byte_array {
-    use svm_codec::context;
-
     let mut byte_array = api::svm_context_alloc();
 
     let mut bytes = Vec::new();
-    context::encode(ctx, &mut bytes);
+    ctx.encode(&mut bytes);
 
     byte_array_copy(&mut byte_array, &bytes);
     byte_array
@@ -182,7 +178,7 @@ fn svm_runtime_success() {
         assert!(res.is_ok());
 
         // Extracts the deployed `Template Address`
-        let receipt = receipt::decode_receipt(deploy_receipt.as_slice()).into_deploy();
+        let receipt = Receipt::decode_bytes(deploy_receipt).unwrap().into_deploy();
         let template_addr = receipt.template_addr();
 
         // 3) `Spawn Account`
@@ -205,7 +201,9 @@ fn svm_runtime_success() {
         );
         assert!(res.is_ok());
 
-        let receipt = receipt::decode_receipt(spawn_receipt.as_slice()).into_spawn();
+        let receipt = Receipt::decode_bytes(spawn_receipt.as_slice())
+            .unwrap()
+            .into_spawn();
         assert_eq!(receipt.success, true);
 
         // Extracts the Spawned `Account Address` and its initial `State`.
@@ -232,7 +230,9 @@ fn svm_runtime_success() {
         );
         assert!(res.is_ok());
 
-        let receipt = receipt::decode_receipt(call_receipt.as_slice()).into_call();
+        let receipt = Receipt::decode_bytes(call_receipt.as_slice())
+            .unwrap()
+            .into_call();
         assert_eq!(receipt.success, true);
 
         let bytes = receipt.returndata();
@@ -300,7 +300,7 @@ fn svm_runtime_failure() {
         assert!(res.is_ok());
 
         // Extracts the deployed `Template Address`
-        let receipt = receipt::decode_receipt(deploy_receipt.as_slice()).into_deploy();
+        let receipt = Receipt::decode_bytes(deploy_receipt).unwrap().into_deploy();
         let template_addr = receipt.template_addr();
 
         // 3) `Spawn Account`
@@ -320,7 +320,7 @@ fn svm_runtime_failure() {
         );
         assert!(res.is_ok());
 
-        let receipt = receipt::decode_receipt(spawn_receipt.as_slice()).into_spawn();
+        let receipt = Receipt::decode_bytes(spawn_receipt).unwrap().into_spawn();
         assert_eq!(receipt.success, true);
 
         // Extracts the Spawned `Account Address` and its initial `State`.
@@ -344,7 +344,9 @@ fn svm_runtime_failure() {
         );
         assert!(res.is_ok());
 
-        let receipt = receipt::decode_receipt(call_receipt.as_slice()).into_call();
+        let receipt = Receipt::decode_bytes(call_receipt.as_slice())
+            .unwrap()
+            .into_call();
         assert_eq!(receipt.success, false);
 
         // Asserts there are resources to be destroyed.

@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
 
-use std::io::Cursor;
-
 use svm_types::Transaction;
 
 use super::inputdata::{decode_raw_input, DecodedInputData};
@@ -56,8 +54,7 @@ pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
 /// ```
 pub fn decode_call(json: &str) -> Result<Json, JsonError> {
     let encoded_call = EncodedData::from_json_str(json)?;
-    let mut cursor = Cursor::new(&encoded_call.data.0[..]);
-    let tx = Transaction::decode(&mut cursor).unwrap();
+    let tx = Transaction::decode_bytes(encoded_call.data.0).unwrap();
 
     Ok(DecodedCall::from(tx).to_json())
 }

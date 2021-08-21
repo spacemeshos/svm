@@ -81,7 +81,7 @@ impl Codec for Transaction {
         w.write_address(self.target());
         w.write_string(self.func_name());
         InputData::encode(&InputData(self.verifydata.clone()), w);
-        InputData::encode(&InputData(self.verifydata.clone()), w);
+        InputData::encode(&InputData(self.calldata.clone()), w);
     }
 
     fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
