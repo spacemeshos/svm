@@ -32,12 +32,6 @@ impl RuntimeRef {
 
         crate::from_raw(RUNTIME_REF_TYPE, ptr)
     }
-
-    pub unsafe fn as_native<'a>(ptr: *mut c_void) -> &'a mut Box<dyn Runtime> {
-        let runtime: &mut RuntimeRef = crate::as_mut(ptr);
-
-        &mut *runtime
-    }
 }
 
 impl Deref for RuntimeRef {
