@@ -9,6 +9,7 @@
 #![feature(vec_into_raw_parts)]
 
 mod address;
+mod api_safer;
 mod byte_array;
 mod macros;
 mod r#ref;
@@ -89,18 +90,5 @@ pub fn into_raw<T: 'static>(ty: Type, obj: T) -> *mut c_void {
 #[inline]
 pub(crate) unsafe fn from_raw<T: 'static>(ty: Type, ptr: *mut T) -> T {
     tracking::decrement_live(ty);
-
     *Box::from_raw(ptr)
-}
-
-/// Receives a `*const c_void` pointer and returns the a mutable borrowed reference to the underlying object.
-///
-/// # Safety
-///
-/// * If raw pointer doesn't point to a struct of type T it's an U.B
-/// * In case the referenced struct is already borrowed it's an U.B
-#[must_use]
-#[inline]
-pub(crate) unsafe fn as_mut<'a, T>(ptr: *mut c_void) -> &'a mut T {
-    &mut *(ptr as *mut T)
 }

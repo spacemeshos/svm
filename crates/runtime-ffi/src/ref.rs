@@ -34,7 +34,7 @@ impl RuntimeRef {
     }
 
     pub unsafe fn as_native<'a>(ptr: *mut c_void) -> &'a mut Box<dyn Runtime> {
-        let runtime: &mut RuntimeRef = crate::as_mut(ptr);
+        let runtime: &mut RuntimeRef = &mut *(ptr as *mut _);
 
         &mut *runtime
     }
