@@ -4,7 +4,7 @@ use env::{ExtSpawn, Template};
 use traits::ComputeAddress;
 
 use svm_hash::{Blake3Hasher, Hasher};
-use svm_types::{Address, TemplateAddr};
+use svm_types::{Address, BytesPrimitive, TemplateAddr};
 
 /// Default implementation for computing an `Account's Address` deterministically.
 ///
@@ -22,7 +22,7 @@ impl ComputeAddress<Template> for DefaultTemplateAddressCompute {
         buf.extend_from_slice(template.code());
 
         let hash = Blake3Hasher::hash(&buf);
-        let addr = TemplateAddr::from(&hash[0..TemplateAddr::len()]);
+        let addr = TemplateAddr::new(&hash[0..TemplateAddr::len()]);
 
         addr
     }
@@ -41,7 +41,7 @@ impl ComputeAddress<ExtSpawn> for DefaultAccountAddressCompute {
         buf.extend_from_slice(template_addr.as_slice());
 
         let hash = Blake3Hasher::hash(&buf);
-        let addr = Address::from(&hash[0..Address::len()]);
+        let addr = Address::new(&hash[0..Address::len()]);
 
         addr
     }

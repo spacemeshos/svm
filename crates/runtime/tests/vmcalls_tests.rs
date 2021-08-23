@@ -3,7 +3,7 @@ use wasmer::{imports, NativeFunc};
 use svm_layout::{FixedLayout, Id};
 use svm_runtime::testing::{self, WasmFile};
 use svm_runtime::{vmcalls, FuncEnv, ProtectedMode};
-use svm_types::{Address, Context, Envelope, ReceiptLog, TemplateAddr};
+use svm_types::{Address, BytesPrimitive, Context, Envelope, ReceiptLog, TemplateAddr};
 
 /// Creates a new `Wasmer Store`
 pub fn wasmer_store() -> wasmer::Store {
@@ -247,7 +247,7 @@ fn vmcalls_load160() {
     let view = &memory.view::<u8>()[ptr as usize..(ptr as usize + 20)];
     let bytes: Vec<u8> = view.iter().map(|cell| cell.get()).collect();
 
-    assert_eq!(target_addr, Address::from(&bytes[..]));
+    assert_eq!(target_addr, Address::new(&bytes[..]));
 }
 
 #[test]

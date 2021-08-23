@@ -10,8 +10,9 @@ use svm_layout::FixedLayout;
 use svm_program::Program;
 use svm_storage::account::AccountStorage;
 use svm_types::{
-    Address, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError, ReceiptLog,
-    RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr, Transaction,
+    Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError,
+    ReceiptLog, RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr,
+    Transaction,
 };
 
 use super::{Call, Failure, Function, Outcome};

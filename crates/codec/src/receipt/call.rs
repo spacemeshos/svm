@@ -88,7 +88,7 @@ impl Codec for CallReceipt {
 
 #[cfg(test)]
 mod tests {
-    use svm_types::{Address, Gas, Receipt, ReceiptLog, RuntimeError, State};
+    use svm_types::{Address, BytesPrimitive, Gas, Receipt, ReceiptLog, RuntimeError, State};
 
     use super::*;
 

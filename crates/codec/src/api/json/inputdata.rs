@@ -100,7 +100,7 @@ fn calldata_to_json(mut calldata: CallData) -> Json {
 }
 
 mod sdk_value_utils {
-    use svm_types::Address;
+    use svm_types::{Address, BytesPrimitive};
 
     use super::*;
 
@@ -121,7 +121,7 @@ mod sdk_value_utils {
                 Primitive::I64(x) => json!(x),
                 Primitive::U64(x) => json!(x),
                 Primitive::Amount(x) => json!(x.0),
-                Primitive::Address(x) => AddressWrapper(Address::from(x.as_slice())).to_json(),
+                Primitive::Address(x) => AddressWrapper(Address::new(x.as_slice())).to_json(),
                 _ => unreachable!(),
             },
             SdkValue::Composite(Composite::Vec(values)) => Json::Array(
@@ -181,7 +181,7 @@ mod sdk_value_utils {
             TySigPrim::Address => serde_json::from_value::<AddressWrapper>(json)
                 .ok()
                 .map(|addr| {
-                    let addr = svm_sdk_types::Address::from(addr.0.bytes());
+                    let addr = svm_sdk_types::Address::from(*addr.0.as_ref());
                     SdkValue::Primitive(Primitive::Address(addr))
                 }),
             TySigPrim::I8 => json_as_numeric::<i8>(json),

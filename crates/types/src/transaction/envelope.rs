@@ -1,4 +1,4 @@
-use crate::{Address, Gas};
+use crate::{Address, BytesPrimitive, Gas};
 
 /// Holds `Transaction` **agnostic** content.
 ///

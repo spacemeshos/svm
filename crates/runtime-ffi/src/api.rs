@@ -203,7 +203,8 @@ pub unsafe extern "C" fn svm_validate_deploy(
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
-        let runtime = RuntimeRef::as_native(runtime);
+        let runtime = runtime.cast::<Box<dyn Runtime>>();
+        let runtime = unsafe { runtime.as_mut() }.unwrap();
 
         match runtime.validate_deploy(message.as_slice()) {
             Ok(()) => {
@@ -248,7 +249,9 @@ pub unsafe extern "C" fn svm_validate_spawn(
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
-        let runtime = RuntimeRef::as_native(runtime);
+        let runtime = runtime.cast::<Box<dyn Runtime>>();
+        let runtime = unsafe { runtime.as_mut() }.unwrap();
+
         let message = message.as_slice();
 
         match runtime.validate_spawn(message) {
@@ -292,7 +295,8 @@ pub unsafe extern "C" fn svm_validate_call(
     catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_validate_call` start");
 
-        let runtime = RuntimeRef::as_native(runtime);
+        let runtime = runtime.cast::<Box<dyn Runtime>>();
+        let runtime = unsafe { runtime.as_mut() }.unwrap();
         let message = message.as_slice();
 
         match runtime.validate_call(message) {
@@ -352,7 +356,8 @@ pub unsafe extern "C" fn svm_deploy(
     catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_deploy` start`");
 
-        let runtime = RuntimeRef::as_native(runtime);
+        let runtime = runtime.cast::<Box<dyn Runtime>>();
+        let runtime = unsafe { runtime.as_mut() }.unwrap();
         let message = message.as_slice();
 
         let envelope = decode_envelope(envelope);
@@ -428,7 +433,8 @@ pub unsafe extern "C" fn svm_spawn(
     catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_spawn` start");
 
-        let runtime = RuntimeRef::as_native(runtime);
+        let runtime = runtime.cast::<Box<dyn Runtime>>();
+        let runtime = unsafe { runtime.as_mut() }.unwrap();
         let message = message.as_slice();
 
         let envelope = decode_envelope(envelope);
@@ -509,7 +515,8 @@ pub unsafe extern "C" fn svm_verify(
     catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_verify` start");
 
-        let runtime = RuntimeRef::as_native(runtime);
+        let runtime = runtime.cast::<Box<dyn Runtime>>();
+        let runtime = unsafe { runtime.as_mut() }.unwrap();
         let message = message.as_slice();
 
         let envelope = decode_envelope(envelope);
@@ -586,7 +593,8 @@ pub unsafe extern "C" fn svm_call(
     catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_call` start");
 
-        let runtime = RuntimeRef::as_native(runtime);
+        let runtime = runtime.cast::<Box<dyn Runtime>>();
+        let runtime = unsafe { runtime.as_mut() }.unwrap();
         let message = message.as_slice();
 
         let envelope = decode_envelope(envelope);

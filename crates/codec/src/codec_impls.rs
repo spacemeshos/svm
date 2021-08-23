@@ -264,7 +264,7 @@ fn decode_func(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use svm_types::{Address, TemplateAddr};
+    use svm_types::{Address, BytesPrimitive, TemplateAddr};
 
     use super::*;
     use crate::test_codec;

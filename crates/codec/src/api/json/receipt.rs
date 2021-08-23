@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
 use svm_types::RuntimeError;
-use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
+use svm_types::{BytesPrimitive, CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
 use super::JsonSerdeUtils;
 use crate::api::json::serde_types::{AddressWrapper, EncodedData, HexBlob, TemplateAddrWrapper};
@@ -209,7 +209,7 @@ mod tests {
 
     use super::*;
 
-    use svm_types::{Address, Gas, ReceiptLog, State, TemplateAddr};
+    use svm_types::{Address, BytesPrimitive, Gas, ReceiptLog, State, TemplateAddr};
 
     #[test]
     fn decode_receipt_deploy_success() {

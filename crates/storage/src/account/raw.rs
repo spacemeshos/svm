@@ -157,11 +157,10 @@ impl RawStorage {
 
 #[cfg(test)]
 mod tests {
+    use svm_types::{Address, BytesPrimitive};
+
     use super::*;
-
     use crate::testing;
-
-    use svm_types::Address;
 
     const KV_VALUE_SIZE: u32 = 32;
 

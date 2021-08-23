@@ -1,6 +1,18 @@
-use crate::impl_bytes_primitive;
+use derive_more::{AsRef, From};
 
-impl_bytes_primitive!(State, 32);
+use crate::BytesPrimitive;
+
+/// The fingerprint of a generic state of things.
+#[derive(Debug, Copy, Clone, From, Hash, PartialEq, Eq, AsRef)]
+pub struct State(pub [u8; 32]);
+
+impl AsRef<[u8]> for State {
+    fn as_ref(&self) -> &[u8] {
+        &self.0[..]
+    }
+}
+
+impl BytesPrimitive<32> for State {}
 
 #[cfg(test)]
 mod tests {
@@ -16,7 +28,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn state_expects_exactly_32_bytes_input() {
-        State::from([0; 10].as_ref());
+        State::new([0; 10]);
     }
 
     #[test]
@@ -26,7 +38,7 @@ mod tests {
             55, 66, 77, 88, 99, 251, 252, 253, 254, 255,
         ];
 
-        let state = State::from(raw.as_ref());
+        let state = State::new(raw);
 
         assert_eq!(
             State([

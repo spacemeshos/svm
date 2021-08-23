@@ -321,7 +321,7 @@ fn decode_msg(cursor: &mut Cursor<&[u8]>) -> String {
 mod tests {
     use super::*;
 
-    use svm_types::Address;
+    use svm_types::{Address, BytesPrimitive};
 
     fn test_logs() -> Vec<ReceiptLog> {
         vec![

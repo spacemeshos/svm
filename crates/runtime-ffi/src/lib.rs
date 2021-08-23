@@ -8,11 +8,8 @@
 #![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
-mod address;
 mod byte_array;
-mod macros;
 mod r#ref;
-mod state;
 
 pub mod tracking;
 

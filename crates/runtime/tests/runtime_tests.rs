@@ -8,8 +8,9 @@ use svm_layout::FixedLayout;
 use svm_program::ProgramError;
 use svm_runtime::{testing, Runtime, ValidateError};
 
-use svm_types::{Address, Context, Envelope, Gas, RuntimeError};
-use svm_types::{DeployReceipt, SpawnReceipt};
+use svm_types::{
+    Address, BytesPrimitive, Context, DeployReceipt, Envelope, Gas, RuntimeError, SpawnReceipt,
+};
 
 #[test]
 fn memory_runtime_validate_deploy_not_enough_bytes() {

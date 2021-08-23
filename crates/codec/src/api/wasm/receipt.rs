@@ -16,7 +16,7 @@ pub fn decode_receipt(offset: usize) -> Result<usize, JsonError> {
 mod test {
     use serde_json::{json, Value};
 
-    use svm_types::{Address, Gas, SpawnReceipt, State};
+    use svm_types::{Address, BytesPrimitive, Gas, SpawnReceipt, State};
 
     use super::*;
     use crate::api::json::serde_types::HexBlob;

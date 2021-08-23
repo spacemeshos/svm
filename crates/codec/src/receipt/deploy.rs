@@ -76,7 +76,7 @@ impl Codec for DeployReceipt {
 
 #[cfg(test)]
 mod tests {
-    use svm_types::{DeployReceipt, Gas, Receipt, TemplateAddr};
+    use svm_types::{BytesPrimitive, DeployReceipt, Gas, Receipt, TemplateAddr};
 
     use crate::Codec;
 

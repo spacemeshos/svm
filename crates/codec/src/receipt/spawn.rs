@@ -117,7 +117,9 @@ fn encode_returndata(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
 
 #[cfg(test)]
 mod tests {
-    use svm_types::{Address, Gas, Receipt, ReceiptLog, RuntimeError, State, TemplateAddr};
+    use svm_types::{
+        Address, BytesPrimitive, Gas, Receipt, ReceiptLog, RuntimeError, State, TemplateAddr,
+    };
 
     use super::*;
 

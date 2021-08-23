@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use svm_types::{Address, TemplateAddr};
+use svm_types::{Address, BytesPrimitive, TemplateAddr};
 
 use super::JsonSerdeUtils;
 
@@ -64,7 +64,7 @@ impl<'de> Deserialize<'de> for AddressWrapper {
         if blob.0.len() != Address::len() {
             Err(D::Error::custom("Bad length"))
         } else {
-            Ok(Self(Address::from(&blob.0[..])))
+            Ok(Self(Address::new(&blob.0[..])))
         }
     }
 }
@@ -91,7 +91,7 @@ impl<'de> Deserialize<'de> for TemplateAddrWrapper {
         if blob.0.len() != TemplateAddr::len() {
             Err(D::Error::custom("Bad length"))
         } else {
-            Ok(Self(TemplateAddr::from(&blob.0[..])))
+            Ok(Self(TemplateAddr::new(&blob.0[..])))
         }
     }
 }

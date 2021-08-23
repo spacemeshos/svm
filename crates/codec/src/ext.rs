@@ -1,7 +1,7 @@
 use std::io::{Cursor, Read, Result};
 use std::string::FromUtf8Error;
 
-use svm_types::{Address, State, TemplateAddr, TransactionId};
+use svm_types::{Address, BytesPrimitive, State, TemplateAddr, TransactionId};
 
 /// A trait to be implemented by Decoders
 pub trait ReadExt {
@@ -138,28 +138,28 @@ impl ReadExt for Cursor<&[u8]> {
 
     fn read_address(&mut self) -> Result<Address> {
         let bytes = self.read_bytes(Address::len())?;
-        let addr = bytes.as_slice().into();
+        let addr = Address::new(bytes.as_slice());
 
         Ok(addr)
     }
 
     fn read_template_addr(&mut self) -> Result<TemplateAddr> {
         let bytes = self.read_bytes(TemplateAddr::len())?;
-        let addr = bytes.as_slice().into();
+        let addr = TemplateAddr::new(bytes.as_slice());
 
         Ok(addr)
     }
 
     fn read_state(&mut self) -> Result<State> {
         let bytes = self.read_bytes(State::len())?;
-        let state = bytes.as_slice().into();
+        let state = State::new(bytes.as_slice());
 
         Ok(state)
     }
 
     fn read_tx_id(&mut self) -> Result<TransactionId> {
         let bytes = self.read_bytes(TransactionId::len())?;
-        let tx_id = bytes.as_slice().into();
+        let tx_id = TransactionId::new(bytes.as_slice());
 
         Ok(tx_id)
     }

@@ -10,7 +10,7 @@ use svm_codec::Codec;
 use svm_runtime::testing;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
-use svm_types::{Address, Context, Envelope, Receipt, TemplateAddr, Type};
+use svm_types::{Address, BytesPrimitive, Context, Envelope, Receipt, TemplateAddr, Type};
 
 fn byte_array_copy(dst: &mut svm_byte_array, src: &[u8]) {
     let dst = dst.as_slice_mut();
