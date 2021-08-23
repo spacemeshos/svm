@@ -6,7 +6,7 @@ use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 use super::JsonSerdeUtils;
 use crate::api::json::serde_types::{AddressWrapper, EncodedData, HexBlob, TemplateAddrWrapper};
 use crate::api::json::{self, JsonError};
-use crate::receipt;
+use crate::Codec;
 
 /// Given a binary Receipt wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
@@ -16,7 +16,7 @@ pub fn decode_receipt(json: &str) -> Result<Value, JsonError> {
 
     assert!(bytes.len() > 0);
 
-    let receipt = receipt::decode_receipt(&bytes);
+    let receipt = Receipt::decode_bytes(bytes).unwrap();
     let ty = receipt_type(&receipt);
 
     let json = if receipt.success() {
@@ -205,6 +205,8 @@ fn decode_call(receipt: &CallReceipt, ty: &'static str) -> Value {
 
 #[cfg(test)]
 mod tests {
+    use crate::Codec;
+
     use super::*;
 
     use svm_types::{Address, Gas, ReceiptLog, State, TemplateAddr};
@@ -227,7 +229,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_deploy(&receipt);
+        let bytes = receipt.encode_to_vec();
         let data = HexBlob(&bytes);
         let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
@@ -267,7 +269,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_spawn(&receipt);
+        let bytes = receipt.encode_to_vec();
         let data = HexBlob(&bytes);
         let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
@@ -303,7 +305,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_spawn(&receipt);
+        let bytes = receipt.encode_to_vec();
         let data = HexBlob(&bytes);
         let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
@@ -337,7 +339,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_call(&receipt);
+        let bytes = receipt.encode_to_vec();
         let data = HexBlob(&bytes);
         let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 

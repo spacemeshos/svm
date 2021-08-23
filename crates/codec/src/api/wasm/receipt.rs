@@ -21,6 +21,7 @@ mod test {
     use super::*;
     use crate::api::json::serde_types::HexBlob;
     use crate::api::wasm::{free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER};
+    use crate::Codec;
 
     #[test]
     fn wasm_decode_receipt_valid() {
@@ -39,7 +40,7 @@ mod test {
             logs,
         };
 
-        let bytes = crate::receipt::encode_spawn(&receipt);
+        let bytes = receipt.encode_to_vec();
         let data = HexBlob(&bytes);
         let json = json!({ "data": data });
         let json = serde_json::to_string(&json).unwrap();

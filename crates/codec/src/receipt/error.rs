@@ -85,7 +85,7 @@ use svm_types::{Address, ReceiptLog, RuntimeError, TemplateAddr};
 use super::logs;
 use crate::{ReadExt, WriteExt};
 
-pub(crate) fn encode_error(err: &RuntimeError, logs: &[ReceiptLog], w: &mut Vec<u8>) {
+pub(crate) fn encode_error(err: &RuntimeError, logs: &[ReceiptLog], w: &mut impl WriteExt) {
     encode_err_type(err, w);
 
     logs::encode_logs(logs, w);
@@ -151,19 +151,19 @@ pub(crate) fn encode_error(err: &RuntimeError, logs: &[ReceiptLog], w: &mut Vec<
     };
 }
 
-fn encode_template(template: &TemplateAddr, w: &mut Vec<u8>) {
+fn encode_template(template: &TemplateAddr, w: &mut impl WriteExt) {
     w.write_template_addr(template);
 }
 
-fn encode_target(target: &Address, w: &mut Vec<u8>) {
+fn encode_target(target: &Address, w: &mut impl WriteExt) {
     w.write_address(target);
 }
 
-fn encode_func(func: &str, w: &mut Vec<u8>) {
+fn encode_func(func: &str, w: &mut impl WriteExt) {
     w.write_string(func);
 }
 
-fn encode_msg(msg: &str, w: &mut Vec<u8>) {
+fn encode_msg(msg: &str, w: &mut impl WriteExt) {
     if msg.len() > 255 {
         let bytes = &msg.as_bytes()[0..255];
         let msg = unsafe { String::from_utf8_unchecked(bytes.to_vec()) };
@@ -173,7 +173,7 @@ fn encode_msg(msg: &str, w: &mut Vec<u8>) {
     }
 }
 
-fn encode_err_type(err: &RuntimeError, w: &mut Vec<u8>) {
+fn encode_err_type(err: &RuntimeError, w: &mut impl WriteExt) {
     let ty = match err {
         RuntimeError::OOG => 0,
         RuntimeError::TemplateNotFound(..) => 1,
@@ -186,7 +186,7 @@ fn encode_err_type(err: &RuntimeError, w: &mut Vec<u8>) {
         RuntimeError::FuncInvalidSignature { .. } => 8,
     };
 
-    w.push(ty);
+    w.write_byte(ty);
 }
 
 pub(crate) fn decode_error(cursor: &mut Cursor<&[u8]>) -> (RuntimeError, Vec<ReceiptLog>) {

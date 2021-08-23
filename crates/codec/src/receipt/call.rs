@@ -26,91 +26,71 @@
 //!  On Error (`is_success = 0`)
 //!  See [error.rs](./error.rs)
 
-use std::io::Cursor;
+use svm_types::{CallReceipt, Gas};
 
-use svm_types::CallReceipt;
-
-use super::{decode_error, encode_error, gas, logs, returndata};
-use crate::version;
+use super::{decode_error, encode_error, logs, returndata};
+use crate::{version, Codec};
 use crate::{ReadExt, WriteExt};
 
-/// Encodes an [`CallReceipt`] into its binary format.
-pub fn encode_call(receipt: &CallReceipt) -> Vec<u8> {
-    let mut w = Vec::new();
+impl Codec for CallReceipt {
+    type Error = std::convert::Infallible;
 
-    w.write_byte(super::types::CALL);
-    version::encode_version(receipt.version, &mut w);
-    w.write_bool(receipt.success);
+    fn encode(&self, w: &mut impl WriteExt) {
+        w.write_byte(super::TY_CALL);
+        version::encode_version(self.version, w);
+        w.write_bool(self.success);
 
-    if receipt.success {
-        encode_new_state(receipt, &mut w);
-        encode_returndata(receipt, &mut w);
-        gas::encode_gas_used(&receipt.gas_used, &mut w);
-        logs::encode_logs(&receipt.logs, &mut w);
-    } else {
-        let logs = receipt.logs();
+        if self.success {
+            w.write_state(self.new_state());
+            returndata::encode(&self.returndata(), w);
+            self.gas_used.encode(w);
+            logs::encode_logs(&self.logs, w);
+        } else {
+            let logs = self.logs();
 
-        encode_error(receipt.error(), logs, &mut w);
-    };
+            encode_error(self.error(), logs, w);
+        };
+    }
 
-    w
-}
+    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
+        let ty = cursor.read_byte().unwrap();
+        debug_assert_eq!(ty, crate::receipt::TY_CALL);
 
-/// Decodes a binary [`CallReceipt`].
-pub fn decode_call(bytes: &[u8]) -> CallReceipt {
-    let mut cursor = Cursor::new(bytes);
+        let version = version::decode_version(cursor).unwrap();
+        debug_assert_eq!(0, version);
 
-    let ty = cursor.read_byte().unwrap();
-    debug_assert_eq!(ty, crate::receipt::types::CALL);
+        let is_success = cursor.read_bool().unwrap();
 
-    let version = version::decode_version(&mut cursor).unwrap();
-    debug_assert_eq!(0, version);
+        match is_success {
+            false => {
+                let (err, logs) = decode_error(cursor);
+                Ok(CallReceipt::from_err(err, logs))
+            }
+            true => {
+                let new_state = cursor.read_state().unwrap();
+                let returndata = returndata::decode(cursor).unwrap();
+                let gas_used = Gas::decode(cursor).unwrap();
+                let logs = logs::decode_logs(cursor).unwrap();
 
-    let is_success = cursor.read_bool().unwrap();
-
-    match is_success {
-        false => {
-            let (err, logs) = decode_error(&mut cursor);
-            CallReceipt::from_err(err, logs)
-        }
-        true => {
-            let new_state = cursor.read_state().unwrap();
-            let returndata = returndata::decode(&mut cursor).unwrap();
-            let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
-            let logs = logs::decode_logs(&mut cursor).unwrap();
-
-            CallReceipt {
-                version,
-                success: true,
-                error: None,
-                new_state: Some(new_state),
-                returndata: Some(returndata),
-                gas_used,
-                logs,
+                Ok(CallReceipt {
+                    version,
+                    success: true,
+                    error: None,
+                    new_state: Some(new_state),
+                    returndata: Some(returndata),
+                    gas_used,
+                    logs,
+                })
             }
         }
     }
 }
 
-fn encode_new_state(receipt: &CallReceipt, w: &mut Vec<u8>) {
-    debug_assert!(receipt.success);
-
-    let state = receipt.new_state();
-    w.write_state(state);
-}
-
-fn encode_returndata(receipt: &CallReceipt, w: &mut Vec<u8>) {
-    debug_assert!(receipt.success);
-
-    let data = receipt.returndata();
-    returndata::encode(&data, w);
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use svm_types::{Address, Gas, Receipt, ReceiptLog, RuntimeError, State};
 
-    use svm_types::{Address, Gas, ReceiptLog, RuntimeError, State};
+    use super::*;
 
     #[test]
     fn encode_decode_call_receipt_error() {
@@ -129,8 +109,8 @@ mod tests {
             logs,
         };
 
-        let bytes = encode_call(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes[..]);
+        let bytes = receipt.encode_to_vec();
+        let decoded = Receipt::decode_bytes(bytes).unwrap();
 
         assert_eq!(decoded.into_call(), receipt);
     }
@@ -150,8 +130,8 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_call(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes[..]);
+        let bytes = receipt.encode_to_vec();
+        let decoded = Receipt::decode_bytes(bytes).unwrap();
 
         assert_eq!(decoded.into_call(), receipt);
     }
@@ -173,8 +153,8 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_call(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes[..]);
+        let bytes = receipt.encode_to_vec();
+        let decoded = Receipt::decode_bytes(bytes).unwrap();
 
         assert_eq!(decoded.into_call(), receipt);
     }

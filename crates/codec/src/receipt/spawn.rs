@@ -26,95 +26,89 @@
 //!  On Error (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_types::SpawnReceipt;
+use svm_types::{Gas, SpawnReceipt};
 
-use std::io::Cursor;
-
-use super::{decode_error, encode_error, gas, logs, returndata, types};
-use crate::version;
+use super::{decode_error, encode_error, logs, returndata, TY_SPAWN};
+use crate::{version, Codec};
 use crate::{ReadExt, WriteExt};
 
-/// Encodes a [`SpawnReceipt`] into its binary format.
-pub fn encode_spawn(receipt: &SpawnReceipt) -> Vec<u8> {
-    let mut w = Vec::new();
+impl Codec for SpawnReceipt {
+    type Error = std::convert::Infallible;
 
-    w.write_byte(types::SPAWN);
-    encode_version(receipt, &mut w);
-    w.write_bool(receipt.success);
+    fn encode(&self, w: &mut impl WriteExt) {
+        w.write_byte(TY_SPAWN);
+        encode_version(self, w);
+        w.write_bool(self.success);
 
-    if receipt.success {
-        encode_account_addr(receipt, &mut w);
-        encode_init_state(receipt, &mut w);
-        encode_returndata(&receipt, &mut w);
-        gas::encode_gas_used(&receipt.gas_used, &mut w);
-        logs::encode_logs(&receipt.logs, &mut w);
-    } else {
-        let logs = receipt.logs();
+        if self.success {
+            encode_account_addr(self, w);
+            encode_init_state(self, w);
+            encode_returndata(&self, w);
+            self.gas_used().encode(w);
+            logs::encode_logs(&self.logs, w);
+        } else {
+            let logs = self.logs();
 
-        encode_error(receipt.error(), logs, &mut w);
-    };
+            encode_error(self.error(), logs, w);
+        };
+    }
 
-    w
-}
+    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
+        let ty = cursor.read_byte().unwrap();
+        debug_assert_eq!(ty, TY_SPAWN);
 
-/// Decodes a binary [`SpawnReceipt`].
-pub fn decode_spawn(bytes: &[u8]) -> SpawnReceipt {
-    let mut cursor = Cursor::new(bytes);
+        let version = version::decode_version(cursor).unwrap();
+        debug_assert_eq!(0, version);
 
-    let ty = cursor.read_byte().unwrap();
-    debug_assert_eq!(ty, types::SPAWN);
+        let is_success = cursor.read_bool().unwrap();
 
-    let version = version::decode_version(&mut cursor).unwrap();
-    debug_assert_eq!(0, version);
+        match is_success {
+            false => {
+                let (err, logs) = decode_error(cursor);
+                Ok(SpawnReceipt::from_err(err, logs))
+            }
+            true => {
+                let addr = cursor.read_address().unwrap();
+                let init_state = cursor.read_state().unwrap();
+                let returndata = returndata::decode(cursor).unwrap();
+                let gas_used = Gas::decode(cursor).unwrap();
+                let logs = logs::decode_logs(cursor).unwrap();
 
-    let is_success = cursor.read_bool().unwrap();
-
-    match is_success {
-        false => {
-            let (err, logs) = decode_error(&mut cursor);
-            SpawnReceipt::from_err(err, logs)
-        }
-        true => {
-            let addr = cursor.read_address().unwrap();
-            let init_state = cursor.read_state().unwrap();
-            let returndata = returndata::decode(&mut cursor).unwrap();
-            let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
-            let logs = logs::decode_logs(&mut cursor).unwrap();
-
-            SpawnReceipt {
-                version,
-                success: true,
-                error: None,
-                account_addr: Some(addr.into()),
-                init_state: Some(init_state),
-                returndata: Some(returndata),
-                gas_used,
-                logs,
+                Ok(SpawnReceipt {
+                    version,
+                    success: true,
+                    error: None,
+                    account_addr: Some(addr.into()),
+                    init_state: Some(init_state),
+                    returndata: Some(returndata),
+                    gas_used,
+                    logs,
+                })
             }
         }
     }
 }
 
-fn encode_version(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
+fn encode_version(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
     let v = &receipt.version;
     version::encode_version(*v, w);
 }
 
-fn encode_account_addr(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
+fn encode_account_addr(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
     debug_assert!(receipt.success);
 
     let addr = receipt.account_addr();
     w.write_address(addr);
 }
 
-fn encode_init_state(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
+fn encode_init_state(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
     debug_assert!(receipt.success);
 
     let state = receipt.init_state();
     w.write_state(state);
 }
 
-fn encode_returndata(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
+fn encode_returndata(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
     debug_assert!(receipt.success);
 
     let data = receipt.returndata();
@@ -123,11 +117,9 @@ fn encode_returndata(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
 
 #[cfg(test)]
 mod tests {
+    use svm_types::{Address, Gas, Receipt, ReceiptLog, RuntimeError, State, TemplateAddr};
+
     use super::*;
-
-    use svm_types::{Address, Gas, ReceiptLog, RuntimeError, State, TemplateAddr};
-
-    use crate::receipt::decode_receipt;
 
     #[test]
     fn encode_decode_spawn_receipt_error() {
@@ -145,8 +137,8 @@ mod tests {
             logs: Vec::new(),
         };
 
-        let bytes = encode_spawn(&receipt);
-        let decoded = decode_receipt(&bytes);
+        let bytes = receipt.encode_to_vec();
+        let decoded = Receipt::decode_bytes(bytes).unwrap();
 
         assert_eq!(decoded.into_spawn(), receipt);
     }
@@ -168,8 +160,8 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_spawn(&receipt);
-        let decoded = decode_receipt(&bytes);
+        let bytes = receipt.encode_to_vec();
+        let decoded = Receipt::decode_bytes(bytes).unwrap();
 
         assert_eq!(decoded.into_spawn(), receipt);
     }
@@ -192,8 +184,8 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_spawn(&receipt);
-        let decoded = decode_receipt(&bytes);
+        let bytes = receipt.encode_to_vec();
+        let decoded = Receipt::decode_bytes(bytes).unwrap();
 
         assert_eq!(decoded.into_spawn(), receipt);
     }

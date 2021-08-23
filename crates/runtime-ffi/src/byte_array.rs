@@ -26,7 +26,7 @@ use crate::tracking;
 /// ```
 ///
 #[allow(non_camel_case_types)]
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct svm_byte_array {
     bytes: *const u8,
@@ -126,6 +126,12 @@ impl Default for svm_byte_array {
             capacity: 0,
             type_id: 0,
         }
+    }
+}
+
+impl AsRef<[u8]> for svm_byte_array {
+    fn as_ref(&self) -> &[u8] {
+        self.as_slice()
     }
 }
 
