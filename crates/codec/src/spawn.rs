@@ -25,11 +25,11 @@ use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a binary [`SpawnAccount`] transaction.
 pub fn encode(spawn: &SpawnAccount, w: &mut Vec<u8>) {
-    encode_version(spawn, w);
-    encode_template(spawn, w);
-    encode_name(spawn, w);
-    encode_ctor(spawn, w);
-    encode_ctor_calldata(spawn, w);
+    version::encode_version(spawn.version, w);
+    w.write_template_addr(spawn.template_addr());
+    w.write_string(spawn.account_name());
+    w.write_string(spawn.ctor_name());
+    inputdata::encode_inputdata(&spawn.calldata, w);
 }
 
 /// Parsing a binary [`SpawnAccount`] transaction.
@@ -43,46 +43,15 @@ pub fn decode(cursor: &mut Cursor<&[u8]>) -> Result<SpawnAccount, ParseError> {
     let ctor_name = decode_ctor(cursor)?;
     let calldata = decode_ctor_calldata(cursor)?;
 
-    let account = Account {
-        name,
-        template_addr,
-    };
-
-    let spawn = SpawnAccount {
+    Ok(SpawnAccount {
         version,
-        account,
+        account: Account {
+            name,
+            template_addr,
+        },
         ctor_name,
         calldata,
-    };
-
-    Ok(spawn)
-}
-
-/// Encoders
-
-fn encode_version(spawn: &SpawnAccount, w: &mut Vec<u8>) {
-    let v = &spawn.version;
-    version::encode_version(*v, w);
-}
-
-fn encode_name(spawn: &SpawnAccount, w: &mut Vec<u8>) {
-    let name = spawn.account_name();
-    w.write_string(name);
-}
-
-fn encode_template(spawn: &SpawnAccount, w: &mut Vec<u8>) {
-    let template = spawn.template_addr();
-    w.write_template_addr(template);
-}
-
-fn encode_ctor(spawn: &SpawnAccount, w: &mut Vec<u8>) {
-    let ctor = spawn.ctor_name();
-    w.write_string(ctor);
-}
-
-fn encode_ctor_calldata(spawn: &SpawnAccount, w: &mut Vec<u8>) {
-    let calldata = &*spawn.calldata;
-    inputdata::encode_inputdata(calldata, w);
+    })
 }
 
 /// Decoders
