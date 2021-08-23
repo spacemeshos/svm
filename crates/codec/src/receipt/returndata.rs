@@ -2,7 +2,7 @@ use std::io::{Cursor, Result};
 
 use crate::{ReadExt, WriteExt};
 
-pub(crate) fn encode(returndata: &[u8], w: &mut Vec<u8>) {
+pub(crate) fn encode(returndata: &[u8], w: &mut impl WriteExt) {
     let byte_size = returndata.len();
     assert!(byte_size < std::u16::MAX as usize);
 

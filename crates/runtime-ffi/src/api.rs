@@ -6,7 +6,7 @@ use std::panic::UnwindSafe;
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
 
-use svm_codec::{receipt, Codec};
+use svm_codec::Codec;
 use svm_runtime::Runtime;
 use svm_types::{Context, Envelope, Type};
 
@@ -370,7 +370,7 @@ pub unsafe extern "C" fn svm_deploy(
         let envelope = envelope.unwrap();
         let context = context.unwrap();
         let rust_receipt = runtime.deploy(&envelope, &message, &context);
-        let receipt_bytes = receipt::encode_deploy(&rust_receipt);
+        let receipt_bytes = rust_receipt.encode_to_vec();
 
         // returning encoded `TemplateReceipt` as `svm_byte_array`.
         //
@@ -446,7 +446,7 @@ pub unsafe extern "C" fn svm_spawn(
         let envelope = envelope.unwrap();
         let context = context.unwrap();
         let rust_receipt = runtime.spawn(&envelope, &message, &context);
-        let receipt_bytes = receipt::encode_spawn(&rust_receipt);
+        let receipt_bytes = rust_receipt.encode_to_vec();
 
         // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
         //
@@ -527,7 +527,7 @@ pub unsafe extern "C" fn svm_verify(
         let envelope = envelope.unwrap();
         let context = context.unwrap();
         let rust_receipt = runtime.verify(&envelope, &message, &context);
-        let receipt_bytes = receipt::encode_call(&rust_receipt);
+        let receipt_bytes = rust_receipt.encode_to_vec();
 
         // Returns encoded `CallReceipt` as `svm_byte_array`.
         //
@@ -604,7 +604,7 @@ pub unsafe extern "C" fn svm_call(
         let envelope = envelope.unwrap();
         let context = context.unwrap();
         let rust_receipt = runtime.call(&envelope, &message, &context);
-        let receipt_bytes = receipt::encode_call(&rust_receipt);
+        let receipt_bytes = rust_receipt.encode_to_vec();
 
         // Returns encoded `CallReceipt` as `svm_byte_array`.
         //

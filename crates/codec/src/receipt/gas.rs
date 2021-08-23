@@ -1,18 +1,18 @@
-use std::io::Cursor;
-
 use svm_types::Gas;
 
-use crate::{Field, ParseError, ReadExt, WriteExt};
+use crate::{Codec, Field, ParseError, ReadExt, WriteExt};
 
-pub fn encode_gas_used(gas: &Gas, w: &mut Vec<u8>) {
-    let gas = gas.unwrap_or(0);
+impl Codec for Gas {
+    type Error = ParseError;
 
-    w.write_u64_be(gas);
-}
+    fn encode(&self, w: &mut impl WriteExt) {
+        w.write_u64_be(self.unwrap_or(0));
+    }
 
-pub fn decode_gas_used(cursor: &mut Cursor<&[u8]>) -> Result<Gas, ParseError> {
-    match cursor.read_u64_be() {
-        Ok(gas) => Ok(Gas::with(gas)),
-        Err(..) => Err(ParseError::NotEnoughBytes(Field::GasUsed)),
+    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
+        match cursor.read_u64_be() {
+            Ok(gas) => Ok(Gas::with(gas)),
+            Err(..) => Err(ParseError::NotEnoughBytes(Field::GasUsed)),
+        }
     }
 }

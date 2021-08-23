@@ -9,37 +9,52 @@ pub(crate) mod logs;
 
 pub(crate) use error::{decode_error, encode_error};
 
-pub use call::{decode_call, encode_call};
-pub use deploy::{decode_deploy, encode_deploy};
-pub use spawn::{decode_spawn, encode_spawn};
+use svm_types::{CallReceipt, DeployReceipt, Receipt, SpawnReceipt};
 
-use svm_types::Receipt;
+use crate::Codec;
 
-mod types {
-    pub const DEPLOY: u8 = 0;
-    pub const SPAWN: u8 = 1;
-    pub const CALL: u8 = 2;
-}
+impl Codec for Receipt {
+    type Error = std::convert::Infallible;
 
-/// Decodes a binary Receipt into its Rust struct wrapped as `ReceiptOwned`
-pub fn decode_receipt(bytes: &[u8]) -> Receipt {
-    assert!(bytes.len() > 0);
-
-    let ty = bytes[0];
-
-    match ty {
-        types::DEPLOY => {
-            let receipt = decode_deploy(bytes);
-            Receipt::Deploy(receipt)
+    fn encode(&self, w: &mut impl crate::WriteExt) {
+        match self {
+            Self::Deploy(deploy) => {
+                w.write_byte(TY_DEPLOY);
+                deploy.encode(w);
+            }
+            Self::Spawn(spawn) => {
+                w.write_byte(TY_SPAWN);
+                spawn.encode(w);
+            }
+            Self::Call(call) => {
+                w.write_byte(TY_CALL);
+                call.encode(w);
+            }
         }
-        types::SPAWN => {
-            let receipt = decode_spawn(bytes);
-            Receipt::Spawn(receipt)
-        }
-        types::CALL => {
-            let receipt = decode_call(bytes);
-            Receipt::Call(receipt)
-        }
-        _ => unreachable!(),
+    }
+
+    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
+        let bytes = *cursor.get_ref();
+        assert!(bytes.len() > 0);
+
+        Ok(match bytes[0] {
+            TY_DEPLOY => {
+                let receipt = DeployReceipt::decode(cursor).unwrap();
+                Receipt::Deploy(receipt)
+            }
+            TY_SPAWN => {
+                let receipt = SpawnReceipt::decode(cursor).unwrap();
+                Receipt::Spawn(receipt)
+            }
+            TY_CALL => {
+                let receipt = CallReceipt::decode(cursor).unwrap();
+                Receipt::Call(receipt)
+            }
+            _ => unreachable!(),
+        })
     }
 }
+
+const TY_DEPLOY: u8 = 0;
+const TY_SPAWN: u8 = 1;
+const TY_CALL: u8 = 2;

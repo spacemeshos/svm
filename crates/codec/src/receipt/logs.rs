@@ -17,7 +17,7 @@ use crate::{Field, ParseError, ReadExt, WriteExt};
 /// |  data length (2 bytes) | data (blob of bytes) |  ---> log #N
 /// +-----------------------------------------------+
 /// ```
-pub fn encode_logs(logs: &[ReceiptLog], w: &mut Vec<u8>) {
+pub fn encode_logs(logs: &[ReceiptLog], w: &mut impl WriteExt) {
     let nlogs = logs.len();
     assert!(nlogs <= std::u8::MAX as usize);
 
