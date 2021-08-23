@@ -51,11 +51,46 @@ pub struct Template {
 }
 
 impl Template {
+    /// Creates a new [`Template`] only with the mandatory sections.
+    pub fn new(
+        code_section: CodeSection,
+        data_section: DataSection,
+        ctors_section: CtorsSection,
+    ) -> Self {
+        let mut sections = Sections::default();
+        sections.insert(Section::Code(code_section));
+        sections.insert(Section::Data(data_section));
+        sections.insert(Section::Ctors(ctors_section));
+
+        Self::from_sections(sections)
+    }
+
     /// Creates a new `Template`
     ///
-    /// Usually, should be called by `TemplateBuilder#build"
-    pub fn new(sections: Sections) -> Self {
+    /// # Panics
+    ///
+    /// Panics if and only if `sections` does *not* contain all mandatory
+    /// [`Template`] sections.
+    pub fn from_sections(sections: Sections) -> Self {
         Self { sections }
+    }
+
+    /// Adds, removes or replaces a [`HeaderSection`] in `self`.
+    pub fn with_header(mut self, header: Option<HeaderSection>) -> Self {
+        if let Some(header) = header {
+            self.sections.insert(Section::Header(header));
+        }
+
+        self
+    }
+
+    /// Adds, removes or replaces a [`DeploySection`] in `self`.
+    pub fn with_deploy(mut self, deploy: Option<DeploySection>) -> Self {
+        if let Some(deploy) = deploy {
+            self.sections.insert(Section::Deploy(deploy));
+        }
+
+        self
     }
 
     /// Borrows the `Sections` of the `Template`

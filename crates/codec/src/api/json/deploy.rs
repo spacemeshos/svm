@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
-use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
+use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection, Template};
 
 use super::{serde_types::HexBlob, JsonError, JsonSerdeUtils};
-use crate::api::builder::TemplateBuilder;
 use crate::template;
 
 ///
@@ -27,12 +26,7 @@ pub fn deploy_template(json: &str) -> Result<Vec<u8>, JsonError> {
     let ctors = CtorsSection::new(deploy.ctors);
     let header = HeaderSection::new(deploy.code_version, deploy.name, deploy.desc);
 
-    let template = TemplateBuilder::default()
-        .with_code(code)
-        .with_data(data)
-        .with_ctors(ctors)
-        .with_header(header)
-        .build();
+    let template = Template::new(code, data, ctors).with_header(Some(header));
 
     Ok(template::encode(&template))
 }
@@ -234,12 +228,7 @@ mod tests {
         let ctors = CtorsSection::new(vec!["init".into(), "start".into()]);
         let header = HeaderSection::new(2, "My Template".into(), "A few words".into());
 
-        let expected = TemplateBuilder::default()
-            .with_code(code)
-            .with_data(data)
-            .with_ctors(ctors)
-            .with_header(header)
-            .build();
+        let expected = Template::new(code, data, ctors).with_header(Some(header));
 
         assert_eq!(actual, expected);
     }

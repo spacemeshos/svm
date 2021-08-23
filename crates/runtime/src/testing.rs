@@ -2,7 +2,6 @@
 
 use std::sync::{Arc, Mutex};
 
-use svm_codec::api::builder::{CallBuilder, SpawnBuilder, TemplateBuilder};
 use svm_codec::template;
 use svm_layout::{FixedLayout, Layout};
 use svm_storage::{
@@ -10,7 +9,8 @@ use svm_storage::{
     kv::{FakeKV, StatefulKV},
 };
 use svm_types::{
-    Address, CodeSection, CtorsSection, DataSection, HeaderSection, State, TemplateAddr,
+    Address, CodeSection, CtorsSection, DataSection, HeaderSection, SpawnAccount, State, Template,
+    TemplateAddr, Transaction,
 };
 
 use crate::env::{DefaultMemAccountStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
@@ -105,33 +105,31 @@ pub fn build_deploy(
     let data = DataSection::with_layout(Layout::Fixed(layout));
     let header = HeaderSection::new(code_version, name.to_string(), "".to_string());
 
-    let template = TemplateBuilder::default()
-        .with_code(code)
-        .with_data(data)
-        .with_ctors(ctors)
-        .with_header(header)
-        .build();
+    let template = Template::new(code, data, ctors).with_header(Some(header));
 
     template::encode(&template)
 }
 
 /// Builds a binary `Spawn Account` transaction.
 pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
-    SpawnBuilder::new()
-        .with_version(0)
-        .with_template(template)
-        .with_name(name)
-        .with_ctor(ctor)
-        .with_calldata(calldata)
-        .build()
+    let spawn = SpawnAccount::new(0, template, name, ctor, calldata);
+
+    let mut w = vec![];
+    svm_codec::spawn::encode(&spawn, &mut w);
+    w
 }
 
 /// Builds a binary `Call Account` transaction. (a.k.a a `Transaction`).
 pub fn build_call(target: &Address, func: &str, calldata: &[u8]) -> Vec<u8> {
-    CallBuilder::new()
-        .with_version(0)
-        .with_target(target)
-        .with_func(func)
-        .with_calldata(calldata)
-        .build()
+    let tx = Transaction {
+        version: 0,
+        target: target.clone(),
+        func_name: func.to_string(),
+        calldata: calldata.to_vec(),
+        verifydata: vec![],
+    };
+
+    let mut w = vec![];
+    svm_codec::call::encode_call(&tx, &mut w);
+    w
 }
