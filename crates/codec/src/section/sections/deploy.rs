@@ -19,10 +19,10 @@ use crate::{Field, ParseError, ReadExt, WriteExt};
 
 impl SectionEncoder for DeploySection {
     fn encode(&self, w: &mut Vec<u8>) {
-        w.write_tx_id(self.tx_id());
+        w.write_bytes_prim(self.tx_id());
         w.write_u64_be(self.layer().0);
-        w.write_address(self.deployer());
-        w.write_template_addr(self.template());
+        w.write_bytes_prim(self.deployer());
+        w.write_bytes_prim(self.template());
     }
 }
 
@@ -40,7 +40,7 @@ impl SectionDecoder for DeploySection {
 }
 
 fn decode_tx_id(cursor: &mut Cursor<&[u8]>) -> Result<TransactionId, ParseError> {
-    let value = cursor.read_tx_id();
+    let value = cursor.read_bytes_prim();
 
     value.map_err(|_| ParseError::NotEnoughBytes(Field::TransactionId))
 }
@@ -56,12 +56,12 @@ fn decode_layer(cursor: &mut Cursor<&[u8]>) -> Result<Layer, ParseError> {
 
 fn decode_deployer(cursor: &mut Cursor<&[u8]>) -> Result<Address, ParseError> {
     cursor
-        .read_address()
+        .read_bytes_prim()
         .map_err(|_| ParseError::NotEnoughBytes(Field::DeployerAddr))
 }
 
 fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {
     cursor
-        .read_template_addr()
+        .read_bytes_prim()
         .map_err(|_| ParseError::NotEnoughBytes(Field::TemplateAddr))
 }

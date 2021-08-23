@@ -26,7 +26,7 @@
 //!  On Error (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_types::{Gas, SpawnReceipt};
+use svm_types::{Address, Gas, SpawnReceipt};
 
 use super::{decode_error, encode_error, logs, returndata, TY_SPAWN};
 use crate::{version, Codec};
@@ -68,8 +68,8 @@ impl Codec for SpawnReceipt {
                 Ok(SpawnReceipt::from_err(err, logs))
             }
             true => {
-                let addr = cursor.read_address().unwrap();
-                let init_state = cursor.read_state().unwrap();
+                let addr: Address = cursor.read_bytes_prim().unwrap();
+                let init_state = cursor.read_bytes_prim().unwrap();
                 let returndata = returndata::decode(cursor).unwrap();
                 let gas_used = Gas::decode(cursor).unwrap();
                 let logs = logs::decode_logs(cursor).unwrap();
@@ -98,14 +98,14 @@ fn encode_account_addr(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
     debug_assert!(receipt.success);
 
     let addr = receipt.account_addr();
-    w.write_address(addr);
+    w.write_bytes_prim(addr);
 }
 
 fn encode_init_state(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
     debug_assert!(receipt.success);
 
     let state = receipt.init_state();
-    w.write_state(state);
+    w.write_bytes_prim(state);
 }
 
 fn encode_returndata(receipt: &SpawnReceipt, w: &mut impl WriteExt) {

@@ -41,7 +41,7 @@ impl Codec for CallReceipt {
         w.write_bool(self.success);
 
         if self.success {
-            w.write_state(self.new_state());
+            w.write_bytes_prim(self.new_state());
             returndata::encode(&self.returndata(), w);
             self.gas_used.encode(w);
             logs::encode_logs(&self.logs, w);
@@ -61,27 +61,24 @@ impl Codec for CallReceipt {
 
         let is_success = cursor.read_bool().unwrap();
 
-        match is_success {
-            false => {
-                let (err, logs) = decode_error(cursor);
-                Ok(CallReceipt::from_err(err, logs))
-            }
-            true => {
-                let new_state = cursor.read_state().unwrap();
-                let returndata = returndata::decode(cursor).unwrap();
-                let gas_used = Gas::decode(cursor).unwrap();
-                let logs = logs::decode_logs(cursor).unwrap();
+        if is_success {
+            let new_state = cursor.read_bytes_prim().unwrap();
+            let returndata = returndata::decode(cursor).unwrap();
+            let gas_used = Gas::decode(cursor).unwrap();
+            let logs = logs::decode_logs(cursor).unwrap();
 
-                Ok(CallReceipt {
-                    version,
-                    success: true,
-                    error: None,
-                    new_state: Some(new_state),
-                    returndata: Some(returndata),
-                    gas_used,
-                    logs,
-                })
-            }
+            Ok(CallReceipt {
+                version,
+                success: true,
+                error: None,
+                new_state: Some(new_state),
+                returndata: Some(returndata),
+                gas_used,
+                logs,
+            })
+        } else {
+            let (err, logs) = decode_error(cursor);
+            Ok(CallReceipt::from_err(err, logs))
         }
     }
 }

@@ -29,7 +29,7 @@ impl Codec for DeployReceipt {
         w.write_bool(self.success);
 
         if self.success {
-            w.write_template_addr(self.template_addr());
+            w.write_bytes_prim(self.template_addr());
             self.gas_used.encode(w);
             logs::encode_logs(&self.logs, w);
         } else {
@@ -56,7 +56,7 @@ impl Codec for DeployReceipt {
             }
             true => {
                 let addr = cursor
-                    .read_template_addr()
+                    .read_bytes_prim()
                     .expect("expected a Template Address");
                 let gas_used = Gas::decode(cursor).unwrap();
                 let logs = logs::decode_logs(cursor).unwrap();

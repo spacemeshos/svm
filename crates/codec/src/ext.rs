@@ -1,7 +1,7 @@
 use std::io::{Cursor, Read, Result};
 use std::string::FromUtf8Error;
 
-use svm_types::{Address, BytesPrimitive, State, TemplateAddr, TransactionId};
+use svm_types::BytesPrimitive;
 
 /// A trait to be implemented by Decoders
 pub trait ReadExt {
@@ -26,17 +26,10 @@ pub trait ReadExt {
     /// Reads a UTF-8 String
     fn read_string(&mut self) -> Result<std::result::Result<String, FromUtf8Error>>;
 
-    /// Reads an `Account Address`
-    fn read_address(&mut self) -> Result<Address>;
-
-    /// Reads a `Template Address`
-    fn read_template_addr(&mut self) -> Result<TemplateAddr>;
-
-    /// Reads a `State`
-    fn read_state(&mut self) -> Result<State>;
-
-    /// Reads a `TransactionId`
-    fn read_tx_id(&mut self) -> Result<TransactionId>;
+    /// Reads a [`BytesPrimitive`] implementor.
+    fn read_bytes_prim<V, const N: usize>(&mut self) -> Result<V>
+    where
+        V: BytesPrimitive<N>;
 }
 
 /// A trait to be implemented by Encoders
@@ -62,17 +55,10 @@ pub trait WriteExt {
     /// Writes a UTF-8 String
     fn write_string(&mut self, s: &str);
 
-    /// Writes an `Account Address`
-    fn write_address(&mut self, addr: &Address);
-
-    /// Writes a `Template Address`
-    fn write_template_addr(&mut self, addr: &TemplateAddr);
-
-    /// Writes a `State`
-    fn write_state(&mut self, state: &State);
-
-    /// Writes a `Transaction Id`
-    fn write_tx_id(&mut self, tx: &TransactionId);
+    /// Writes a [`BytesPrimitive`] implementor.
+    fn write_bytes_prim<V, const N: usize>(&mut self, prim: &V)
+    where
+        V: BytesPrimitive<N>;
 }
 
 impl ReadExt for Cursor<&[u8]> {
@@ -136,32 +122,12 @@ impl ReadExt for Cursor<&[u8]> {
         Ok(string)
     }
 
-    fn read_address(&mut self) -> Result<Address> {
-        let bytes = self.read_bytes(Address::len())?;
-        let addr = Address::new(bytes.as_slice());
-
-        Ok(addr)
-    }
-
-    fn read_template_addr(&mut self) -> Result<TemplateAddr> {
-        let bytes = self.read_bytes(TemplateAddr::len())?;
-        let addr = TemplateAddr::new(bytes.as_slice());
-
-        Ok(addr)
-    }
-
-    fn read_state(&mut self) -> Result<State> {
-        let bytes = self.read_bytes(State::len())?;
-        let state = State::new(bytes.as_slice());
-
-        Ok(state)
-    }
-
-    fn read_tx_id(&mut self) -> Result<TransactionId> {
-        let bytes = self.read_bytes(TransactionId::len())?;
-        let tx_id = TransactionId::new(bytes.as_slice());
-
-        Ok(tx_id)
+    fn read_bytes_prim<V, const N: usize>(&mut self) -> Result<V>
+    where
+        V: BytesPrimitive<N>,
+    {
+        let bytes = self.read_bytes(N)?;
+        Ok(V::new(bytes))
     }
 }
 
@@ -208,27 +174,10 @@ impl WriteExt for Vec<u8> {
         self.write_bytes(bytes);
     }
 
-    fn write_address(&mut self, addr: &Address) {
-        let bytes = addr.as_slice();
-
-        self.write_bytes(bytes);
-    }
-
-    fn write_template_addr(&mut self, addr: &TemplateAddr) {
-        let bytes = addr.as_slice();
-
-        self.write_bytes(bytes);
-    }
-
-    fn write_state(&mut self, state: &State) {
-        let bytes = state.as_slice();
-
-        self.write_bytes(bytes);
-    }
-
-    fn write_tx_id(&mut self, tx: &TransactionId) {
-        let bytes = tx.as_slice();
-
-        self.write_bytes(bytes);
+    fn write_bytes_prim<V, const N: usize>(&mut self, prim: &V)
+    where
+        V: BytesPrimitive<N>,
+    {
+        self.write_bytes(prim.as_ref());
     }
 }

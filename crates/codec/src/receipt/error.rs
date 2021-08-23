@@ -152,11 +152,11 @@ pub(crate) fn encode_error(err: &RuntimeError, logs: &[ReceiptLog], w: &mut impl
 }
 
 fn encode_template(template: &TemplateAddr, w: &mut impl WriteExt) {
-    w.write_template_addr(template);
+    w.write_bytes_prim(template);
 }
 
 fn encode_target(target: &Address, w: &mut impl WriteExt) {
-    w.write_address(target);
+    w.write_bytes_prim(target);
 }
 
 fn encode_func(func: &str, w: &mut impl WriteExt) {
@@ -306,11 +306,11 @@ fn decode_func(cursor: &mut Cursor<&[u8]>) -> String {
 }
 
 fn decode_template_addr(cursor: &mut Cursor<&[u8]>) -> TemplateAddr {
-    cursor.read_template_addr().unwrap()
+    cursor.read_bytes_prim().unwrap()
 }
 
 fn decode_account_addr(cursor: &mut Cursor<&[u8]>) -> Address {
-    cursor.read_address().unwrap()
+    cursor.read_bytes_prim().unwrap()
 }
 
 fn decode_msg(cursor: &mut Cursor<&[u8]>) -> String {

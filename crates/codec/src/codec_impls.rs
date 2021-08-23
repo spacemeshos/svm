@@ -29,14 +29,14 @@ impl Codec for Envelope {
     type Error = std::io::Error;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_address(self.principal());
+        w.write_bytes_prim(self.principal());
         w.write_u64_be(self.amount());
         w.write_u64_be(self.gas_limit().unwrap_or(0));
         w.write_u64_be(self.gas_fee());
     }
 
     fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
-        let principal = cursor.read_address()?;
+        let principal = cursor.read_bytes_prim()?;
         let amount = cursor.read_u64_be()?;
         let gas_limit = cursor.read_u64_be()?;
         let gas_fee = cursor.read_u64_be()?;
@@ -78,7 +78,7 @@ impl Codec for Transaction {
 
     fn encode(&self, w: &mut impl WriteExt) {
         version::encode_version(self.version, w);
-        w.write_address(self.target());
+        w.write_bytes_prim(self.target());
         w.write_string(self.func_name());
         InputData::encode(&InputData(self.verifydata.clone()), w);
         InputData::encode(&InputData(self.calldata.clone()), w);
@@ -122,15 +122,15 @@ impl Codec for Context {
     type Error = std::io::Error;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_tx_id(self.tx_id());
+        w.write_bytes_prim(self.tx_id());
         w.write_u64_be(self.layer().0);
-        w.write_state(self.state());
+        w.write_bytes_prim(self.state());
     }
 
     fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
-        let tx_id = cursor.read_tx_id()?;
+        let tx_id = cursor.read_bytes_prim()?;
         let layer = cursor.read_u64_be()?;
-        let state = cursor.read_state()?;
+        let state = cursor.read_bytes_prim()?;
 
         let context = Context::new(tx_id, Layer(layer), state);
         Ok(context)
@@ -163,7 +163,7 @@ impl Codec for SpawnAccount {
 
     fn encode(&self, w: &mut impl WriteExt) {
         version::encode_version(self.version, w);
-        w.write_template_addr(self.template_addr());
+        w.write_bytes_prim(self.template_addr());
         w.write_string(self.account_name());
         w.write_string(self.ctor_name());
         InputData(self.calldata.clone()).encode(w);
@@ -224,7 +224,7 @@ fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
 
 fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {
     cursor
-        .read_template_addr()
+        .read_bytes_prim()
         .map_err(|_| ParseError::NotEnoughBytes(Field::Address))
 }
 
@@ -250,7 +250,7 @@ fn decode_ctor_calldata(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseErro
 
 fn decode_target(cursor: &mut Cursor<&[u8]>) -> Result<Address, ParseError> {
     cursor
-        .read_address()
+        .read_bytes_prim()
         .map_err(|_| ParseError::NotEnoughBytes(Field::TargetAddr))
 }
 
