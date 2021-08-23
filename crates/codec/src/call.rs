@@ -25,11 +25,11 @@ use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a binary [`Transaction`]
 pub fn encode_call(tx: &Transaction, w: &mut Vec<u8>) {
-    encode_version(tx, w);
-    encode_target(tx, w);
-    encode_func(tx, w);
-    encode_verifydata(tx, w);
-    encode_calldata(tx, w);
+    version::encode_version(tx.version, w);
+    w.write_address(tx.target());
+    w.write_string(tx.func_name());
+    inputdata::encode_inputdata(&tx.verifydata, w);
+    inputdata::encode_inputdata(&tx.calldata, w);
 }
 
 /// Parsing a binary [`Transaction`].
@@ -52,33 +52,6 @@ pub fn decode_call(cursor: &mut Cursor<&[u8]>) -> Result<Transaction, ParseError
     };
 
     Ok(tx)
-}
-
-/// Encoders
-
-fn encode_version(tx: &Transaction, w: &mut Vec<u8>) {
-    let v = &tx.version;
-
-    version::encode_version(*v, w);
-}
-
-fn encode_target(tx: &Transaction, w: &mut Vec<u8>) {
-    w.write_address(tx.target());
-}
-
-fn encode_func(tx: &Transaction, w: &mut Vec<u8>) {
-    let func = tx.func_name();
-    w.write_string(func);
-}
-
-fn encode_verifydata(tx: &Transaction, w: &mut Vec<u8>) {
-    let verifydata = tx.verifydata();
-    inputdata::encode_inputdata(verifydata, w)
-}
-
-fn encode_calldata(tx: &Transaction, w: &mut Vec<u8>) {
-    let calldata = tx.calldata();
-    inputdata::encode_inputdata(calldata, w)
 }
 
 /// Decoders
