@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
-pub fn encode_version(version: u16, w: &mut Vec<u8>) {
+pub fn encode_version(version: u16, w: &mut impl WriteExt) {
     w.write_u16_be(version);
 }
 

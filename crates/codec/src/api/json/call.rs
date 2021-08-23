@@ -8,6 +8,7 @@ use svm_types::Transaction;
 use super::inputdata::{decode_raw_input, DecodedInputData};
 use super::serde_types::*;
 use crate::api::json::{JsonError, JsonSerdeUtils};
+use crate::Codec;
 
 /// Transforms a user-friendly `call` into an encoded form:
 ///
@@ -42,11 +43,7 @@ pub fn encode_call(json: &str) -> Result<Json, JsonError> {
 pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
     let decoded_call = DecodedCall::from_json_str(json)?;
     let tx = Transaction::from(decoded_call);
-
-    let mut buf = Vec::new();
-    crate::call::encode_call(&tx, &mut buf);
-
-    Ok(buf)
+    Ok(tx.encode_to_vec())
 }
 
 /// Given a binary [`Transaction`] wrapped inside JSON,
@@ -60,7 +57,7 @@ pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
 pub fn decode_call(json: &str) -> Result<Json, JsonError> {
     let encoded_call = EncodedData::from_json_str(json)?;
     let mut cursor = Cursor::new(&encoded_call.data.0[..]);
-    let tx = crate::call::decode_call(&mut cursor).unwrap();
+    let tx = Transaction::decode(&mut cursor).unwrap();
 
     Ok(DecodedCall::from(tx).to_json())
 }

@@ -6,7 +6,7 @@ use std::convert::TryFrom;
 use svm_runtime_ffi as api;
 use svm_runtime_ffi::{svm_byte_array, tracking};
 
-use svm_codec::receipt;
+use svm_codec::{receipt, Codec};
 use svm_runtime::testing;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
@@ -60,24 +60,20 @@ fn call_message(target: &Address, func_name: &str, calldata: &[u8]) -> svm_byte_
 }
 
 fn encode_envelope(env: &Envelope) -> svm_byte_array {
-    use svm_codec::envelope;
-
     let mut byte_array = api::svm_envelope_alloc();
 
     let mut bytes = Vec::new();
-    envelope::encode(env, &mut bytes);
+    env.encode(&mut bytes);
 
     byte_array_copy(&mut byte_array, &bytes);
     byte_array
 }
 
 fn encode_context(ctx: &Context) -> svm_byte_array {
-    use svm_codec::context;
-
     let mut byte_array = api::svm_context_alloc();
 
     let mut bytes = Vec::new();
-    context::encode(ctx, &mut bytes);
+    ctx.encode(&mut bytes);
 
     byte_array_copy(&mut byte_array, &bytes);
     byte_array

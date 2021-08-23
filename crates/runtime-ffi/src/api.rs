@@ -6,7 +6,7 @@ use std::panic::UnwindSafe;
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
 
-use svm_codec::receipt;
+use svm_codec::{receipt, Codec};
 use svm_runtime::Runtime;
 use svm_types::{Context, Envelope, Type};
 
@@ -70,20 +70,12 @@ unsafe fn into_raw_runtime<R: Runtime + 'static>(
 
 #[must_use]
 unsafe fn decode_envelope(envelope: svm_byte_array) -> std::io::Result<Envelope> {
-    use std::io::Cursor;
-    use svm_codec::envelope;
-
-    let mut cursor = Cursor::new(envelope.as_slice());
-    envelope::decode(&mut cursor)
+    Envelope::decode_bytes(envelope.as_slice())
 }
 
 #[must_use]
 unsafe fn decode_context(context: svm_byte_array) -> std::io::Result<Context> {
-    use std::io::Cursor;
-    use svm_codec::context;
-
-    let mut cursor = Cursor::new(context.as_slice());
-    context::decode(&mut cursor)
+    Context::decode_bytes(context.as_slice())
 }
 
 ///
@@ -160,9 +152,7 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 #[must_use]
 #[no_mangle]
 pub extern "C" fn svm_envelope_alloc() -> svm_byte_array {
-    use svm_codec::envelope;
-
-    let size = envelope::byte_size();
+    let size = Envelope::fixed_size().unwrap();
     svm_byte_array::with_capacity(size, ENVELOPE_TYPE)
 }
 
@@ -179,9 +169,7 @@ pub extern "C" fn svm_message_alloc(size: u32) -> svm_byte_array {
 #[must_use]
 #[no_mangle]
 pub extern "C" fn svm_context_alloc() -> svm_byte_array {
-    use svm_codec::context;
-
-    let size = context::byte_size();
+    let size = Context::fixed_size().unwrap();
     svm_byte_array::with_capacity(size, CONTEXT_TYPE)
 }
 
