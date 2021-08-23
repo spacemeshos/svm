@@ -4,7 +4,7 @@ use std::io::Cursor;
 use std::rc::Rc;
 
 use svm_codec::ParseError;
-use svm_codec::{call, spawn, template};
+use svm_codec::{template, Codec};
 use svm_gas::{resolvers, PriceResolver};
 use svm_types::{Address, SectionKind, SpawnAccount, Template, TemplateAddr, Transaction};
 
@@ -143,10 +143,7 @@ where
     /// On success returns [`Spawn Account`],
     /// On failure returns [`ParseError`].
     pub fn parse_spawn(&self, bytes: &[u8]) -> Result<SpawnAccount, ParseError> {
-        let mut cursor = Cursor::new(bytes);
-        let spawn = spawn::decode(&mut cursor)?;
-
-        Ok(spawn)
+        SpawnAccount::decode_bytes(bytes)
     }
 
     /// Parses a binary `Call Account` (a.k.a a [`Transaction`]).
@@ -154,10 +151,7 @@ where
     /// On success returns [`Transaction`],
     /// On failure returns [`ParseError`].
     pub fn parse_call(&self, bytes: &[u8]) -> Result<Transaction, ParseError> {
-        let mut cursor = Cursor::new(bytes);
-        let call = call::decode_call(&mut cursor)?;
-
-        Ok(call)
+        Transaction::decode_bytes(bytes)
     }
 
     /// Saves a [`Template`] at the given [`TemplateAddr`].

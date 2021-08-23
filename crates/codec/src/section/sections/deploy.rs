@@ -19,27 +19,11 @@ use crate::{Field, ParseError, ReadExt, WriteExt};
 
 impl SectionEncoder for DeploySection {
     fn encode(&self, w: &mut Vec<u8>) {
-        encode_tx_id(self.tx_id(), w);
-        encode_layer(self.layer(), w);
-        encode_deployer(self.deployer(), w);
-        encode_template(self.template(), w);
+        w.write_tx_id(self.tx_id());
+        w.write_u64_be(self.layer().0);
+        w.write_address(self.deployer());
+        w.write_template_addr(self.template());
     }
-}
-
-fn encode_tx_id(tx_id: &TransactionId, w: &mut Vec<u8>) {
-    w.write_tx_id(tx_id);
-}
-
-fn encode_layer(layer: Layer, w: &mut Vec<u8>) {
-    w.write_u64_be(layer.0);
-}
-
-fn encode_deployer(deployer: &Address, w: &mut Vec<u8>) {
-    w.write_address(deployer);
-}
-
-fn encode_template(template: &TemplateAddr, w: &mut Vec<u8>) {
-    w.write_template_addr(template);
 }
 
 impl SectionDecoder for DeploySection {
