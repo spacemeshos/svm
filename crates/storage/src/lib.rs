@@ -2,6 +2,7 @@
 #![deny(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 //! This crate is responsible on managing an `Account's storage.
 //!

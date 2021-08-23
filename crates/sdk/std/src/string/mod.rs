@@ -8,7 +8,8 @@ pub use traits::ToString;
 
 use crate::Vec;
 
-/// Fixed-Gas replacement for [`std::string::String`].
+/// Fixed-Gas replacement for
+/// [`std::string::String`](https://doc.rust-lang.org/std/string/struct.String.html).
 pub enum String {
     /// A String longer than 8 bytes (data is stored on the `Heap`).
     Long(Vec<u8>),

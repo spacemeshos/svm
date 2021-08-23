@@ -15,6 +15,7 @@
 #![allow(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 mod calldata;
 mod cursor;
