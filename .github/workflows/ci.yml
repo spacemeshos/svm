@@ -70,7 +70,6 @@ jobs:
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
-          profile: minimal
           toolchain: nightly
           command: build --package svm-runtime-ffi --features=default-cranelift,default-memory --no-default-features --release
           args: --${{ matrix.profile }}
