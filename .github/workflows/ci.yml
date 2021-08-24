@@ -69,11 +69,10 @@ jobs:
         run: rustup update nightly
       - name: Cargo Build
         uses: actions-rs/cargo@v1
-        working-directory: crates/runtime-ffi
         with:
           profile: minimal
           toolchain: nightly
-          command: build --features=default-cranelift,default-memory --no-default-features --release
+          command: build --package svm-runtime-ffi --features=default-cranelift,default-memory --no-default-features --release
           args: --${{ matrix.profile }}
       - name: Prepare Artifact (General)
         run: |
@@ -84,17 +83,17 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           set -e
-          mv target/${{ matrix.profile }}/libsvm.so bins/svm.so
+          mv target/${{ matrix.profile }}/libsvm_runtime_ffi.so bins/svm.so
       - name: Prepare Artifact (macOS)
         if: matrix.os == 'macos-latest'
         run: |
           set -e
-          mv target/${{ matrix.profile }}/libsvm.dylib bins/svm.dylib
+          mv target/${{ matrix.profile }}/libsvm_runtime_ffi.dylib bins/svm.dylib
       - name: Prepare Artifact (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           set -e
-          mv target/${{ matrix.profile }}/svm.dll bins/svm.dll
+          mv target/${{ matrix.profile }}/svm_runtime_ffi.dll bins/svm.dll
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
         with:
