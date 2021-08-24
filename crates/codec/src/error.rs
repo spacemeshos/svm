@@ -2,6 +2,8 @@ use thiserror::Error;
 
 use crate::Field;
 
+pub type Result<T> = std::result::Result<T, ParseError>;
+
 #[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Error)]
 pub enum ParseError {

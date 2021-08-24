@@ -32,7 +32,7 @@ pub use section::{SectionPreview, SectionsDecoder, SectionsEncoder};
 pub mod receipt;
 
 mod error;
-pub use error::ParseError;
+pub use error::{ParseError, Result};
 
 /// Ability to encode and decode items of a certain type.
 pub trait Codec: Sized {
@@ -46,10 +46,10 @@ pub trait Codec: Sized {
 
     /// Attempts to parse a binary representation of `Self` pointed at by
     /// `cursor`. Returns a [`Codec::Error`] on failure.
-    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error>;
+    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> std::result::Result<Self, Self::Error>;
 
     /// Like [`Codec::decode`], but can be used with anything resembling bytes.
-    fn decode_bytes<B>(bytes: B) -> Result<Self, Self::Error>
+    fn decode_bytes<B>(bytes: B) -> std::result::Result<Self, Self::Error>
     where
         B: AsRef<[u8]>,
     {
