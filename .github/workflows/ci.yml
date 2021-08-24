@@ -69,10 +69,11 @@ jobs:
         run: rustup update nightly
       - name: Cargo Build
         uses: actions-rs/cargo@v1
+        working-directory: crates/runtime-ffi
         with:
           profile: minimal
           toolchain: nightly
-          command: build
+          command: build --features=default-singlepass,default-memory --no-default-features --release
           args: --${{ matrix.profile }}
       - name: Prepare Artifact (General)
         run: |
