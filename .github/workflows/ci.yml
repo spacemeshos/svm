@@ -71,8 +71,8 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
-          command: build --package svm-runtime-ffi --features=default-cranelift,default-memory --no-default-features --release
-          args: --${{ matrix.profile }}
+          command: build
+          args: --${{ matrix.profile }} --package svm-runtime-ffi --features=default-cranelift,default-memory --no-default-features
       - name: Prepare Artifact (General)
         run: |
           set -e
