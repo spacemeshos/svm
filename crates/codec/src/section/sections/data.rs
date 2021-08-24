@@ -43,8 +43,6 @@
 //!
 //!
 
-use std::io::Cursor;
-
 use svm_layout::{FixedLayoutBuilder, Id, Layout, LayoutKind, RawVar};
 use svm_types::DataSection;
 
@@ -66,7 +64,7 @@ impl SectionEncoder for DataSection {
 }
 
 impl SectionDecoder for DataSection {
-    fn decode(cursor: &mut Cursor<&[u8]>) -> Result<Self, ParseError> {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError> {
         // `#Layouts`
         let layout_count = decode_layout_count(cursor)? as usize;
 
@@ -112,7 +110,7 @@ fn encode_layout(layout: &Layout, w: &mut Vec<u8>) {
     }
 }
 
-fn decode_layout(cursor: &mut Cursor<&[u8]>) -> Result<Layout, ParseError> {
+fn decode_layout(cursor: &mut impl ReadExt) -> Result<Layout, ParseError> {
     // `Layout Kind`
     let kind = decode_layout_kind(cursor)?;
 
@@ -157,7 +155,7 @@ fn encode_layout_kind(kind: LayoutKind, w: &mut Vec<u8>) {
     w.write_u16_be(raw);
 }
 
-fn decode_layout_kind(cursor: &mut Cursor<&[u8]>) -> Result<LayoutKind, ParseError> {
+fn decode_layout_kind(cursor: &mut impl ReadExt) -> Result<LayoutKind, ParseError> {
     let value = cursor.read_u16_be();
 
     if value.is_err() {
@@ -176,7 +174,7 @@ fn encode_layout_count(layout_count: usize, w: &mut Vec<u8>) {
     w.write_u16_be(layout_count as u16);
 }
 
-fn decode_layout_count(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
+fn decode_layout_count(cursor: &mut impl ReadExt) -> Result<u16, ParseError> {
     let value = cursor.read_u16_be();
 
     value.map_err(|_| ParseError::NotEnoughBytes(Field::LayoutCount))
@@ -186,7 +184,7 @@ fn encode_var_id(id: Id, w: &mut Vec<u8>) {
     w.write_u32_be(id.0)
 }
 
-fn decode_var_id(cursor: &mut Cursor<&[u8]>) -> Result<Id, ParseError> {
+fn decode_var_id(cursor: &mut impl ReadExt) -> Result<Id, ParseError> {
     match cursor.read_u32_be() {
         Ok(id) => Ok(Id(id)),
         Err(..) => Err(ParseError::NotEnoughBytes(Field::LayoutFirstVarId)),
@@ -197,7 +195,7 @@ fn encode_var_byte_size(var: &RawVar, w: &mut Vec<u8>) {
     w.write_u16_be(var.byte_size() as u16);
 }
 
-fn decode_var_byte_size(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
+fn decode_var_byte_size(cursor: &mut impl ReadExt) -> Result<u32, ParseError> {
     match cursor.read_u16_be() {
         Ok(byte_size) => Ok(byte_size as u32),
         Err(..) => Err(ParseError::NotEnoughBytes(Field::RawVarSize)),

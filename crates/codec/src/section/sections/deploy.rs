@@ -10,8 +10,6 @@
 //!
 //!
 
-use std::io::Cursor;
-
 use svm_types::{Address, DeploySection, Layer, TemplateAddr, TransactionId};
 
 use crate::section::{SectionDecoder, SectionEncoder};
@@ -27,7 +25,7 @@ impl SectionEncoder for DeploySection {
 }
 
 impl SectionDecoder for DeploySection {
-    fn decode(cursor: &mut Cursor<&[u8]>) -> Result<Self, ParseError> {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError> {
         let tx_id = decode_tx_id(cursor)?;
         let layer = decode_layer(cursor)?;
         let deployer = decode_deployer(cursor)?;
@@ -39,13 +37,13 @@ impl SectionDecoder for DeploySection {
     }
 }
 
-fn decode_tx_id(cursor: &mut Cursor<&[u8]>) -> Result<TransactionId, ParseError> {
+fn decode_tx_id(cursor: &mut impl ReadExt) -> Result<TransactionId, ParseError> {
     let value = cursor.read_bytes_prim();
 
     value.map_err(|_| ParseError::NotEnoughBytes(Field::TransactionId))
 }
 
-fn decode_layer(cursor: &mut Cursor<&[u8]>) -> Result<Layer, ParseError> {
+fn decode_layer(cursor: &mut impl ReadExt) -> Result<Layer, ParseError> {
     let layer = cursor.read_u64_be();
 
     match layer {
@@ -54,13 +52,13 @@ fn decode_layer(cursor: &mut Cursor<&[u8]>) -> Result<Layer, ParseError> {
     }
 }
 
-fn decode_deployer(cursor: &mut Cursor<&[u8]>) -> Result<Address, ParseError> {
+fn decode_deployer(cursor: &mut impl ReadExt) -> Result<Address, ParseError> {
     cursor
         .read_bytes_prim()
         .map_err(|_| ParseError::NotEnoughBytes(Field::DeployerAddr))
 }
 
-fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {
+fn decode_template(cursor: &mut impl ReadExt) -> Result<TemplateAddr, ParseError> {
     cursor
         .read_bytes_prim()
         .map_err(|_| ParseError::NotEnoughBytes(Field::TemplateAddr))

@@ -1,5 +1,3 @@
-use std::io::Cursor;
-
 use svm_types::ReceiptLog;
 
 use crate::{Field, ParseError, ReadExt, WriteExt};
@@ -36,7 +34,7 @@ pub fn encode_logs(logs: &[ReceiptLog], w: &mut impl WriteExt) {
     }
 }
 
-pub fn decode_logs(cursor: &mut Cursor<&[u8]>) -> Result<Vec<ReceiptLog>, ParseError> {
+pub fn decode_logs(cursor: &mut impl ReadExt) -> Result<Vec<ReceiptLog>, ParseError> {
     match cursor.read_byte() {
         Ok(nlogs) => {
             let mut logs = Vec::with_capacity(nlogs as usize);
@@ -52,7 +50,7 @@ pub fn decode_logs(cursor: &mut Cursor<&[u8]>) -> Result<Vec<ReceiptLog>, ParseE
     }
 }
 
-fn decode_log(cursor: &mut Cursor<&[u8]>) -> Result<ReceiptLog, ParseError> {
+fn decode_log(cursor: &mut impl ReadExt) -> Result<ReceiptLog, ParseError> {
     match cursor.read_u16_be() {
         Ok(length) => {
             let data = cursor.read_bytes(length as usize);
@@ -69,6 +67,8 @@ fn decode_log(cursor: &mut Cursor<&[u8]>) -> Result<ReceiptLog, ParseError> {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+
     use super::*;
 
     #[test]

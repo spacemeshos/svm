@@ -15,7 +15,7 @@ use crate::r#ref::RuntimeRef;
 #[cfg(feature = "default-rocksdb")]
 use crate::raw_utf8_error;
 
-use crate::{raw_error, raw_io_error, raw_validate_error, svm_result_t};
+use crate::{raw_error, svm_result_t};
 use crate::{svm_byte_array, svm_resource_iter_t, svm_resource_t, tracking};
 
 static ENVELOPE_TYPE: Type = Type::Str("Tx Envelope");
@@ -66,16 +66,6 @@ unsafe fn into_raw_runtime<R: Runtime + 'static>(
     *raw_runtime = RuntimeRef::into_raw(runtime_ptr);
 
     svm_result_t::SVM_SUCCESS
-}
-
-#[must_use]
-unsafe fn decode_envelope(envelope: svm_byte_array) -> std::io::Result<Envelope> {
-    Envelope::decode_bytes(envelope.as_slice())
-}
-
-#[must_use]
-unsafe fn decode_context(context: svm_byte_array) -> std::io::Result<Context> {
-    Context::decode_bytes(context.as_slice())
 }
 
 ///
@@ -213,7 +203,7 @@ pub unsafe extern "C" fn svm_validate_deploy(
             }
             Err(e) => {
                 error!("`svm_validate_deploy` returns `SVM_FAILURE`");
-                raw_validate_error(&e, &mut *error);
+                raw_error(&e, &mut *error);
                 svm_result_t::SVM_FAILURE
             }
         }
@@ -261,7 +251,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
             }
             Err(e) => {
                 error!("`svm_validate_spawn` returns `SVM_FAILURE`");
-                raw_validate_error(&e, &mut *error);
+                raw_error(&e, &mut *error);
                 svm_result_t::SVM_FAILURE
             }
         }
@@ -306,7 +296,7 @@ pub unsafe extern "C" fn svm_validate_call(
             }
             Err(e) => {
                 error!("`svm_validate_call` returns `SVM_FAILURE`");
-                raw_validate_error(&e, &mut *error);
+                raw_error(&e, &mut *error);
                 svm_result_t::SVM_FAILURE
             }
         }
@@ -360,15 +350,15 @@ pub unsafe extern "C" fn svm_deploy(
         let runtime = unsafe { runtime.as_mut() }.unwrap();
         let message = message.as_slice();
 
-        let envelope = decode_envelope(envelope);
+        let envelope = Envelope::decode_bytes(envelope);
         if let Err(e) = envelope {
-            raw_io_error(e, &mut *error);
+            raw_error(e, &mut *error);
             return svm_result_t::SVM_FAILURE;
         }
 
-        let context = decode_context(context);
+        let context = Context::decode_bytes(context);
         if let Err(e) = context {
-            raw_io_error(e, &mut *error);
+            raw_error(e, &mut *error);
             return svm_result_t::SVM_FAILURE;
         }
 
@@ -437,15 +427,15 @@ pub unsafe extern "C" fn svm_spawn(
         let runtime = unsafe { runtime.as_mut() }.unwrap();
         let message = message.as_slice();
 
-        let envelope = decode_envelope(envelope);
+        let envelope = Envelope::decode_bytes(envelope);
         if let Err(e) = envelope {
-            raw_io_error(e, &mut *error);
+            raw_error(e, &mut *error);
             return svm_result_t::SVM_FAILURE;
         }
 
-        let context = decode_context(context);
+        let context = Context::decode_bytes(context);
         if let Err(e) = context {
-            raw_io_error(e, &mut *error);
+            raw_error(e, &mut *error);
             return svm_result_t::SVM_FAILURE;
         }
 
@@ -519,15 +509,15 @@ pub unsafe extern "C" fn svm_verify(
         let runtime = unsafe { runtime.as_mut() }.unwrap();
         let message = message.as_slice();
 
-        let envelope = decode_envelope(envelope);
+        let envelope = Envelope::decode_bytes(envelope);
         if let Err(e) = envelope {
-            raw_io_error(e, &mut *error);
+            raw_error(e, &mut *error);
             return svm_result_t::SVM_FAILURE;
         }
 
-        let context = decode_context(context);
+        let context = Context::decode_bytes(context);
         if let Err(e) = context {
-            raw_io_error(e, &mut *error);
+            raw_error(e, &mut *error);
             return svm_result_t::SVM_FAILURE;
         }
 
@@ -597,15 +587,15 @@ pub unsafe extern "C" fn svm_call(
         let runtime = unsafe { runtime.as_mut() }.unwrap();
         let message = message.as_slice();
 
-        let envelope = decode_envelope(envelope);
+        let envelope = Envelope::decode_bytes(envelope);
         if let Err(e) = envelope {
-            raw_io_error(e, &mut *error);
+            raw_error(e, &mut *error);
             return svm_result_t::SVM_FAILURE;
         }
 
-        let context = decode_context(context);
+        let context = Context::decode_bytes(context);
         if let Err(e) = context {
-            raw_io_error(e, &mut *error);
+            raw_error(e, &mut *error);
             return svm_result_t::SVM_FAILURE;
         }
 

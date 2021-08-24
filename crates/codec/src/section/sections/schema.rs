@@ -3,7 +3,7 @@ use svm_types::SchemaSection;
 
 // use crate::r#type;
 use crate::section::{SectionDecoder, SectionEncoder};
-use crate::ParseError;
+use crate::{ParseError, ReadExt};
 // use crate::{Field, ParseError, ReadExt, WriteExt};
 
 impl SectionEncoder for SchemaSection {
@@ -29,7 +29,7 @@ impl SectionEncoder for SchemaSection {
 }
 
 impl SectionDecoder for SchemaSection {
-    fn decode(_cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, ParseError> {
+    fn decode(_cursor: &mut impl ReadExt) -> Result<Self, ParseError> {
         todo!("will be implemented in a future PR...");
     }
 }

@@ -11,7 +11,7 @@ use super::{preview, SectionPreview};
 use crate::{Field, ParseError, ReadExt};
 
 pub trait SectionDecoder: Sized {
-    fn decode(cursor: &mut Cursor<&[u8]>) -> Result<Self, ParseError>;
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError>;
 }
 
 /// Decodes a collection of [`Section`] into their native form.

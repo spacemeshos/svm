@@ -39,7 +39,7 @@ impl Codec for DeployReceipt {
         };
     }
 
-    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let ty = cursor.read_byte().unwrap();
         debug_assert_eq!(ty, TY_DEPLOY);
 

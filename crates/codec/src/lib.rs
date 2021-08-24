@@ -46,7 +46,7 @@ pub trait Codec: Sized {
 
     /// Attempts to parse a binary representation of `Self` pointed at by
     /// `cursor`. Returns a [`Codec::Error`] on failure.
-    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> std::result::Result<Self, Self::Error>;
+    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error>;
 
     /// Like [`Codec::decode`], but can be used with anything resembling bytes.
     fn decode_bytes<B>(bytes: B) -> std::result::Result<Self, Self::Error>
@@ -58,7 +58,7 @@ pub trait Codec: Sized {
 
     /// In case `Self` has a binary representation with a fixed size, this
     /// should return [`Some`] with the appropriate size; [`None`] otherwise. It
-    /// can be used in pre-allocation optimizations.
+    /// can be used for pre-allocation optimizations.
     fn fixed_size() -> Option<usize> {
         None
     }

@@ -10,12 +10,10 @@
 //!
 //!
 
-use std::io::Cursor;
-
 use svm_types::CtorsSection;
 
 use crate::section::{SectionDecoder, SectionEncoder};
-use crate::{Field, ParseError, ReadExt, WriteExt};
+use crate::{Codec, Field, ParseError, ReadExt, WriteExt};
 
 impl SectionEncoder for CtorsSection {
     fn encode(&self, w: &mut Vec<u8>) {
@@ -28,13 +26,13 @@ impl SectionEncoder for CtorsSection {
 
         // Encoding each `Ctor`
         for ctor in self.ctors().iter() {
-            w.write_string(ctor);
+            ctor.encode(w);
         }
     }
 }
 
 impl SectionDecoder for CtorsSection {
-    fn decode(cursor: &mut Cursor<&[u8]>) -> Result<Self, ParseError> {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError> {
         // Decoding each `Ctor`
         match cursor.read_byte() {
             Err(..) => Err(ParseError::NotEnoughBytes(Field::CtorsCount)),
@@ -43,7 +41,7 @@ impl SectionDecoder for CtorsSection {
                 let mut section = CtorsSection::with_capacity(count as usize);
 
                 for _ in 0..count {
-                    if let Ok(Ok(ctor)) = cursor.read_string() {
+                    if let Ok(ctor) = String::decode(cursor) {
                         section.push(ctor);
                     } else {
                         return Err(ParseError::NotEnoughBytes(Field::Ctor));

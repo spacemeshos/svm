@@ -11,7 +11,7 @@ pub(crate) use error::{decode_error, encode_error};
 
 use svm_types::{CallReceipt, DeployReceipt, Receipt, SpawnReceipt};
 
-use crate::Codec;
+use crate::{Codec, ReadExt};
 
 impl Codec for Receipt {
     type Error = std::convert::Infallible;
@@ -33,11 +33,8 @@ impl Codec for Receipt {
         }
     }
 
-    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
-        let bytes = *cursor.get_ref();
-        assert!(bytes.len() > 0);
-
-        Ok(match bytes[0] {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        Ok(match cursor.seek_byte().unwrap() {
             TY_DEPLOY => {
                 let receipt = DeployReceipt::decode(cursor).unwrap();
                 Receipt::Deploy(receipt)

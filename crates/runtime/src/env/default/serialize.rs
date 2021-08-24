@@ -1,17 +1,11 @@
 use std::collections::HashSet;
 use std::io::Cursor;
 
-use svm_codec::{ReadExt, WriteExt};
-
-use svm_codec::template;
+use svm_codec::{template, Codec, ReadExt};
 use svm_types::{Account, SectionKind, Template, TemplateAddr};
 
-use crate::env::{self, traits};
-
-use env::ExtAccount;
-
-use traits::{AccountDeserializer, AccountSerializer};
-use traits::{TemplateDeserializer, TemplateSerializer};
+use crate::env::{traits, ExtAccount};
+use traits::{AccountDeserializer, AccountSerializer, TemplateDeserializer, TemplateSerializer};
 
 /// Default serializer for an [`Account`]
 pub struct DefaultAccountSerializer;
@@ -23,9 +17,9 @@ impl AccountSerializer for DefaultAccountSerializer {
     fn serialize(account: &ExtAccount) -> Vec<u8> {
         let mut w = Vec::new();
 
-        w.write_bytes_prim(account.template_addr());
-        w.write_string(account.name());
-        w.write_bytes_prim(account.spawner());
+        account.template_addr().0.encode(&mut w);
+        account.name().to_string().encode(&mut w);
+        account.spawner().0.encode(&mut w);
 
         w
     }
@@ -33,11 +27,11 @@ impl AccountSerializer for DefaultAccountSerializer {
 
 impl AccountDeserializer for DefaultAccountDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<ExtAccount> {
-        let mut cursor = Cursor::new(bytes);
+        let mut reader = Cursor::new(bytes);
 
-        let template = cursor.read_bytes_prim().ok()?;
-        let name = cursor.read_string().ok()?.ok()?;
-        let spawner = cursor.read_bytes_prim().ok()?;
+        let template = reader.read_bytes_prim().ok()?;
+        let name = String::decode(&mut reader).ok()?;
+        let spawner = reader.read_bytes_prim().ok()?;
 
         let base = Account::new(template, name);
         let account = ExtAccount::new(&base, &spawner);

@@ -183,7 +183,7 @@ fn svm_runtime_success() {
 
         // 3) `Spawn Account`
         let mut calldata = svm_sdk::Vec::with_capacity(1000);
-        10u32.encode(&mut calldata);
+        Encoder::encode(&10u32, &mut calldata);
 
         let spawn_msg = spawn_message(&template_addr, "My Account", "initialize", &calldata);
         let spawner = Address::repeat(0xCD);
@@ -212,7 +212,7 @@ fn svm_runtime_success() {
 
         // 4) `Call Account`
         let mut calldata = svm_sdk::Vec::with_capacity(1000);
-        5u32.encode(&mut calldata);
+        Encoder::encode(&5u32, &mut calldata);
 
         let call_msg = call_message(&target, "add", &calldata);
         let principal = Address::repeat(0xEF);

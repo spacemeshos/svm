@@ -1,6 +1,4 @@
-use std::io::{Cursor, Result};
-
-use crate::{ReadExt, WriteExt};
+use crate::{ReadExt, Result, WriteExt};
 
 pub(crate) fn encode(returndata: &[u8], w: &mut impl WriteExt) {
     let byte_size = returndata.len();
@@ -10,8 +8,8 @@ pub(crate) fn encode(returndata: &[u8], w: &mut impl WriteExt) {
     w.write_bytes(returndata);
 }
 
-pub(crate) fn decode(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>> {
-    let byte_size = cursor.read_u16_be()?;
+pub(crate) fn decode(r: &mut impl ReadExt) -> Result<Vec<u8>> {
+    let byte_size = r.read_u16_be()?;
 
-    cursor.read_bytes(byte_size as usize)
+    r.read_bytes(byte_size as usize)
 }

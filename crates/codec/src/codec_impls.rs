@@ -1,8 +1,6 @@
-use std::io::Cursor;
+use std::convert::TryInto;
 
-use svm_types::{
-    Account, Address, Context, Envelope, Gas, Layer, SpawnAccount, TemplateAddr, Transaction,
-};
+use svm_types::{Account, Context, Envelope, Gas, Layer, SpawnAccount, Transaction};
 
 use crate::version;
 use crate::{Codec, Field, ParseError, ReadExt, WriteExt};
@@ -26,26 +24,20 @@ pub struct InputData(pub Vec<u8>);
 ///
 /// ```
 impl Codec for Envelope {
-    type Error = std::io::Error;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_bytes_prim(self.principal());
-        w.write_u64_be(self.amount());
-        w.write_u64_be(self.gas_limit().unwrap_or(0));
-        w.write_u64_be(self.gas_fee());
+        self.principal().0.encode(w);
+        self.amount().encode(w);
+        self.gas_limit().encode(w);
+        self.gas_fee().encode(w);
     }
 
-    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let principal = cursor.read_bytes_prim()?;
-        let amount = cursor.read_u64_be()?;
-        let gas_limit = cursor.read_u64_be()?;
-        let gas_fee = cursor.read_u64_be()?;
-
-        let gas_limit = if gas_limit > 0 {
-            Gas::with(gas_limit)
-        } else {
-            Gas::new()
-        };
+        let amount = u64::decode(cursor)?;
+        let gas_limit = Gas::decode(cursor)?;
+        let gas_fee = u64::decode(cursor)?;
 
         let envelope = Envelope::new(principal, amount, gas_limit, gas_fee);
         Ok(envelope)
@@ -53,6 +45,22 @@ impl Codec for Envelope {
 
     fn fixed_size() -> Option<usize> {
         Some(20 + 8 + 8 + 8)
+    }
+}
+
+impl<const N: usize> Codec for [u8; N] {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        w.write_bytes(&self[..])
+    }
+
+    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        Ok((&cursor.read_bytes(N)?[..]).try_into().unwrap())
+    }
+
+    fn fixed_size() -> Option<usize> {
+        Some(N)
     }
 }
 
@@ -77,19 +85,19 @@ impl Codec for Transaction {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        version::encode_version(self.version, w);
-        w.write_bytes_prim(self.target());
-        w.write_string(self.func_name());
-        InputData::encode(&InputData(self.verifydata.clone()), w);
-        InputData::encode(&InputData(self.calldata.clone()), w);
+        self.version.encode(w);
+        self.target().0.encode(w);
+        self.func_name().to_string().encode(w);
+        InputData(self.verifydata.clone()).encode(w);
+        InputData(self.calldata.clone()).encode(w);
     }
 
-    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
-        let version = decode_version(cursor)?;
-        let target = decode_target(cursor)?;
-        let func_name = decode_func(cursor)?;
-        let verifydata = InputData::decode(cursor)?.0.to_vec();
-        let calldata = InputData::decode(cursor)?.0.to_vec();
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        let version = u16::decode(reader)?;
+        let target = <[u8; 20]>::decode(reader)?.into();
+        let func_name = String::decode(reader)?;
+        let verifydata = InputData::decode(reader)?.0.to_vec();
+        let calldata = InputData::decode(reader)?.0.to_vec();
 
         let tx = Transaction {
             version,
@@ -119,18 +127,18 @@ impl Codec for Transaction {
 ///
 /// ```
 impl Codec for Context {
-    type Error = std::io::Error;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_bytes_prim(self.tx_id());
-        w.write_u64_be(self.layer().0);
-        w.write_bytes_prim(self.state());
+        self.tx_id().0.encode(w);
+        self.layer().0.encode(w);
+        self.state().0.encode(w);
     }
 
-    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
-        let tx_id = cursor.read_bytes_prim()?;
-        let layer = cursor.read_u64_be()?;
-        let state = cursor.read_bytes_prim()?;
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        let tx_id = <[u8; 32]>::decode(cursor)?.into();
+        let layer = u64::decode(cursor)?;
+        let state = <[u8; 32]>::decode(cursor)?.into();
 
         let context = Context::new(tx_id, Layer(layer), state);
         Ok(context)
@@ -162,19 +170,19 @@ impl Codec for SpawnAccount {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        version::encode_version(self.version, w);
-        w.write_bytes_prim(self.template_addr());
-        w.write_string(self.account_name());
-        w.write_string(self.ctor_name());
+        self.version.encode(w);
+        self.template_addr().0.encode(w);
+        self.account_name().to_string().encode(w);
+        self.ctor_name().to_string().encode(w);
         InputData(self.calldata.clone()).encode(w);
     }
 
-    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, Self::Error> {
-        let version = decode_version(cursor)?;
-        let template_addr = decode_template(cursor)?;
-        let name = decode_name(cursor)?;
-        let ctor_name = decode_ctor(cursor)?;
-        let calldata = decode_ctor_calldata(cursor)?;
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        let version = version::decode_version(reader)?;
+        let template_addr = reader.read_bytes_prim()?;
+        let name = String::decode(reader)?;
+        let ctor_name = String::decode(reader)?;
+        let calldata = decode_ctor_calldata(reader)?;
 
         Ok(SpawnAccount {
             version,
@@ -200,13 +208,13 @@ impl Codec for InputData {
         w.write_bytes(&self.0[..]);
     }
 
-    fn decode(cursor: &mut Cursor<&[u8]>) -> Result<Self, ParseError> {
-        match cursor.read_byte() {
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, ParseError> {
+        match reader.read_byte() {
             Err(..) => Err(ParseError::NotEnoughBytes(Field::InputDataLength)),
             Ok(byte) => {
                 let length = byte as usize;
 
-                cursor
+                reader
                     .read_bytes(length)
                     .map(|x| Self(x))
                     .map_err(|_| ParseError::NotEnoughBytes(Field::InputData))
@@ -215,51 +223,101 @@ impl Codec for InputData {
     }
 }
 
+impl Codec for String {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        w.write_byte(self.as_bytes().len().try_into().unwrap());
+        w.write_bytes(self.as_bytes());
+    }
+
+    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        let len = reader.read_byte()? as usize;
+        let bytes = reader.read_bytes(len)?;
+
+        Ok(String::from_utf8(bytes.to_vec()).map_err(|_| ParseError::Other)?)
+    }
+}
+
+impl Codec for u16 {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        w.write_u16_be(*self);
+    }
+
+    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        reader.read_u16_be()
+    }
+}
+
+impl Codec for u32 {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        w.write_u32_be(*self);
+    }
+
+    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        reader.read_u32_be()
+    }
+}
+
+impl Codec for u64 {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        w.write_u64_be(*self);
+    }
+
+    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        reader.read_u64_be()
+    }
+}
+
+impl Codec for bool {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        w.write_bool(*self);
+    }
+
+    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        reader.read_bool()
+    }
+}
+
+impl<T> Codec for Vec<T>
+where
+    T: Codec<Error = ParseError>,
+{
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        assert!(self.len() <= u16::MAX as usize);
+        w.write_u16_be(self.len() as u16);
+
+        for elem in self {
+            elem.encode(w);
+        }
+    }
+
+    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        let len = u16::decode(reader)?;
+        let mut vec = Vec::with_capacity(len as usize);
+
+        for _ in 0..len {
+            vec.push(T::decode(reader)?);
+        }
+
+        Ok(vec)
+    }
+}
+
 /// Decoders
 
-#[inline]
-fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
-    version::decode_version(cursor)
-}
-
-fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {
-    cursor
-        .read_bytes_prim()
-        .map_err(|_| ParseError::NotEnoughBytes(Field::Address))
-}
-
-fn decode_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    match cursor.read_string() {
-        Ok(Ok(name)) => Ok(name),
-        Ok(Err(..)) => Err(ParseError::InvalidUTF8String(Field::Name)),
-        Err(..) => Err(ParseError::NotEnoughBytes(Field::Name)),
-    }
-}
-
-fn decode_ctor(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    match cursor.read_string() {
-        Ok(Ok(ctor)) => Ok(ctor),
-        Ok(Err(..)) => Err(ParseError::InvalidUTF8String(Field::Ctor)),
-        Err(..) => Err(ParseError::NotEnoughBytes(Field::Ctor)),
-    }
-}
-
-fn decode_ctor_calldata(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
+fn decode_ctor_calldata(cursor: &mut impl ReadExt) -> Result<Vec<u8>, ParseError> {
     InputData::decode(cursor).map(|x| x.0)
-}
-
-fn decode_target(cursor: &mut Cursor<&[u8]>) -> Result<Address, ParseError> {
-    cursor
-        .read_bytes_prim()
-        .map_err(|_| ParseError::NotEnoughBytes(Field::TargetAddr))
-}
-
-fn decode_func(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    match cursor.read_string() {
-        Ok(Ok(func)) => Ok(func),
-        Ok(Err(..)) => Err(ParseError::InvalidUTF8String(Field::Function)),
-        Err(..) => Err(ParseError::NotEnoughBytes(Field::Function)),
-    }
 }
 
 #[cfg(test)]

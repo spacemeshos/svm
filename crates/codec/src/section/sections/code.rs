@@ -10,8 +10,6 @@
 //!
 //!
 
-use std::io::Cursor;
-
 use svm_types::{CodeKind, CodeSection, GasMode};
 
 use crate::section::{SectionDecoder, SectionEncoder};
@@ -47,7 +45,7 @@ impl SectionEncoder for CodeSection {
 }
 
 impl SectionDecoder for CodeSection {
-    fn decode(cursor: &mut Cursor<&[u8]>) -> Result<Self, crate::ParseError> {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, crate::ParseError> {
         // `Code Kind`
         let kind = decode_code_kind(cursor)?;
 
@@ -87,7 +85,7 @@ fn encode_code_kind(kind: CodeKind, w: &mut Vec<u8>) {
     w.write_u16_be(raw);
 }
 
-fn decode_code_kind(cursor: &mut Cursor<&[u8]>) -> Result<CodeKind, ParseError> {
+fn decode_code_kind(cursor: &mut impl ReadExt) -> Result<CodeKind, ParseError> {
     let value = cursor.read_u16_be();
 
     if value.is_err() {
@@ -104,7 +102,7 @@ fn encode_code_flags(flags: u64, w: &mut Vec<u8>) {
     w.write_u64_be(flags);
 }
 
-fn decode_code_flags(cursor: &mut Cursor<&[u8]>) -> Result<u64, ParseError> {
+fn decode_code_flags(cursor: &mut impl ReadExt) -> Result<u64, ParseError> {
     let value = cursor.read_u64_be();
 
     value.map_err(|_| ParseError::NotEnoughBytes(Field::CodeFlags))
@@ -121,7 +119,7 @@ fn encode_svm_version(svm_ver: u32, w: &mut Vec<u8>) {
     w.write_u32_be(svm_ver);
 }
 
-fn decode_gas_mode(cursor: &mut Cursor<&[u8]>) -> Result<GasMode, ParseError> {
+fn decode_gas_mode(cursor: &mut impl ReadExt) -> Result<GasMode, ParseError> {
     let value = cursor.read_u64_be();
 
     if value.is_err() {
@@ -134,7 +132,7 @@ fn decode_gas_mode(cursor: &mut Cursor<&[u8]>) -> Result<GasMode, ParseError> {
     }
 }
 
-fn decode_svm_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
+fn decode_svm_version(cursor: &mut impl ReadExt) -> Result<u32, ParseError> {
     let value = cursor.read_u32_be();
 
     value.map_err(|_| ParseError::NotEnoughBytes(Field::SvmVersion))

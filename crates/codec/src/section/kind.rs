@@ -24,7 +24,7 @@ pub fn encode(kind: SectionKind, w: &mut Vec<u8>) {
     w.write_u16_be(raw);
 }
 
-pub fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<SectionKind, ParseError> {
+pub fn decode(cursor: &mut impl ReadExt) -> Result<SectionKind, ParseError> {
     let value = cursor.read_u16_be();
 
     if value.is_err() {
