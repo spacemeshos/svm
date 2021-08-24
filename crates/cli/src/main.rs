@@ -3,6 +3,7 @@
 //! ABI.
 
 #![allow(unused)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 mod subcmd_craft_deploy;
 mod subcmd_tx;

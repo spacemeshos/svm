@@ -5,6 +5,7 @@
 #![deny(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
+#![deny(rustdoc::broken_intra_doc_links)]
 #![feature(const_type_id)]
 #![feature(const_type_name)]
 #![feature(vec_into_raw_parts)]

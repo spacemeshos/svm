@@ -16,11 +16,12 @@
 //! By introducing this crate we have full control of the emitted Wasm and we can cherry-pick only features that are relevant for us.
 
 #![no_std]
-#![feature(core_intrinsics)]
 #![deny(missing_docs)]
 #![deny(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
+#![deny(rustdoc::broken_intra_doc_links)]
+#![feature(core_intrinsics)]
 
 mod log;
 pub use log::log;

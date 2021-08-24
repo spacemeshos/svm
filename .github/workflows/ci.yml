@@ -140,6 +140,12 @@ jobs:
           toolchain: nightly
           command: test
           args: --all --features=default-cranelift,default-memory --no-default-features -- --nocapture
+          components: rustdoc
+      - name: Run `cargo doc`
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --all
   wasm_codec:
     runs-on: macos-latest
     strategy:

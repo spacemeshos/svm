@@ -2,6 +2,7 @@
 #![deny(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 //! The `svm-kv` crate is responsible on providing different implementations for the `KVStore` trait.
 

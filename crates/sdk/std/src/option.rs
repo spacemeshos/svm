@@ -2,7 +2,8 @@ use core::cmp::{Eq, PartialEq};
 
 use crate::Result;
 
-/// Fixed-Gas replacement for [`std::option::Option`].
+/// Fixed-Gas replacement for
+/// [`std::option::Option`](https://doc.rust-lang.org/std/option/enum.Option.html).
 pub enum Option<T> {
     /// Represents Missing `value`
     None,
