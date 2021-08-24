@@ -73,7 +73,7 @@ jobs:
         with:
           profile: minimal
           toolchain: nightly
-          command: build --features=default-singlepass,default-memory --no-default-features --release
+          command: build --features=default-cranelift,default-memory --no-default-features --release
           args: --${{ matrix.profile }}
       - name: Prepare Artifact (General)
         run: |
