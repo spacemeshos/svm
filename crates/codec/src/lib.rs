@@ -86,3 +86,16 @@ where
 
     assert_eq!(item, decoded);
 }
+
+#[cfg(test)]
+fn test_codec_bool<T, E>(item: T) -> bool
+where
+    T: Codec<Error = E> + std::fmt::Debug + PartialEq,
+    E: std::fmt::Debug,
+{
+    let encoded = item.encode_to_vec();
+
+    let decoded = T::decode_bytes(encoded).unwrap();
+
+    item == decoded
+}

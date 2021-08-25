@@ -49,7 +49,7 @@ use std::ops::{Range, RangeFrom};
 /// If for the `capacity` of the `Data` will be bigger - it will also increase
 /// the amount of allocated data.
 #[derive(Debug, PartialEq)]
-pub struct Buffer(Vec<u8>);
+pub struct Buffer(Option<Vec<u8>>);
 
 impl Buffer {
     const LEN: Range<usize> = 0..4;
@@ -62,9 +62,9 @@ impl Buffer {
     const ERR_MARKER: u8 = 0;
 
     pub fn alloc(len: u32) -> Self {
-        let mut buf = Self(vec![0; len as usize + Self::HEADER_SIZE]);
+        let mut buf = Self(Some(vec![0; len as usize + Self::HEADER_SIZE]));
 
-        buf.set_capacity((buf.0.capacity() - Self::HEADER_SIZE) as u32);
+        buf.set_capacity((buf.vec().capacity() - Self::HEADER_SIZE) as u32);
         buf.set_len(len);
 
         buf
@@ -91,67 +91,78 @@ impl Buffer {
         buf
     }
 
-    pub fn free(self) {
-        let _ = self.0;
+    pub fn free(mut self) {
+        let _ = self.0.take();
     }
 
     pub fn offset(&self) -> usize {
-        self.0.as_ptr() as usize
+        self.vec().as_ptr() as usize
     }
 
     pub unsafe fn from_offset(offset: usize) -> Self {
         let ptr = offset as *mut u8;
-        let header = Self(Vec::from_raw_parts(
+        let header = Self(Some(Vec::from_raw_parts(
             ptr,
             Self::HEADER_SIZE,
             Self::HEADER_SIZE,
-        ));
+        )));
 
-        Self(Vec::from_raw_parts(
+        Self(Some(Vec::from_raw_parts(
             ptr,
             header.len() as usize + Self::HEADER_SIZE,
             header.capacity() as usize + Self::HEADER_SIZE,
-        ))
+        )))
+    }
+
+    fn vec(&self) -> &Vec<u8> {
+        self.0.as_ref().unwrap()
+    }
+
+    fn vec_mut(&mut self) -> &mut Vec<u8> {
+        self.0.as_mut().unwrap()
     }
 
     pub fn len(&self) -> u32 {
-        u32::from_be_bytes((&self.0[Self::LEN]).try_into().unwrap())
+        u32::from_be_bytes((&self.vec()[Self::LEN]).try_into().unwrap())
     }
 
     pub fn capacity(&self) -> u32 {
-        u32::from_be_bytes((&self.0[Self::CAPACITY]).try_into().unwrap())
+        u32::from_be_bytes((&self.vec()[Self::CAPACITY]).try_into().unwrap())
     }
 
     pub fn set_len(&mut self, len: u32) {
         assert!(len <= self.capacity());
 
-        self.0[Self::LEN].clone_from_slice(&len.to_be_bytes());
+        self.vec_mut()[Self::LEN].clone_from_slice(&len.to_be_bytes());
     }
 
     pub fn set_capacity(&mut self, capacity: u32) {
         assert!(capacity >= self.len());
-        assert!(capacity as usize <= self.0.len() - Self::HEADER_SIZE);
+        assert!(capacity as usize <= self.vec().len() - Self::HEADER_SIZE);
 
-        self.0[Self::CAPACITY].clone_from_slice(&capacity.to_be_bytes());
+        self.vec_mut()[Self::CAPACITY].clone_from_slice(&capacity.to_be_bytes());
     }
 }
 
 impl AsRef<[u8]> for Buffer {
     fn as_ref(&self) -> &[u8] {
-        &self.0[Self::DATA]
+        &self.vec()[Self::DATA]
     }
 }
 
 impl AsMut<[u8]> for Buffer {
     fn as_mut(&mut self) -> &mut [u8] {
-        &mut self.0[Self::DATA]
+        &mut self.vec_mut()[Self::DATA]
     }
 }
 
 /// Leaking memory is the default behavior. Freeing is explicit via
 /// [`Buffer::free()`].
 impl Drop for Buffer {
-    fn drop(&mut self) {}
+    fn drop(&mut self) {
+        // https://doc.rust-lang.org/nomicon/destructors.html
+        self.0.take().unwrap().leak();
+    }
 }
 
 #[cfg(test)]
@@ -167,8 +178,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
-    fn excessive_len_of_new_buf() {
+    fn u32_max_len() {
         Buffer::alloc(u32::MAX);
     }
 

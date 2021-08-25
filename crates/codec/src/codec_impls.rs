@@ -99,15 +99,13 @@ impl Codec for Transaction {
         let verifydata = InputData::decode(reader)?.0.to_vec();
         let calldata = InputData::decode(reader)?.0.to_vec();
 
-        let tx = Transaction {
+        Ok(Transaction {
             version,
             target,
             func_name,
             verifydata,
             calldata,
-        };
-
-        Ok(tx)
+        })
     }
 }
 
@@ -227,7 +225,7 @@ impl Codec for String {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_byte(self.as_bytes().len().try_into().unwrap());
+        w.write_byte(self.as_bytes().len() as u8);
         w.write_bytes(self.as_bytes());
     }
 
@@ -322,10 +320,32 @@ fn decode_ctor_calldata(cursor: &mut impl ReadExt) -> Result<Vec<u8>, ParseError
 
 #[cfg(test)]
 mod tests {
+    use quickcheck_macros::quickcheck;
+
     use svm_types::{Address, BytesPrimitive, TemplateAddr};
 
     use super::*;
-    use crate::test_codec;
+    use crate::{test_codec, test_codec_bool};
+
+    #[quickcheck]
+    fn encode_decode_bool(b: bool) -> bool {
+        test_codec_bool(b)
+    }
+
+    #[quickcheck]
+    fn encode_decode_u16(n: u16) -> bool {
+        test_codec_bool(n)
+    }
+
+    #[quickcheck]
+    fn encode_decode_u32(n: u32) -> bool {
+        test_codec_bool(n)
+    }
+
+    #[quickcheck]
+    fn encode_decode_u64(n: u64) -> bool {
+        test_codec_bool(n)
+    }
 
     #[test]
     fn encode_decode_call() {

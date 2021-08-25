@@ -30,3 +30,5 @@ toml = "0.5"
 
 [dev-dependencies]
 maplit = "1.0.2"
+quickcheck = "1"
+quickcheck_macros = "1"
