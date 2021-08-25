@@ -1,19 +1,10 @@
 //! WASM API
 
-mod call;
-mod deploy;
 mod error;
-mod inputdata;
-mod receipt;
-mod spawn;
 
-pub use call::{decode_call, encode_call};
-pub use deploy::encode_deploy;
 pub use error::{error_as_string, into_error_buffer};
-pub use inputdata::{decode_inputdata, encode_inputdata};
-pub use receipt::decode_receipt;
-pub use spawn::{decode_spawn, encode_spawn};
 
+use crate::api;
 use crate::api::json::JsonError;
 
 const HEADER_LEN_OFF: usize = 0;
@@ -123,14 +114,12 @@ fn write_header_u32(buf: *mut u8, n: u32, off: usize) {
 
 #[inline]
 fn read_header_u32(offset: usize, off: usize) -> u32 {
-    unsafe {
-        let offset = offset as *const u8;
-        let slice = std::slice::from_raw_parts(offset.add(off), 4);
+    let offset = offset as *const u8;
+    let slice = unsafe { std::slice::from_raw_parts(offset.add(off), 4) };
 
-        let bytes: [u8; 4] = [slice[0], slice[1], slice[2], slice[3]];
+    let bytes: [u8; 4] = [slice[0], slice[1], slice[2], slice[3]];
 
-        u32::from_be_bytes(bytes)
-    }
+    u32::from_be_bytes(bytes)
 }
 
 /// Given a WASM buffer memory offset in `offset` parameter,
@@ -217,9 +206,104 @@ where
     Ok(offset)
 }
 
+pub(crate) fn wasm_decode<F>(offset: usize, decoder: F) -> Result<usize, JsonError>
+where
+    F: Fn(&str) -> Result<serde_json::Value, JsonError>,
+{
+    wasm_buf_apply(offset, |json: &str| {
+        let json = decoder(json)?;
+
+        Ok(api::json::to_bytes(&json))
+    })
+}
+
+/// Decodes a binary Receipt given as an offset to a Wasm buffer,
+/// and then returns an offset to a new Wasm buffer holding the decoded Receipt
+/// in a JSON format.
+pub fn decode_receipt(offset: usize) -> Result<usize, JsonError> {
+    wasm_decode(offset, api::json::decode_receipt)
+}
+
+/// Given an offset to a Wasm buffer holding the data to be encoded,
+/// encodes it and returns an offset to the encoded binary `Input Data` (wrapped within a JSON).
+pub(crate) fn encode_inputdata(offset: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(offset, |json: &str| {
+        let json = api::json::encode_inputdata(json)?;
+
+        Ok(api::json::to_bytes(&json))
+    })
+}
+
+/// Given an offset to a Wasm buffer holding a binary `Input Data`,
+/// decodes it and returns an offset to be decoded `Input Data` (wrapped within a JSON)
+pub(crate) fn decode_inputdata(offset: usize) -> Result<usize, JsonError> {
+    wasm_decode(offset, api::json::decode_inputdata)
+}
+
+/// Encodes a `Spawn Account` JSON input into SVM binary format.
+/// The JSON input is passed by giving WASM memory start address (`offset` parameter).
+///
+/// Returns an offset to a Wasm buffer holding the encoded transaction (wrapped within a JSON)
+pub fn encode_spawn(offset: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(offset, api::json::encode_spawn)
+}
+
+/// Decodes a binary `Spawn Account` transaction given as a Wasm buffer (the `offset` parameter),
+///
+/// and returns a new Wasm buffer holding the decoded transaction (wrapped with a JSON).
+pub fn decode_spawn(offset: usize) -> Result<usize, JsonError> {
+    wasm_decode(offset, api::json::decode_spawn)
+}
+
+/// Encodes a `Deploy Template` json input into SVM a binary format.
+/// The json input is passed by giving WASM memory start address (`ptr` parameter).
+///
+/// Returns a pointer to a `transaction buffer`.
+///
+/// See also: `alloc` and `free`
+pub fn encode_deploy(ptr: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(ptr, api::json::deploy_template)
+}
+
+/// Encodes an `Call Account` JSON into SVM binary format.
+/// The JSON input is passed by giving WASM memory start address (`ptr` parameter).
+///
+/// Returns a pointer to a `transaction buffer`.
+///
+/// See also: `alloc` and `free`
+///
+pub fn encode_call(offset: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(offset, |json| api::json::encode_call_raw(&json.to_string()))
+}
+
+/// Decodes a `Call Account` transaction into a JSON,
+/// stores that JSON content into a new Wasm Buffer,
+/// and finally returns that Wasm buffer offset
+pub fn decode_call(offset: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(offset, |json: &str| {
+        let json = api::json::decode_call(json)?;
+
+        Ok(api::json::to_bytes(&json))
+    })
+}
+
 #[cfg(test)]
 mod test {
+    use serde_json::Value as Json;
+    use serde_json::{json, Value};
+
+    use std::io::Cursor;
+
+    use svm_layout::Layout;
+    use svm_types::{
+        Address, BytesPrimitive, CodeKind, CodeSection, CtorsSection, DataSection, Gas, GasMode,
+        HeaderSection, SpawnReceipt, State, Template,
+    };
+
     use super::*;
+    use crate::api::json::serde_types::HexBlob;
+    use crate::api::wasm::{free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER};
+    use crate::{template, Codec};
 
     fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
         let buf: &mut [u8] = wasm_buffer_mut(ptr);
@@ -228,13 +312,13 @@ mod test {
         // asserting there is no overflow
         assert!(offset + data.len() - 1 < len as usize);
 
-        unsafe {
+        {
             let src = data.as_ptr();
 
             let dst = buf.as_mut_ptr();
-            let dst = dst.add(HEADER_SIZE).add(offset);
+            let dst = unsafe { dst.add(HEADER_SIZE).add(offset) };
 
-            std::ptr::copy(src, dst, data.len());
+            unsafe { std::ptr::copy(src, dst, data.len()) };
         }
     }
 
@@ -256,5 +340,340 @@ mod test {
 
         // freeing the buffer
         free(buf_offset);
+    }
+
+    #[test]
+    fn wasm_decode_receipt_valid() {
+        let account = Address::repeat(0x10);
+        let state = State::repeat(0xA0);
+        let logs = Vec::new();
+
+        let receipt = SpawnReceipt {
+            version: 0,
+            success: true,
+            error: None,
+            account_addr: Some(account.into()),
+            init_state: Some(state),
+            returndata: Some(vec![0x10, 0x20]),
+            gas_used: Gas::with(10),
+            logs,
+        };
+
+        let bytes = receipt.encode_to_vec();
+        let data = HexBlob(&bytes);
+        let json = json!({ "data": data });
+        let json = serde_json::to_string(&json).unwrap();
+
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let receipt_buf = decode_receipt(json_buf).unwrap();
+
+        let data = wasm_buffer_data(receipt_buf);
+        assert_eq!(data[0], BUF_OK_MARKER);
+
+        let json: Value = serde_json::from_slice(&data[1..]).unwrap();
+
+        assert_eq!(
+            json,
+            json!({
+                "success": true,
+                "type": "spawn-account",
+                "account": "1010101010101010101010101010101010101010",
+                "gas_used": 10,
+                "returndata": "1020",
+                "state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
+                "logs": []
+            })
+        );
+
+        free(json_buf);
+        free(receipt_buf);
+    }
+
+    fn wasm_buf_as_json(buf_ptr: usize) -> Json {
+        let data = wasm_buffer_data(buf_ptr);
+        assert_eq!(data[0], BUF_OK_MARKER);
+
+        let s = unsafe { String::from_utf8_unchecked(data[1..].to_vec()) };
+        let json: Json = serde_json::from_str(&s).unwrap();
+
+        json
+    }
+
+    #[test]
+    fn wasm_encode_inputdata_valid() {
+        let json = r#"{
+          "abi": ["i32", "address"],
+          "data": [10, "102030405060708090A011121314151617181920"]
+        }"#;
+
+        // encode
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let inputdata = encode_inputdata(json_buf).unwrap();
+        let data = wasm_buffer_data(inputdata);
+        assert_eq!(data[0], BUF_OK_MARKER);
+
+        // decode
+        let data_buf = to_wasm_buffer(&data[1..]);
+        let res_buf = decode_inputdata(data_buf).unwrap();
+
+        assert_eq!(
+            wasm_buf_as_json(res_buf),
+            json!({
+              "abi": ["i32", "address"],
+              "data": [10, "102030405060708090A011121314151617181920"]
+            })
+        );
+
+        free(json_buf);
+        free(inputdata);
+        free(data_buf);
+        free(res_buf);
+    }
+
+    #[test]
+    fn wasm_encode_inputdata_invalid_json() {
+        let json = "{";
+
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let error_buf = encode_inputdata(json_buf).unwrap();
+
+        let error = unsafe { error_as_string(error_buf) };
+
+        assert_eq!(error, "The given JSON is syntactically invalid due to EOF.");
+
+        free(json_buf);
+        free(error_buf);
+    }
+
+    #[test]
+    fn wasm_decode_inputdata_invalid_json() {
+        let json = "{";
+
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let error_buf = decode_inputdata(json_buf).unwrap();
+
+        let error = unsafe { error_as_string(error_buf) };
+
+        assert_eq!(error, "The given JSON is syntactically invalid due to EOF.");
+
+        free(json_buf);
+        free(error_buf);
+    }
+
+    #[test]
+    fn wasm_spawn_valid() {
+        let template_addr = "1122334455667788990011223344556677889900";
+
+        let calldata = api::json::encode_inputdata(
+            &json!({
+                "abi": ["i32", "i64"],
+                "data": [10, 20]
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let json = json!({
+          "version": 1,
+          "template": template_addr,
+          "name": "My Account",
+          "ctor_name": "initialize",
+          "calldata": calldata["data"],
+        });
+
+        let json = serde_json::to_string(&json).unwrap();
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let tx_buf = encode_spawn(json_buf).unwrap();
+        let data = wasm_buffer_data(tx_buf);
+        assert_eq!(data[0], BUF_OK_MARKER);
+
+        let data = HexBlob(&data[1..]);
+        let json = json!({ "data": data });
+        let json = serde_json::to_string(&json).unwrap();
+
+        free(json_buf);
+        let json_buf = to_wasm_buffer(json.as_bytes());
+
+        free(tx_buf);
+        let tx_buf = decode_spawn(json_buf).unwrap();
+
+        let data = wasm_buffer_data(tx_buf);
+        assert_eq!(data[0], BUF_OK_MARKER);
+
+        let json: Value = serde_json::from_slice(&data[1..]).unwrap();
+
+        assert_eq!(
+            json,
+            json!({
+                "version": 1,
+                "template": template_addr,
+                "name": "My Account",
+                "ctor_name": "initialize",
+                "calldata": {
+                    "abi": ["i32", "i64"],
+                    "data": [10, 20],
+                }
+            })
+        );
+
+        free(json_buf);
+        free(tx_buf);
+    }
+
+    #[test]
+    fn wasm_spawn_invalid() {
+        let json = "{";
+
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let error_buf = encode_spawn(json_buf).unwrap();
+
+        let error = unsafe { error_as_string(error_buf) };
+
+        assert_eq!(error, "The given JSON is syntactically invalid due to EOF.");
+
+        free(json_buf);
+        free(error_buf);
+    }
+
+    #[test]
+    fn wasm_deploy_valid() {
+        let json = r#"{
+          "name": "My Template",
+          "desc": "A few words",
+          "code": "C0DE",
+          "svm_version": 1,
+          "code_version": 2,
+          "data": "0000000100000003",
+          "ctors": ["init", "start"]
+        }"#;
+
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let tx_buf = encode_deploy(json_buf).unwrap();
+
+        let data = wasm_buffer_data(tx_buf);
+        assert_eq!(data[0], BUF_OK_MARKER);
+
+        let cursor = Cursor::new(&data[1..]);
+        let actual = template::decode(cursor, None).unwrap();
+
+        let code = CodeSection::new(
+            CodeKind::Wasm,
+            vec![0xC0, 0xDE],
+            CodeSection::exec_flags(),
+            GasMode::Fixed,
+            1,
+        );
+        let data = DataSection::with_layout(Layout::Fixed(vec![1, 3].into()));
+        let ctors = CtorsSection::new(vec!["init".into(), "start".into()]);
+        let header = HeaderSection::new(2, "My Template".into(), "A few words".into());
+
+        let expected = Template::new(code, data, ctors).with_header(Some(header));
+
+        assert_eq!(actual, expected);
+
+        free(json_buf);
+        free(tx_buf);
+    }
+
+    #[test]
+    fn wasm_deploy_invalid() {
+        let json = "{";
+
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let error_buf = encode_deploy(json_buf).unwrap();
+
+        let error = unsafe { error_as_string(error_buf) };
+
+        assert_eq!(error, "The given JSON is syntactically invalid due to EOF.");
+
+        free(json_buf);
+        free(error_buf);
+    }
+
+    #[test]
+    fn wasm_call_valid() {
+        let target = "1122334455667788990011223344556677889900";
+
+        let verifydata = api::json::encode_inputdata(
+            &json!({
+                "abi": ["bool", "i8"],
+                "data": [true, 3]
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let calldata = api::json::encode_inputdata(
+            &json!({
+                "abi": ["i32", "i64"],
+                "data": [10, 20]
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let json = json!({
+          "version": 1,
+          "target": target,
+          "func_name": "do_something",
+          "verifydata": verifydata["data"],
+          "calldata": calldata["data"]
+        });
+
+        let json = serde_json::to_string(&json).unwrap();
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let tx_buf = encode_call(json_buf).unwrap();
+
+        let data = wasm_buffer_data(tx_buf);
+        assert_eq!(data[0], BUF_OK_MARKER);
+
+        let data = HexBlob(&data[1..]);
+        let json = json!({ "data": data });
+        let json = serde_json::to_string(&json).unwrap();
+
+        free(json_buf);
+        let json_buf = to_wasm_buffer(json.as_bytes());
+
+        free(tx_buf);
+        let tx_buf = decode_call(json_buf).unwrap();
+        let data = wasm_buffer_data(tx_buf);
+        assert_eq!(data[0], BUF_OK_MARKER);
+
+        let json: Value = serde_json::from_slice(&data[1..]).unwrap();
+
+        assert_eq!(
+            json,
+            json!({
+                "version": 1,
+                "target": target,
+                "func_name": "do_something",
+                "verifydata": {
+                    "abi": ["bool", "i8"],
+                    "data": [true, 3],
+                },
+                "calldata": {
+                    "abi": ["i32", "i64"],
+                    "data": [10, 20],
+                }
+            })
+        );
+
+        free(json_buf);
+        free(tx_buf);
+    }
+
+    #[test]
+    fn wasm_call_invalid() {
+        let json = "{";
+
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let error_buf = encode_call(json_buf).unwrap();
+
+        let error = unsafe { error_as_string(error_buf) };
+
+        assert_eq!(error, "The given JSON is syntactically invalid due to EOF.");
+
+        free(json_buf);
+        free(error_buf);
     }
 }
