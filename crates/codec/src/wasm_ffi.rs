@@ -52,7 +52,7 @@ use crate::api::json::JsonError;
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub extern "C" fn wasm_encode_deploy(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_encode_deploy(offset: i32) -> i32 {
     wasm_func_call(api::wasm::encode_deploy, offset)
 }
 
@@ -64,7 +64,7 @@ pub extern "C" fn wasm_encode_deploy(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub extern "C" fn wasm_encode_spawn(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_encode_spawn(offset: i32) -> i32 {
     wasm_func_call(api::wasm::encode_spawn, offset)
 }
 
@@ -73,7 +73,7 @@ pub extern "C" fn wasm_encode_spawn(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded transaction.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub extern "C" fn wasm_decode_spawn(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_decode_spawn(offset: i32) -> i32 {
     wasm_func_call(api::wasm::decode_spawn, offset)
 }
 
@@ -85,7 +85,7 @@ pub extern "C" fn wasm_decode_spawn(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub extern "C" fn wasm_encode_call(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_encode_call(offset: i32) -> i32 {
     wasm_func_call(api::wasm::encode_call, offset)
 }
 
@@ -94,7 +94,7 @@ pub extern "C" fn wasm_encode_call(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded transaction.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub extern "C" fn wasm_decode_call(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_decode_call(offset: i32) -> i32 {
     wasm_func_call(api::wasm::decode_call, offset)
 }
 
@@ -104,7 +104,7 @@ pub extern "C" fn wasm_decode_call(offset: i32) -> i32 {
 ///
 /// For more info read: `api::wasm::alloc`
 #[no_mangle]
-pub extern "C" fn wasm_alloc(length: i32) -> i32 {
+pub unsafe extern "C" fn wasm_alloc(length: i32) -> i32 {
     let offset = api::wasm::alloc(length as usize);
 
     offset as _
@@ -116,7 +116,7 @@ pub extern "C" fn wasm_alloc(length: i32) -> i32 {
 ///
 /// For more info read: `api::wasm::free`
 #[no_mangle]
-pub extern "C" fn wasm_free(offset: i32) {
+pub unsafe extern "C" fn wasm_free(offset: i32) {
     api::wasm::free(offset as usize);
 }
 
@@ -124,7 +124,7 @@ pub extern "C" fn wasm_free(offset: i32) {
 ///
 /// Returns the buffer `Data` byte-length
 #[no_mangle]
-pub extern "C" fn wasm_buffer_length(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_buffer_length(offset: i32) -> i32 {
     let buf_len = api::wasm::wasm_buf_len(offset as usize);
 
     buf_len as _
@@ -134,7 +134,7 @@ pub extern "C" fn wasm_buffer_length(offset: i32) -> i32 {
 ///
 /// Returns a pointer to the buffer `Data`
 #[no_mangle]
-pub extern "C" fn wasm_buffer_data(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_buffer_data(offset: i32) -> i32 {
     let (data_offset, _len) = api::wasm::wasm_buf_data_offset(offset as usize);
 
     data_offset as _
@@ -146,7 +146,7 @@ pub extern "C" fn wasm_buffer_data(offset: i32) -> i32 {
 /// Encodes the `Input Data`, and returns a pointer to a new WASM buffer holding the encoded `Input Data`.
 /// If the encoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub extern "C" fn wasm_encode_inputdata(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_encode_inputdata(offset: i32) -> i32 {
     wasm_func_call(api::wasm::encode_inputdata, offset)
 }
 
@@ -155,7 +155,7 @@ pub extern "C" fn wasm_encode_inputdata(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded `Input Data`.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub extern "C" fn wasm_decode_inputdata(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_decode_inputdata(offset: i32) -> i32 {
     wasm_func_call(api::wasm::decode_inputdata, offset)
 }
 
@@ -164,11 +164,11 @@ pub extern "C" fn wasm_decode_inputdata(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded `Receipt`.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub extern "C" fn wasm_decode_receipt(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_decode_receipt(offset: i32) -> i32 {
     wasm_func_call(api::wasm::decode_receipt, offset)
 }
 
-fn wasm_func_call<F>(f: F, offset: i32) -> i32
+unsafe fn wasm_func_call<F>(f: F, offset: i32) -> i32
 where
     F: Fn(usize) -> Result<usize, JsonError>,
 {
