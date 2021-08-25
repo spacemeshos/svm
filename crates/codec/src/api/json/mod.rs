@@ -35,18 +35,6 @@ pub(crate) trait JsonSerdeUtils: Serialize + for<'a> Deserialize<'a> {
     }
 }
 
-/// Converts a [`Json`] value to a UTF-8 valid [`Vec<u8>`] JSON representation.
-///
-/// # Panics
-///
-/// Panics if serialization type implementations fail or `json` contains a map
-/// with non-string keys.
-pub(crate) fn to_bytes(json: &Json) -> Vec<u8> {
-    serde_json::to_string(&json)
-        .expect("JSON serialization error")
-        .into_bytes()
-}
-
 pub(crate) fn gas_to_json(gas: &Gas) -> i64 {
     if gas.is_some() {
         gas.unwrap() as _

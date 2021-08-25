@@ -24,7 +24,6 @@ use std::io::Cursor;
 pub use ext::{ReadExt, WriteExt};
 pub use field::Field;
 pub mod api;
-pub mod wasm_ffi;
 
 pub use section::{SectionPreview, SectionsDecoder, SectionsEncoder};
 

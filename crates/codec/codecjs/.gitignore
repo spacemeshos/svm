@@ -1,0 +1,5 @@
+node_modules/
+dist/
+
+svm_codec.wasm
+svm_codec.wast
