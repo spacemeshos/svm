@@ -64,7 +64,7 @@ impl Buffer {
     pub fn alloc(len: u32) -> Self {
         let mut buf = Self(vec![0; len as usize + Self::HEADER_SIZE]);
 
-        buf.set_capacity(len);
+        buf.set_capacity((buf.0.capacity() - Self::HEADER_SIZE) as u32);
         buf.set_len(len);
 
         buf
@@ -109,8 +109,8 @@ impl Buffer {
 
         Self(Vec::from_raw_parts(
             ptr,
-            header.len() as usize,
-            header.capacity() as usize,
+            header.len() as usize + Self::HEADER_SIZE,
+            header.capacity() as usize + Self::HEADER_SIZE,
         ))
     }
 
@@ -129,7 +129,8 @@ impl Buffer {
     }
 
     pub fn set_capacity(&mut self, capacity: u32) {
-        assert!(capacity as usize <= self.0.len());
+        assert!(capacity >= self.len());
+        assert!(capacity as usize <= self.0.len() - Self::HEADER_SIZE);
 
         self.0[Self::CAPACITY].clone_from_slice(&capacity.to_be_bytes());
     }
@@ -188,6 +189,7 @@ mod test {
     fn set_capacity_ok() {
         let mut buf = Buffer::alloc(140);
         buf.set_capacity(140);
+        buf.set_len(0);
         buf.set_capacity(0);
     }
 
