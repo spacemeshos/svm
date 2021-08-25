@@ -83,12 +83,12 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           set -e
-          mv target/${{ matrix.profile }}/libsvm.so bins/svm.so
+          cp target/${{ matrix.profile }}/svm.so bins/svm.so
       - name: Prepare Artifact (macOS)
         if: matrix.os == 'macos-latest'
         run: |
           set -e
-          mv target/${{ matrix.profile }}/libsvm.dylib bins/svm.dylib
+          cp target/${{ matrix.profile }}/svm.dylib bins/svm.dylib
       - name: Prepare Artifact (Windows)
         if: matrix.os == 'windows-latest'
         run: |
