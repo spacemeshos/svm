@@ -14,9 +14,9 @@
 //!  On Error (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_types::{DeployReceipt, Gas};
+use svm_types::{DeployReceipt, Gas, ReceiptLog, TemplateAddr};
 
-use super::{decode_error, encode_error, logs, TY_DEPLOY};
+use super::{error::RuntimeErrorWithLogs, TY_DEPLOY};
 use crate::{version, Codec};
 use crate::{ReadExt, WriteExt};
 
@@ -26,16 +26,14 @@ impl Codec for DeployReceipt {
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(TY_DEPLOY);
         version::encode_version(self.version, w);
-        w.write_bool(self.success);
+        self.success.encode(w);
 
         if self.success {
-            w.write_bytes_prim(self.template_addr());
+            self.template_addr().0.encode(w);
             self.gas_used.encode(w);
-            logs::encode_logs(&self.logs, w);
+            self.logs.encode(w);
         } else {
-            let logs = Vec::new();
-
-            encode_error(self.error(), &logs, w);
+            RuntimeErrorWithLogs::new(self.error().clone(), vec![]).encode(w);
         };
     }
 
@@ -46,30 +44,24 @@ impl Codec for DeployReceipt {
         let version = version::decode_version(cursor).unwrap();
         debug_assert_eq!(version, 0);
 
-        let is_success = cursor.read_bool().unwrap();
+        let is_success = bool::decode(cursor).unwrap();
 
-        match is_success {
-            false => {
-                let (err, logs) = decode_error(cursor);
+        if is_success {
+            let addr = TemplateAddr::decode(cursor).expect("expected a Template Address");
+            let gas_used = Gas::decode(cursor).unwrap();
+            let logs = <Vec<ReceiptLog>>::decode(cursor).unwrap();
 
-                Ok(DeployReceipt::from_err(err, logs))
-            }
-            true => {
-                let addr = cursor
-                    .read_bytes_prim()
-                    .expect("expected a Template Address");
-                let gas_used = Gas::decode(cursor).unwrap();
-                let logs = logs::decode_logs(cursor).unwrap();
-
-                Ok(DeployReceipt {
-                    version,
-                    success: true,
-                    error: None,
-                    addr: Some(addr),
-                    gas_used,
-                    logs,
-                })
-            }
+            Ok(DeployReceipt {
+                version,
+                success: true,
+                error: None,
+                addr: Some(addr),
+                gas_used,
+                logs,
+            })
+        } else {
+            let x = RuntimeErrorWithLogs::decode(cursor).unwrap();
+            Ok(DeployReceipt::from_err(x.err, x.logs))
         }
     }
 }

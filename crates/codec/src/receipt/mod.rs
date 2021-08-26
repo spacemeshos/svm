@@ -1,3 +1,5 @@
+//! Encoding of receipts.
+
 mod call;
 mod deploy;
 mod error;
@@ -6,8 +8,6 @@ mod returndata;
 mod spawn;
 
 pub(crate) mod logs;
-
-pub(crate) use error::{decode_error, encode_error};
 
 use svm_types::{CallReceipt, DeployReceipt, Receipt, SpawnReceipt};
 

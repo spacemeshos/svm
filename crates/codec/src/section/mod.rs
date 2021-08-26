@@ -1,7 +1,6 @@
 pub mod decode;
 pub mod encode;
 
-pub mod kind;
 pub mod preview;
 pub mod sections;
 

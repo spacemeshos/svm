@@ -1,11 +1,9 @@
-use crate::{Field, ParseError, ReadExt, WriteExt};
+use crate::{Codec, Field, ParseError, ReadExt, WriteExt};
 
 pub fn encode_version(version: u16, w: &mut impl WriteExt) {
-    w.write_u16_be(version);
+    version.encode(w);
 }
 
 pub fn decode_version(cursor: &mut impl ReadExt) -> Result<u16, ParseError> {
-    cursor
-        .read_u16_be()
-        .map_err(|_| ParseError::NotEnoughBytes(Field::Version))
+    u16::decode(cursor).map_err(|_| ParseError::Eof(Field::Version.to_string()))
 }

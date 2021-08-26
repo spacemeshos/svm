@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 use std::io::Cursor;
 
-use svm_codec::{template, Codec, ReadExt};
-use svm_types::{Account, SectionKind, Template, TemplateAddr};
+use svm_codec::{template, Codec};
+use svm_types::{Account, Address, SectionKind, Template, TemplateAddr};
 
 use crate::env::{traits, ExtAccount};
 use traits::{AccountDeserializer, AccountSerializer, TemplateDeserializer, TemplateSerializer};
@@ -29,9 +29,9 @@ impl AccountDeserializer for DefaultAccountDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<ExtAccount> {
         let mut reader = Cursor::new(bytes);
 
-        let template = reader.read_bytes_prim().ok()?;
+        let template = TemplateAddr::decode(&mut reader).ok()?;
         let name = String::decode(&mut reader).ok()?;
-        let spawner = reader.read_bytes_prim().ok()?;
+        let spawner = Address::decode(&mut reader).ok()?;
 
         let base = Account::new(template, name);
         let account = ExtAccount::new(&base, &spawner);
@@ -40,9 +40,7 @@ impl AccountDeserializer for DefaultAccountDeserializer {
     }
 
     fn deserialize_template_addr(bytes: &[u8]) -> Option<TemplateAddr> {
-        let mut cursor = Cursor::new(bytes);
-
-        cursor.read_bytes_prim().ok()
+        TemplateAddr::decode_bytes(bytes).ok()
     }
 }
 

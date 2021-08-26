@@ -26,9 +26,10 @@
 //!  On Error (`is_success = 0`)
 //!  See [error.rs](./error.rs)
 
-use svm_types::{CallReceipt, Gas};
+use svm_types::{CallReceipt, Gas, ReceiptLog};
 
-use super::{decode_error, encode_error, logs, returndata};
+use super::error::RuntimeErrorWithLogs;
+use super::returndata;
 use crate::{version, Codec};
 use crate::{ReadExt, WriteExt};
 
@@ -38,17 +39,16 @@ impl Codec for CallReceipt {
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(super::TY_CALL);
         version::encode_version(self.version, w);
-        w.write_bool(self.success);
+        self.success.encode(w);
 
         if self.success {
-            w.write_bytes_prim(self.new_state());
+            self.new_state().0.encode(w);
             returndata::encode(&self.returndata(), w);
             self.gas_used.encode(w);
-            logs::encode_logs(&self.logs, w);
+            self.logs.encode(w);
         } else {
             let logs = self.logs();
-
-            encode_error(self.error(), logs, w);
+            RuntimeErrorWithLogs::new(self.error().clone(), logs).encode(w);
         };
     }
 
@@ -59,13 +59,13 @@ impl Codec for CallReceipt {
         let version = version::decode_version(cursor).unwrap();
         debug_assert_eq!(0, version);
 
-        let is_success = cursor.read_bool().unwrap();
+        let is_success = bool::decode(cursor).unwrap();
 
         if is_success {
-            let new_state = cursor.read_bytes_prim().unwrap();
+            let new_state = <[u8; 32]>::decode(cursor).unwrap().into();
             let returndata = returndata::decode(cursor).unwrap();
             let gas_used = Gas::decode(cursor).unwrap();
-            let logs = logs::decode_logs(cursor).unwrap();
+            let logs = <Vec<ReceiptLog>>::decode(cursor).unwrap();
 
             Ok(CallReceipt {
                 version,
@@ -77,8 +77,8 @@ impl Codec for CallReceipt {
                 logs,
             })
         } else {
-            let (err, logs) = decode_error(cursor);
-            Ok(CallReceipt::from_err(err, logs))
+            let x = RuntimeErrorWithLogs::decode(cursor).unwrap();
+            Ok(CallReceipt::from_err(x.err, x.logs))
         }
     }
 }

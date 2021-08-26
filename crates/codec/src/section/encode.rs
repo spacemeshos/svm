@@ -4,8 +4,8 @@ use std::u16;
 
 use svm_types::{Section, SectionKind, Sections};
 
-use super::preview;
 use super::SectionPreview;
+use crate::Codec;
 use crate::WriteExt;
 
 /// A trait to be implemented by [`Section`] encoders.
@@ -57,7 +57,7 @@ impl SectionsEncoder {
         let mut w = Vec::with_capacity(capacity);
 
         // Section Count
-        w.write_u16_be(section_count as u16);
+        (section_count as u16).encode(&mut w);
 
         for (kind, bytes) in self.section_buf.drain(..) {
             // Section Preview
@@ -66,7 +66,7 @@ impl SectionsEncoder {
             assert!(byte_size < std::u32::MAX as usize);
 
             let preview = SectionPreview::new(kind, byte_size as u32);
-            preview::encode(&preview, &mut w);
+            preview.encode(&mut w);
 
             // `Section`
             w.write_bytes(&bytes);

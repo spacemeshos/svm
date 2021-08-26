@@ -1,9 +1,80 @@
 use std::convert::TryInto;
+use std::io::Cursor;
 
-use svm_types::{Account, Context, Envelope, Gas, Layer, SpawnAccount, Transaction};
+use svm_types::{
+    Account, Address, Context, Envelope, Gas, Layer, SectionKind, SpawnAccount, State,
+    TemplateAddr, Transaction, TransactionId,
+};
 
 use crate::version;
-use crate::{Codec, Field, ParseError, ReadExt, WriteExt};
+use crate::{ParseError, ReadExt, WriteExt};
+
+/// Ability to encode and decode items of a certain type.
+pub trait Codec: Sized {
+    /// The type of errors that can arise during decoding operations.
+    ///
+    /// This should be [`std::convert::Infallible`] if nonexistant.
+    type Error;
+
+    /// Writes a binary representation of `self` to `w`.
+    fn encode(&self, w: &mut impl WriteExt);
+
+    /// Attempts to parse a binary representation of `Self` pointed at by
+    /// `cursor`. Returns a [`Codec::Error`] on failure.
+    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error>;
+
+    /// Like [`Codec::decode`], but can be used with anything resembling bytes.
+    fn decode_bytes<B>(bytes: B) -> std::result::Result<Self, Self::Error>
+    where
+        B: AsRef<[u8]>,
+    {
+        Self::decode(&mut Cursor::new(bytes.as_ref()))
+    }
+
+    /// In case `Self` has a binary representation with a fixed size, this
+    /// should return [`Some`] with the appropriate size; [`None`] otherwise. It
+    /// can be used for pre-allocation optimizations.
+    fn fixed_size() -> Option<usize> {
+        None
+    }
+
+    /// Calls [`Codec::encode`] with an empty [`Vec<u8>`] and immediately
+    /// returns it.
+    fn encode_to_vec(&self) -> Vec<u8> {
+        let mut w = Vec::with_capacity(Self::fixed_size().unwrap_or_default());
+        self.encode(&mut w);
+        w
+    }
+
+    #[cfg(test)]
+    fn test_encode_then_decode(&self) {}
+}
+
+#[cfg(test)]
+pub fn test_codec<T, E>(item: T)
+where
+    T: Codec<Error = E> + std::fmt::Debug + PartialEq,
+    E: std::fmt::Debug,
+{
+    let encoded = item.encode_to_vec();
+
+    let decoded = T::decode_bytes(encoded).unwrap();
+
+    assert_eq!(item, decoded);
+}
+
+#[cfg(test)]
+pub fn test_codec_bool<T, E>(item: T) -> bool
+where
+    T: Codec<Error = E> + std::fmt::Debug + PartialEq,
+    E: std::fmt::Debug,
+{
+    let encoded = item.encode_to_vec();
+
+    let decoded = T::decode_bytes(encoded).unwrap();
+
+    item == decoded
+}
 
 #[derive(Debug)]
 pub struct InputData(pub Vec<u8>);
@@ -34,7 +105,7 @@ impl Codec for Envelope {
     }
 
     fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let principal = cursor.read_bytes_prim()?;
+        let principal = <[u8; 20]>::decode(cursor)?.into();
         let amount = u64::decode(cursor)?;
         let gas_limit = Gas::decode(cursor)?;
         let gas_fee = u64::decode(cursor)?;
@@ -93,11 +164,17 @@ impl Codec for Transaction {
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        println!("BEFORE DECODING ALL");
         let version = u16::decode(reader)?;
+        println!("AFTER VERSION DECODING ALL version is {}", version);
         let target = <[u8; 20]>::decode(reader)?.into();
+        println!("AFTER TARGETyy DECODING ALL {:?}", target);
         let func_name = String::decode(reader)?;
+        println!("AFTER FUNCNAME DECODING ALL");
         let verifydata = InputData::decode(reader)?.0.to_vec();
+        println!("AFTER VERIFYDATA DECODING ALL");
         let calldata = InputData::decode(reader)?.0.to_vec();
+        println!("AFTER CALLDATA DECODING ALL");
 
         Ok(Transaction {
             version,
@@ -177,7 +254,7 @@ impl Codec for SpawnAccount {
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let version = version::decode_version(reader)?;
-        let template_addr = reader.read_bytes_prim()?;
+        let template_addr = <[u8; 20]>::decode(reader)?.into();
         let name = String::decode(reader)?;
         let ctor_name = String::decode(reader)?;
         let calldata = decode_ctor_calldata(reader)?;
@@ -208,14 +285,14 @@ impl Codec for InputData {
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, ParseError> {
         match reader.read_byte() {
-            Err(..) => Err(ParseError::NotEnoughBytes(Field::InputDataLength)),
+            Err(..) => Err(ParseError::Eof("input data length".to_string())),
             Ok(byte) => {
                 let length = byte as usize;
 
                 reader
                     .read_bytes(length)
                     .map(|x| Self(x))
-                    .map_err(|_| ParseError::NotEnoughBytes(Field::InputData))
+                    .map_err(|_| ParseError::Other)
             }
         }
     }
@@ -241,11 +318,13 @@ impl Codec for u16 {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_u16_be(*self);
+        w.write_bytes(&self.to_be_bytes());
     }
 
     fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
-        reader.read_u16_be()
+        let mut buf = [0u8; 2];
+        reader.read_fill(&mut buf[..])?;
+        Ok(u16::from_be_bytes(buf))
     }
 }
 
@@ -253,11 +332,13 @@ impl Codec for u32 {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_u32_be(*self);
+        w.write_bytes(&self.to_be_bytes());
     }
 
     fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
-        reader.read_u32_be()
+        let mut buf = [0u8; 4];
+        reader.read_fill(&mut buf[..])?;
+        Ok(u32::from_be_bytes(buf))
     }
 }
 
@@ -265,11 +346,13 @@ impl Codec for u64 {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_u64_be(*self);
+        w.write_bytes(&self.to_be_bytes());
     }
 
     fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
-        reader.read_u64_be()
+        let mut buf = [0u8; 8];
+        reader.read_fill(&mut buf[..])?;
+        Ok(u64::from_be_bytes(buf))
     }
 }
 
@@ -277,11 +360,16 @@ impl Codec for bool {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_bool(*self);
+        w.write_byte(if *self { 1 } else { 0 });
     }
 
     fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
-        reader.read_bool()
+        let byte = reader.read_byte()?;
+        match byte {
+            1 => Ok(true),
+            0 => Ok(false),
+            _ => Err(ParseError::Other),
+        }
     }
 }
 
@@ -293,7 +381,7 @@ where
 
     fn encode(&self, w: &mut impl WriteExt) {
         assert!(self.len() <= u16::MAX as usize);
-        w.write_u16_be(self.len() as u16);
+        (self.len() as u16).encode(w);
 
         for elem in self {
             elem.encode(w);
@@ -312,6 +400,92 @@ where
     }
 }
 
+const SECTION_KIND_CODE_SECTION: u16 = 1;
+const SECTION_KIND_DATA_SECTION: u16 = 2;
+const SECTION_KIND_CTORS_SECTION: u16 = 3;
+const SECTION_KIND_SCHEMA_SECTION: u16 = 4;
+const SECTION_KIND_API_SECTION: u16 = 5;
+const SECTION_KIND_HEADER_SECTION: u16 = 6;
+const SECTION_KIND_DEPLOY_SECTION: u16 = 7;
+
+impl Codec for SectionKind {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        match self {
+            Self::Code => SECTION_KIND_CODE_SECTION,
+            Self::Data => SECTION_KIND_DATA_SECTION,
+            Self::Ctors => SECTION_KIND_CTORS_SECTION,
+            Self::Schema => SECTION_KIND_SCHEMA_SECTION,
+            Self::Api => SECTION_KIND_API_SECTION,
+            Self::Header => SECTION_KIND_HEADER_SECTION,
+            Self::Deploy => SECTION_KIND_DEPLOY_SECTION,
+        }
+        .encode(w)
+    }
+
+    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        match u16::decode(reader)? {
+            SECTION_KIND_CODE_SECTION => Ok(Self::Code),
+            SECTION_KIND_DATA_SECTION => Ok(Self::Data),
+            SECTION_KIND_CTORS_SECTION => Ok(Self::Ctors),
+            SECTION_KIND_SCHEMA_SECTION => Ok(Self::Schema),
+            SECTION_KIND_API_SECTION => Ok(Self::Api),
+            SECTION_KIND_HEADER_SECTION => Ok(Self::Header),
+            SECTION_KIND_DEPLOY_SECTION => Ok(Self::Deploy),
+            _ => Err(Self::Error::InvalidSection),
+        }
+    }
+}
+
+impl Codec for TemplateAddr {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        self.0.encode(w);
+    }
+
+    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        Ok(<[u8; 20]>::decode(cursor)?.into())
+    }
+}
+
+impl Codec for State {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        self.0.encode(w);
+    }
+
+    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        Ok(<[u8; 32]>::decode(cursor)?.into())
+    }
+}
+
+impl Codec for Address {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        self.0.encode(w);
+    }
+
+    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        Ok(<[u8; 20]>::decode(cursor)?.into())
+    }
+}
+
+impl Codec for TransactionId {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        self.0.encode(w);
+    }
+
+    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        Ok(<[u8; 32]>::decode(cursor)?.into())
+    }
+}
+
 /// Decoders
 
 fn decode_ctor_calldata(cursor: &mut impl ReadExt) -> Result<Vec<u8>, ParseError> {
@@ -325,7 +499,6 @@ mod tests {
     use svm_types::{Address, BytesPrimitive, TemplateAddr};
 
     use super::*;
-    use crate::{test_codec, test_codec_bool};
 
     #[quickcheck]
     fn encode_decode_bool(b: bool) -> bool {

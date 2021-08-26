@@ -9,13 +9,10 @@ pub type Result<T> = std::result::Result<T, ParseError>;
 #[derive(Debug, Clone, Error, PartialEq)]
 pub enum ParseError {
     #[error("Reached EOF")]
-    ReachedEOF,
-
-    #[error("Not enough bytes for field `{0}`")]
-    NotEnoughBytes(Field),
+    Eof(String),
 
     #[error("Field `{0}` must be a valid UTF-8 string")]
-    InvalidUTF8String(Field),
+    InvalidUTF8String(String),
 
     #[error("Unexpected Wasm value layout for field `{0}`")]
     UnexpectedLayout(Field),

@@ -6,14 +6,14 @@ impl Codec for Gas {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_u64_be(self.unwrap_or(0));
+        self.unwrap_or(0).encode(w);
     }
 
     fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        match cursor.read_u64_be() {
+        match u64::decode(cursor) {
             Ok(0) => Ok(Gas::new()),
             Ok(gas) => Ok(Gas::with(gas)),
-            Err(..) => Err(ParseError::NotEnoughBytes(Field::GasUsed)),
+            Err(..) => Err(ParseError::Eof(Field::GasUsed.to_string())),
         }
     }
 }

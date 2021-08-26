@@ -36,7 +36,7 @@ impl SectionDecoder for HeaderSection {
 }
 
 fn decode_code_version(cursor: &mut impl ReadExt) -> Result<u32, ParseError> {
-    let value = cursor.read_u32_be();
+    let value = u32::decode(cursor);
 
-    value.map_err(|_| ParseError::NotEnoughBytes(Field::CodeVersion))
+    value.map_err(|_| ParseError::Eof(Field::CodeVersion.to_string()))
 }

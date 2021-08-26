@@ -6,9 +6,9 @@ use svm_types::{
     SchemaSection, Section, SectionKind, Sections,
 };
 
-use super::{preview, SectionPreview};
+use super::SectionPreview;
 
-use crate::{Field, ParseError, ReadExt};
+use crate::{Codec, Field, ParseError, ReadExt};
 
 pub trait SectionDecoder: Sized {
     fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError>;
@@ -55,7 +55,7 @@ impl<'a> SectionsDecoder<'a> {
     /// Returns the next [`SectionPreview`].
     pub fn next_preview(&mut self) -> Result<SectionPreview, ParseError> {
         if self.is_eof() {
-            return Err(ParseError::ReachedEOF);
+            return Err(ParseError::Other);
         }
 
         assert!(
@@ -63,7 +63,7 @@ impl<'a> SectionsDecoder<'a> {
             "Please call `decode_section` or `skip_section` prior to calling `next_preview` again"
         );
 
-        let preview = preview::decode(&mut self.cursor)?;
+        let preview = SectionPreview::decode(&mut self.cursor)?;
 
         self.last_preview = Some(preview.clone());
         self.read_previews += 1;
@@ -108,9 +108,9 @@ impl<'a> SectionsDecoder<'a> {
     }
 
     fn read_section_count(&mut self) -> Result<usize, ParseError> {
-        match self.cursor.read_u16_be() {
+        match u16::decode(&mut self.cursor) {
             Ok(count) => Ok(count as usize),
-            Err(..) => Err(ParseError::NotEnoughBytes(Field::SectionCount)),
+            Err(..) => Err(ParseError::Eof(Field::SectionCount.to_string())),
         }
     }
 
@@ -120,7 +120,7 @@ impl<'a> SectionsDecoder<'a> {
         let to_skip = last_preview.byte_size();
         let bytes = self.cursor.read_bytes(to_skip as usize);
 
-        bytes.map_err(|_| ParseError::NotEnoughBytes(Field::Section))
+        bytes.map_err(|_| ParseError::Eof(Field::Section.to_string()))
     }
 }
 

@@ -26,9 +26,10 @@
 //!  On Error (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_types::{Address, Gas, SpawnReceipt};
+use svm_types::{Address, Gas, ReceiptLog, SpawnReceipt, State};
 
-use super::{decode_error, encode_error, logs, returndata, TY_SPAWN};
+use super::error::RuntimeErrorWithLogs;
+use super::{returndata, TY_SPAWN};
 use crate::{version, Codec};
 use crate::{ReadExt, WriteExt};
 
@@ -37,19 +38,17 @@ impl Codec for SpawnReceipt {
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(TY_SPAWN);
-        encode_version(self, w);
-        w.write_bool(self.success);
+        self.version.encode(w);
+        self.success.encode(w);
 
         if self.success {
-            encode_account_addr(self, w);
-            encode_init_state(self, w);
+            self.account_addr().encode(w);
+            self.init_state().encode(w);
             encode_returndata(&self, w);
             self.gas_used().encode(w);
-            logs::encode_logs(&self.logs, w);
+            self.logs.encode(w);
         } else {
-            let logs = self.logs();
-
-            encode_error(self.error(), logs, w);
+            RuntimeErrorWithLogs::new(self.error().clone(), self.logs().clone()).encode(w);
         };
     }
 
@@ -60,52 +59,30 @@ impl Codec for SpawnReceipt {
         let version = version::decode_version(cursor).unwrap();
         debug_assert_eq!(0, version);
 
-        let is_success = cursor.read_bool().unwrap();
+        let is_success = bool::decode(cursor).unwrap();
 
-        match is_success {
-            false => {
-                let (err, logs) = decode_error(cursor);
-                Ok(SpawnReceipt::from_err(err, logs))
-            }
-            true => {
-                let addr: Address = cursor.read_bytes_prim().unwrap();
-                let init_state = cursor.read_bytes_prim().unwrap();
-                let returndata = returndata::decode(cursor).unwrap();
-                let gas_used = Gas::decode(cursor).unwrap();
-                let logs = logs::decode_logs(cursor).unwrap();
+        if is_success {
+            let addr = Address::decode(cursor).unwrap();
+            let init_state = State::decode(cursor).unwrap();
+            let returndata = returndata::decode(cursor).unwrap();
+            let gas_used = Gas::decode(cursor).unwrap();
+            let logs = <Vec<ReceiptLog>>::decode(cursor).unwrap();
 
-                Ok(SpawnReceipt {
-                    version,
-                    success: true,
-                    error: None,
-                    account_addr: Some(addr.into()),
-                    init_state: Some(init_state),
-                    returndata: Some(returndata),
-                    gas_used,
-                    logs,
-                })
-            }
+            Ok(SpawnReceipt {
+                version,
+                success: true,
+                error: None,
+                account_addr: Some(addr.into()),
+                init_state: Some(init_state),
+                returndata: Some(returndata),
+                gas_used,
+                logs,
+            })
+        } else {
+            let x = RuntimeErrorWithLogs::decode(cursor).unwrap();
+            Ok(SpawnReceipt::from_err(x.err, x.logs))
         }
     }
-}
-
-fn encode_version(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
-    let v = &receipt.version;
-    version::encode_version(*v, w);
-}
-
-fn encode_account_addr(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
-    debug_assert!(receipt.success);
-
-    let addr = receipt.account_addr();
-    w.write_bytes_prim(addr);
-}
-
-fn encode_init_state(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
-    debug_assert!(receipt.success);
-
-    let state = receipt.init_state();
-    w.write_bytes_prim(state);
 }
 
 fn encode_returndata(receipt: &SpawnReceipt, w: &mut impl WriteExt) {

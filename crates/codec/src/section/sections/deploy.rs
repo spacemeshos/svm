@@ -13,14 +13,14 @@
 use svm_types::{Address, DeploySection, Layer, TemplateAddr, TransactionId};
 
 use crate::section::{SectionDecoder, SectionEncoder};
-use crate::{Field, ParseError, ReadExt, WriteExt};
+use crate::{Codec, Field, ParseError, ReadExt};
 
 impl SectionEncoder for DeploySection {
     fn encode(&self, w: &mut Vec<u8>) {
-        w.write_bytes_prim(self.tx_id());
-        w.write_u64_be(self.layer().0);
-        w.write_bytes_prim(self.deployer());
-        w.write_bytes_prim(self.template());
+        self.tx_id().encode(w);
+        (self.layer().0 as u64).encode(w);
+        self.deployer().encode(w);
+        self.template().encode(w);
     }
 }
 
@@ -38,28 +38,24 @@ impl SectionDecoder for DeploySection {
 }
 
 fn decode_tx_id(cursor: &mut impl ReadExt) -> Result<TransactionId, ParseError> {
-    let value = cursor.read_bytes_prim();
+    let value = TransactionId::decode(cursor);
 
-    value.map_err(|_| ParseError::NotEnoughBytes(Field::TransactionId))
+    value.map_err(|_| ParseError::Eof(Field::TransactionId.to_string()))
 }
 
 fn decode_layer(cursor: &mut impl ReadExt) -> Result<Layer, ParseError> {
-    let layer = cursor.read_u64_be();
+    let layer = u64::decode(cursor);
 
     match layer {
         Ok(layer) => Ok(Layer(layer)),
-        Err(..) => Err(ParseError::NotEnoughBytes(Field::Layer)),
+        Err(..) => Err(ParseError::Eof(Field::Layer.to_string())),
     }
 }
 
 fn decode_deployer(cursor: &mut impl ReadExt) -> Result<Address, ParseError> {
-    cursor
-        .read_bytes_prim()
-        .map_err(|_| ParseError::NotEnoughBytes(Field::DeployerAddr))
+    Address::decode(cursor).map_err(|_| ParseError::Eof(Field::DeployerAddr.to_string()))
 }
 
 fn decode_template(cursor: &mut impl ReadExt) -> Result<TemplateAddr, ParseError> {
-    cursor
-        .read_bytes_prim()
-        .map_err(|_| ParseError::NotEnoughBytes(Field::TemplateAddr))
+    TemplateAddr::decode(cursor).map_err(|_| ParseError::Eof(Field::TemplateAddr.to_string()))
 }

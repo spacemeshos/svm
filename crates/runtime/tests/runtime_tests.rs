@@ -17,7 +17,7 @@ fn memory_runtime_validate_deploy_not_enough_bytes() {
     let runtime = testing::create_memory_runtime();
     let message = vec![0xFF, 0xFF];
 
-    let error = ParseError::NotEnoughBytes(Field::SectionKind);
+    let error = ParseError::Eof(Field::SectionKind.to_string());
     let expected = ValidateError::Parse(error);
 
     let actual = runtime.validate_deploy(&message).unwrap_err();
@@ -141,7 +141,7 @@ fn memory_runtime_validate_spawn_missing_template_addr() {
     let runtime = testing::create_memory_runtime();
     let message = vec![0xFF, 0xFF];
 
-    let error = ParseError::NotEnoughBytes(Field::Address);
+    let error = ParseError::Eof(Field::Address.to_string());
     let expected = ValidateError::Parse(error);
 
     let actual = runtime.validate_spawn(&message).unwrap_err();
@@ -153,7 +153,7 @@ fn memory_runtime_validate_call_not_enough_bytes() {
     let runtime = testing::create_memory_runtime();
     let message = vec![0xFF, 0xFF];
 
-    let error = ParseError::NotEnoughBytes(Field::TargetAddr);
+    let error = ParseError::Eof(Field::TargetAddr.to_string());
     let expected = Err(ValidateError::Parse(error));
 
     let actual = runtime.validate_call(&message);

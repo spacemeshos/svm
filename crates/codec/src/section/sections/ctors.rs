@@ -35,7 +35,7 @@ impl SectionDecoder for CtorsSection {
     fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError> {
         // Decoding each `Ctor`
         match cursor.read_byte() {
-            Err(..) => Err(ParseError::NotEnoughBytes(Field::CtorsCount)),
+            Err(..) => Err(ParseError::Eof(Field::CtorsCount.to_string())),
             Ok(count) => {
                 // `Ctors`
                 let mut section = CtorsSection::with_capacity(count as usize);
@@ -44,7 +44,7 @@ impl SectionDecoder for CtorsSection {
                     if let Ok(ctor) = String::decode(cursor) {
                         section.push(ctor);
                     } else {
-                        return Err(ParseError::NotEnoughBytes(Field::Ctor));
+                        return Err(ParseError::Eof(Field::Ctor.to_string()));
                     }
                 }
 
