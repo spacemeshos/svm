@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::io::Cursor;
 
 use svm_types::{
@@ -7,7 +7,6 @@ use svm_types::{
 };
 
 use crate::error::{BoolError, EofError, StringError};
-use crate::version;
 use crate::{ParseError, ReadExt, WriteExt};
 
 /// Ability to encode and decode items of a certain type.
@@ -240,7 +239,7 @@ impl Codec for SpawnAccount {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        self.version.encode(w);
+        u16::try_from(self.version).unwrap().encode(w);
         self.template_addr().0.encode(w);
         self.account_name().to_string().encode(w);
         self.ctor_name().to_string().encode(w);
@@ -248,7 +247,7 @@ impl Codec for SpawnAccount {
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let version = version::decode_version(reader)?;
+        let version = u16::decode(reader)?;
         let template_addr = TemplateAddr::decode(reader)?.into();
         let name = String::decode(reader)?;
         let ctor_name = String::decode(reader)?;

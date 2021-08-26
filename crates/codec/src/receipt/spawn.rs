@@ -30,8 +30,7 @@ use svm_types::{Address, Gas, ReceiptLog, SpawnReceipt, State};
 
 use super::error::RuntimeErrorWithLogs;
 use super::{returndata, TY_SPAWN};
-use crate::{version, Codec};
-use crate::{ReadExt, WriteExt};
+use crate::{Codec, ReadExt, WriteExt};
 
 impl Codec for SpawnReceipt {
     type Error = std::convert::Infallible;
@@ -52,21 +51,21 @@ impl Codec for SpawnReceipt {
         };
     }
 
-    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let ty = cursor.read_byte().unwrap();
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        let ty = reader.read_byte().unwrap();
         debug_assert_eq!(ty, TY_SPAWN);
 
-        let version = version::decode_version(cursor).unwrap();
+        let version = u16::decode(reader).unwrap();
         debug_assert_eq!(0, version);
 
-        let is_success = bool::decode(cursor).unwrap();
+        let is_success = bool::decode(reader).unwrap();
 
         if is_success {
-            let addr = Address::decode(cursor).unwrap();
-            let init_state = State::decode(cursor).unwrap();
-            let returndata = returndata::decode(cursor).unwrap();
-            let gas_used = Gas::decode(cursor).unwrap();
-            let logs = <Vec<ReceiptLog>>::decode(cursor).unwrap();
+            let addr = Address::decode(reader).unwrap();
+            let init_state = State::decode(reader).unwrap();
+            let returndata = returndata::decode(reader).unwrap();
+            let gas_used = Gas::decode(reader).unwrap();
+            let logs = <Vec<ReceiptLog>>::decode(reader).unwrap();
 
             Ok(SpawnReceipt {
                 version,
@@ -79,7 +78,7 @@ impl Codec for SpawnReceipt {
                 logs,
             })
         } else {
-            let x = RuntimeErrorWithLogs::decode(cursor).unwrap();
+            let x = RuntimeErrorWithLogs::decode(reader).unwrap();
             Ok(SpawnReceipt::from_err(x.err, x.logs))
         }
     }

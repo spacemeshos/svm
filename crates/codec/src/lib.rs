@@ -17,7 +17,6 @@ mod error;
 mod ext;
 mod field;
 mod section;
-mod version;
 
 pub mod api;
 pub mod receipt;

@@ -26,19 +26,20 @@
 //!  On Error (`is_success = 0`)
 //!  See [error.rs](./error.rs)
 
+use std::convert::TryFrom;
+
 use svm_types::{CallReceipt, Gas, ReceiptLog};
 
 use super::error::RuntimeErrorWithLogs;
 use super::returndata;
-use crate::{version, Codec};
-use crate::{ReadExt, WriteExt};
+use crate::{Codec, ReadExt, WriteExt};
 
 impl Codec for CallReceipt {
     type Error = std::convert::Infallible;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(super::TY_CALL);
-        version::encode_version(self.version, w);
+        u16::try_from(self.version).unwrap().encode(w);
         self.success.encode(w);
 
         if self.success {
@@ -52,20 +53,20 @@ impl Codec for CallReceipt {
         };
     }
 
-    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let ty = cursor.read_byte().unwrap();
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        let ty = reader.read_byte().unwrap();
         debug_assert_eq!(ty, crate::receipt::TY_CALL);
 
-        let version = version::decode_version(cursor).unwrap();
+        let version = u16::decode(reader).unwrap();
         debug_assert_eq!(0, version);
 
-        let is_success = bool::decode(cursor).unwrap();
+        let is_success = bool::decode(reader).unwrap();
 
         if is_success {
-            let new_state = <[u8; 32]>::decode(cursor).unwrap().into();
-            let returndata = returndata::decode(cursor).unwrap();
-            let gas_used = Gas::decode(cursor).unwrap();
-            let logs = <Vec<ReceiptLog>>::decode(cursor).unwrap();
+            let new_state = <[u8; 32]>::decode(reader).unwrap().into();
+            let returndata = returndata::decode(reader).unwrap();
+            let gas_used = Gas::decode(reader).unwrap();
+            let logs = <Vec<ReceiptLog>>::decode(reader).unwrap();
 
             Ok(CallReceipt {
                 version,
@@ -77,7 +78,7 @@ impl Codec for CallReceipt {
                 logs,
             })
         } else {
-            let x = RuntimeErrorWithLogs::decode(cursor).unwrap();
+            let x = RuntimeErrorWithLogs::decode(reader).unwrap();
             Ok(CallReceipt::from_err(x.err, x.logs))
         }
     }
