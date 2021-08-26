@@ -36,10 +36,10 @@ impl<'de> Deserialize<'de> for HexBlob<Vec<u8>> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, derive_more::Into, derive_more::From)]
 pub struct AddressWrapper(pub Address);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, derive_more::Into, derive_more::From)]
 pub struct TemplateAddrWrapper(pub TemplateAddr);
 
 impl Serialize for AddressWrapper {
@@ -93,30 +93,6 @@ impl<'de> Deserialize<'de> for TemplateAddrWrapper {
         } else {
             Ok(Self(TemplateAddr::new(&blob.0[..])))
         }
-    }
-}
-
-impl From<AddressWrapper> for Address {
-    fn from(wrapper: AddressWrapper) -> Self {
-        wrapper.0
-    }
-}
-
-impl From<TemplateAddrWrapper> for TemplateAddr {
-    fn from(wrapper: TemplateAddrWrapper) -> Self {
-        wrapper.0
-    }
-}
-
-impl<'a> From<&'a Address> for AddressWrapper {
-    fn from(addr: &'a Address) -> Self {
-        Self(addr.clone())
-    }
-}
-
-impl<'a> From<&'a TemplateAddr> for TemplateAddrWrapper {
-    fn from(addr: &'a TemplateAddr) -> Self {
-        Self(addr.clone())
     }
 }
 

@@ -1,6 +1,6 @@
 use std::io::{Cursor, Read};
 
-use crate::{ParseError, Result};
+use crate::EofError;
 
 /// A trait to be implemented by Decoders
 pub trait ReadExt: Sized {
@@ -8,7 +8,7 @@ pub trait ReadExt: Sized {
     fn seek_byte(&self) -> Option<u8>;
 
     /// Reads bytes until `buf` is full.
-    fn read_fill(&mut self, buf: &mut [u8]) -> Result<()> {
+    fn read_fill(&mut self, buf: &mut [u8]) -> Result<(), EofError> {
         for byte in buf.iter_mut() {
             *byte = self.read_byte()?;
         }
@@ -17,10 +17,10 @@ pub trait ReadExt: Sized {
     }
 
     /// Reads a single byte
-    fn read_byte(&mut self) -> Result<u8>;
+    fn read_byte(&mut self) -> Result<u8, EofError>;
 
     /// Reads `length` bytes
-    fn read_bytes(&mut self, length: usize) -> Result<Vec<u8>> {
+    fn read_bytes(&mut self, length: usize) -> Result<Vec<u8>, EofError> {
         let mut buf = vec![0; length];
         self.read_fill(&mut buf[..])?;
         Ok(buf)
@@ -45,12 +45,9 @@ impl ReadExt for Cursor<&[u8]> {
         self.get_ref().get(self.position() as usize).copied()
     }
 
-    fn read_byte(&mut self) -> Result<u8> {
+    fn read_byte(&mut self) -> Result<u8, EofError> {
         let mut buf = [0; 1];
-
-        let _ = self
-            .read_exact(&mut buf)
-            .map_err(|_| ParseError::Eof("unknown".to_string()))?;
+        self.read_exact(&mut buf).map_err(|_| EofError::Eof)?;
 
         Ok(buf[0])
     }

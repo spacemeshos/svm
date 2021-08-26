@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use std::io::Cursor;
-
 use svm_types::{Account, SpawnAccount};
 
 use super::call::EncodedOrDecodedCalldata;
@@ -33,8 +31,7 @@ pub fn encode_spawn(json: &str) -> Result<Vec<u8>, JsonError> {
 pub fn decode_spawn(json: &str) -> Result<Value, JsonError> {
     let encoded_spawn = EncodedData::from_json_str(json)?;
 
-    let mut cursor = Cursor::new(&encoded_spawn.data.0[..]);
-    let spawn = SpawnAccount::decode(&mut cursor).unwrap();
+    let spawn = SpawnAccount::decode_bytes(encoded_spawn.data.0).unwrap();
 
     Ok(DecodedSpawn::from(spawn).to_json())
 }

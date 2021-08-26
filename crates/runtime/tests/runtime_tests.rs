@@ -3,7 +3,7 @@ use svm_sdk as sdk;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 
-use svm_codec::{Field, ParseError};
+use svm_codec::ParseError;
 use svm_layout::FixedLayout;
 use svm_program::ProgramError;
 use svm_runtime::{testing, Runtime, ValidateError};
@@ -13,15 +13,14 @@ use svm_types::{
 };
 
 #[test]
-fn memory_runtime_validate_deploy_not_enough_bytes() {
+fn memory_runtime_validate_deploy_eof() {
     let runtime = testing::create_memory_runtime();
     let message = vec![0xFF, 0xFF];
 
-    let error = ParseError::Eof(Field::SectionKind.to_string());
-    let expected = ValidateError::Parse(error);
-
-    let actual = runtime.validate_deploy(&message).unwrap_err();
-    assert_eq!(expected, actual);
+    assert!(matches!(
+        runtime.validate_deploy(&message),
+        Err(ValidateError::Parse(ParseError::Eof))
+    ));
 }
 
 #[test]
@@ -137,27 +136,25 @@ fn memory_runtime_validate_deploy_ok() {
 }
 
 #[test]
-fn memory_runtime_validate_spawn_missing_template_addr() {
+fn memory_runtime_validate_spawn_eof() {
     let runtime = testing::create_memory_runtime();
     let message = vec![0xFF, 0xFF];
 
-    let error = ParseError::Eof(Field::Address.to_string());
-    let expected = ValidateError::Parse(error);
-
-    let actual = runtime.validate_spawn(&message).unwrap_err();
-    assert_eq!(expected, actual);
+    assert!(matches!(
+        runtime.validate_spawn(&message),
+        Err(ValidateError::Parse(ParseError::Eof))
+    ));
 }
 
 #[test]
-fn memory_runtime_validate_call_not_enough_bytes() {
+fn memory_runtime_validate_call_eof() {
     let runtime = testing::create_memory_runtime();
     let message = vec![0xFF, 0xFF];
 
-    let error = ParseError::Eof(Field::TargetAddr.to_string());
-    let expected = Err(ValidateError::Parse(error));
-
-    let actual = runtime.validate_call(&message);
-    assert_eq!(expected, actual);
+    assert!(matches!(
+        runtime.validate_call(&message),
+        Err(ValidateError::Parse(ParseError::Eof))
+    ));
 }
 
 #[test]

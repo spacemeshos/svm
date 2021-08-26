@@ -43,20 +43,20 @@
 //!
 //!
 
-use svm_layout::{FixedLayoutBuilder, Id, Layout, LayoutKind, RawVar};
+use std::convert::TryFrom;
+
+use svm_layout::{FixedLayoutBuilder, Id, Layout, LayoutKind};
 use svm_types::DataSection;
 
 use crate::section::{SectionDecoder, SectionEncoder};
-use crate::{Codec, Field, ParseError, ReadExt};
+use crate::{Codec, ParseError, ReadExt};
 
 pub const FIXED: u16 = 0x00_01;
 
 impl SectionEncoder for DataSection {
     fn encode(&self, w: &mut Vec<u8>) {
-        // `#Layouts`
-        encode_layout_count(self.len(), w);
+        u16::try_from(self.len()).unwrap().encode(w);
 
-        // Encoding each `Layout`
         for layout in self.layouts() {
             encode_layout(layout, w);
         }
@@ -65,8 +65,7 @@ impl SectionEncoder for DataSection {
 
 impl SectionDecoder for DataSection {
     fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError> {
-        // `#Layouts`
-        let layout_count = decode_layout_count(cursor)? as usize;
+        let layout_count = u16::decode(cursor)? as usize;
 
         // Decoding each `Layout`
         let mut section = DataSection::with_capacity(layout_count);
@@ -99,11 +98,11 @@ fn encode_layout(layout: &Layout, w: &mut Vec<u8>) {
             if var_count > 0 {
                 // `First Var Id`
                 let first = layout.first();
-                encode_var_id(first, w);
+                (first.0 as u32).encode(w);
 
                 // Encoding each `Var Byte-Size`
                 for var in layout.iter() {
-                    encode_var_byte_size(&var, w);
+                    (var.byte_size() as u16).encode(w);
                 }
             }
         }
@@ -117,32 +116,28 @@ fn decode_layout(cursor: &mut impl ReadExt) -> Result<Layout, ParseError> {
     match kind {
         LayoutKind::Fixed => {
             // `#Vars
-            match u16::decode(cursor) {
-                Err(..) => Err(ParseError::Eof(Field::RawVarCount.to_string())),
-                Ok(var_count) => {
-                    let var_count = var_count as usize;
+            let var_count = u16::decode(cursor)?;
+            let var_count = var_count as usize;
 
-                    let mut builder = FixedLayoutBuilder::with_capacity(var_count);
+            let mut builder = FixedLayoutBuilder::with_capacity(var_count);
 
-                    if var_count > 0 {
-                        // `First Var Id`
-                        let first = decode_var_id(cursor)?;
-                        builder.set_first(first);
+            if var_count > 0 {
+                // `First Var Id`
+                let first = Id(u32::decode(cursor)?);
+                builder.set_first(first);
 
-                        // Decoding each `var`
-                        for _ in 0..var_count {
-                            let byte_size = decode_var_byte_size(cursor)?;
+                // Decoding each `var`
+                for _ in 0..var_count {
+                    let byte_size = decode_var_byte_size(cursor)?;
 
-                            builder.push(byte_size);
-                        }
-                    }
-
-                    let fixed = builder.build();
-                    let layout = Layout::Fixed(fixed);
-
-                    Ok(layout)
+                    builder.push(byte_size);
                 }
             }
+
+            let fixed = builder.build();
+            let layout = Layout::Fixed(fixed);
+
+            Ok(layout)
         }
     }
 }
@@ -156,48 +151,14 @@ fn encode_layout_kind(kind: LayoutKind, w: &mut Vec<u8>) {
 }
 
 fn decode_layout_kind(cursor: &mut impl ReadExt) -> Result<LayoutKind, ParseError> {
-    let value = u16::decode(cursor);
+    let value = u16::decode(cursor)?;
 
-    if value.is_err() {
-        return Err(ParseError::Eof(Field::LayoutKind.to_string()));
-    }
-
-    match value.unwrap() {
+    match value {
         FIXED => Ok(LayoutKind::Fixed),
         _ => unreachable!(),
     }
 }
 
-fn encode_layout_count(layout_count: usize, w: &mut Vec<u8>) {
-    assert!(layout_count < u16::MAX as usize);
-
-    (layout_count as u16).encode(w);
-}
-
-fn decode_layout_count(cursor: &mut impl ReadExt) -> Result<u16, ParseError> {
-    let value = u16::decode(cursor);
-
-    value.map_err(|_| ParseError::Eof(Field::LayoutCount.to_string()))
-}
-
-fn encode_var_id(id: Id, w: &mut Vec<u8>) {
-    (id.0 as u32).encode(w);
-}
-
-fn decode_var_id(cursor: &mut impl ReadExt) -> Result<Id, ParseError> {
-    match u32::decode(cursor) {
-        Ok(id) => Ok(Id(id)),
-        Err(..) => Err(ParseError::Eof(Field::LayoutFirstVarId.to_string())),
-    }
-}
-
-fn encode_var_byte_size(var: &RawVar, w: &mut Vec<u8>) {
-    (var.byte_size() as u16).encode(w);
-}
-
 fn decode_var_byte_size(cursor: &mut impl ReadExt) -> Result<u32, ParseError> {
-    match u16::decode(cursor) {
-        Ok(byte_size) => Ok(byte_size as u32),
-        Err(..) => Err(ParseError::Eof(Field::RawVarSize.to_string())),
-    }
+    Ok(u16::decode(cursor)? as u32)
 }

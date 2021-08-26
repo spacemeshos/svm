@@ -1,6 +1,6 @@
 use svm_types::SectionKind;
 
-use crate::{Codec, Field, ParseError, ReadExt};
+use crate::{Codec, ParseError, ReadExt};
 
 /// Preview data for a [`Section`](svm_types::Section).
 #[derive(Debug, Clone, PartialEq)]
@@ -41,8 +41,7 @@ impl Codec for SectionPreview {
 
     fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
         let kind = SectionKind::decode(reader)?;
-        let byte_size =
-            u32::decode(reader).map_err(|_| ParseError::Eof(Field::SectionByteSize.to_string()))?;
+        let byte_size = u32::decode(reader)?;
 
         Ok(SectionPreview::new(kind, byte_size))
     }

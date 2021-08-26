@@ -13,7 +13,7 @@
 use svm_types::HeaderSection;
 
 use crate::section::{SectionDecoder, SectionEncoder};
-use crate::{Codec, Field, ParseError, ReadExt};
+use crate::{Codec, ParseError, ReadExt};
 
 impl SectionEncoder for HeaderSection {
     fn encode(&self, w: &mut Vec<u8>) {
@@ -25,7 +25,7 @@ impl SectionEncoder for HeaderSection {
 
 impl SectionDecoder for HeaderSection {
     fn decode(reader: &mut impl ReadExt) -> Result<Self, ParseError> {
-        let code_version = decode_code_version(reader)?;
+        let code_version = u32::decode(reader)?;
         let name = String::decode(reader)?;
         let desc = String::decode(reader)?;
 
@@ -33,10 +33,4 @@ impl SectionDecoder for HeaderSection {
 
         Ok(section)
     }
-}
-
-fn decode_code_version(cursor: &mut impl ReadExt) -> Result<u32, ParseError> {
-    let value = u32::decode(cursor);
-
-    value.map_err(|_| ParseError::Eof(Field::CodeVersion.to_string()))
 }

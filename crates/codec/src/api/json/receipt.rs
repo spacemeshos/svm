@@ -52,11 +52,11 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
             }),
             RuntimeError::TemplateNotFound(template_addr) => json!({
                 "err_type": "template-not-found",
-                "template_addr": TemplateAddrWrapper::from(template_addr),
+                "template_addr": TemplateAddrWrapper::from(*template_addr),
             }),
             RuntimeError::AccountNotFound(account_addr) => json!({
                 "err_type": "account-not-found",
-                "account_addr": AddressWrapper::from(account_addr),
+                "account_addr": AddressWrapper::from(*account_addr),
             }),
             RuntimeError::CompilationFailed {
                 target: account_addr,
@@ -64,8 +64,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "compilation-failed",
-                "template_addr": TemplateAddrWrapper::from(template_addr),
-                "account_addr": AddressWrapper::from(account_addr),
+                "template_addr": TemplateAddrWrapper::from(*template_addr),
+                "account_addr": AddressWrapper::from(*account_addr),
                 "message": msg,
             }),
             RuntimeError::InstantiationFailed {
@@ -74,8 +74,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "instantiation-failed",
-                "template_addr": TemplateAddrWrapper::from(template_addr),
-                "account_addr": AddressWrapper::from(account_addr),
+                "template_addr": TemplateAddrWrapper::from(*template_addr),
+                "account_addr": AddressWrapper::from(*account_addr),
                 "message": msg,
             }),
             RuntimeError::FuncNotFound {
@@ -84,8 +84,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 func,
             } => json!({
                 "err_type": "function-not-found",
-                "template_addr": TemplateAddrWrapper::from(template_addr),
-                "account_addr": AddressWrapper::from(account_addr),
+                "template_addr": TemplateAddrWrapper::from(*template_addr),
+                "account_addr": AddressWrapper::from(*account_addr),
                 "func": func,
             }),
             RuntimeError::FuncFailed {
@@ -95,8 +95,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "function-failed",
-                "template_addr": TemplateAddrWrapper::from(template_addr),
-                "account_addr": AddressWrapper::from(account_addr),
+                "template_addr": TemplateAddrWrapper::from(*template_addr),
+                "account_addr": AddressWrapper::from(*account_addr),
                 "func": func,
                 "message": msg,
             }),
@@ -107,8 +107,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "function-not-allowed",
-                "template_addr": TemplateAddrWrapper::from(template_addr),
-                "account_addr": AddressWrapper::from(account_addr),
+                "template_addr": TemplateAddrWrapper::from(*template_addr),
+                "account_addr": AddressWrapper::from(*account_addr),
                 "func": func,
                 "message": msg,
             }),
@@ -118,8 +118,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 func,
             } => json!({
                 "err_type": "function-invalid-signature",
-                "template_addr": TemplateAddrWrapper::from(template_addr),
-                "account_addr": AddressWrapper::from(account_addr),
+                "template_addr": TemplateAddrWrapper::from(*template_addr),
+                "account_addr": AddressWrapper::from(*account_addr),
                 "func": func,
             }),
         }
@@ -151,7 +151,7 @@ fn decode_deploy(receipt: &DeployReceipt, ty: &'static str) -> Value {
     json!({
         "type": ty,
         "success": true,
-        "addr": TemplateAddrWrapper::from(addr.as_ref().unwrap()),
+        "addr": TemplateAddrWrapper::from(*addr.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
         "logs": json::logs_to_json(&logs),
     })
@@ -173,7 +173,7 @@ fn decode_spawn(receipt: &SpawnReceipt, ty: &'static str) -> Value {
     json!({
         "type": ty,
         "success": true,
-        "account": AddressWrapper::from(account_addr.as_ref().unwrap()),
+        "account": AddressWrapper::from(*account_addr.as_ref().unwrap()),
         "state": HexBlob(init_state.as_ref().unwrap().as_slice()),
         "returndata": HexBlob(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),

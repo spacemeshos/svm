@@ -1,6 +1,6 @@
 use svm_types::ReceiptLog;
 
-use crate::{Codec, Field, ParseError, ReadExt, WriteExt};
+use crate::{Codec, ParseError, ReadExt, WriteExt};
 
 /// ```text                   
 /// +----------------+
@@ -38,35 +38,26 @@ impl Codec for Vec<ReceiptLog> {
     }
 
     fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
-        match cursor.read_byte() {
-            Ok(nlogs) => {
-                let mut logs = Vec::with_capacity(nlogs as usize);
+        let nlogs = cursor.read_byte()?;
 
-                for _ in 0..nlogs {
-                    let log = decode_log(cursor)?;
-                    logs.push(log);
-                }
+        let mut logs = Vec::with_capacity(nlogs as usize);
 
-                Ok(logs)
-            }
-            Err(..) => Err(ParseError::Eof(Field::LogsCount.to_string())),
+        for _ in 0..nlogs {
+            let log = decode_log(cursor)?;
+            logs.push(log);
         }
+
+        Ok(logs)
     }
 }
 
 fn decode_log(cursor: &mut impl ReadExt) -> Result<ReceiptLog, ParseError> {
-    match u16::decode(cursor) {
-        Ok(length) => {
-            let data = cursor.read_bytes(length as usize);
-            if data.is_err() {
-                return Err(ParseError::Eof(Field::LogData.to_string()));
-            };
+    let length = u16::decode(cursor)?;
 
-            let log = ReceiptLog::new(data.unwrap());
-            Ok(log)
-        }
-        Err(..) => Err(ParseError::Eof(Field::LogDataLength.to_string())),
-    }
+    let data = cursor.read_bytes(length as usize)?;
+
+    let log = ReceiptLog::new(data);
+    Ok(log)
 }
 
 #[cfg(test)]

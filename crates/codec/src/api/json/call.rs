@@ -88,7 +88,7 @@ impl From<Transaction> for DecodedCall {
     fn from(tx: Transaction) -> Self {
         DecodedCall {
             version: tx.version,
-            target: AddressWrapper::from(&tx.target),
+            target: AddressWrapper::from(tx.target),
             func_name: tx.func_name.clone(),
             verifydata: EncodedOrDecodedCalldata::Decoded(
                 DecodedInputData::new(&decode_raw_input(tx.verifydata()).unwrap().to_string())

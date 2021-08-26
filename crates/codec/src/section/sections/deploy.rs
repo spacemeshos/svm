@@ -13,7 +13,7 @@
 use svm_types::{Address, DeploySection, Layer, TemplateAddr, TransactionId};
 
 use crate::section::{SectionDecoder, SectionEncoder};
-use crate::{Codec, Field, ParseError, ReadExt};
+use crate::{Codec, ParseError, ReadExt};
 
 impl SectionEncoder for DeploySection {
     fn encode(&self, w: &mut Vec<u8>) {
@@ -38,24 +38,17 @@ impl SectionDecoder for DeploySection {
 }
 
 fn decode_tx_id(cursor: &mut impl ReadExt) -> Result<TransactionId, ParseError> {
-    let value = TransactionId::decode(cursor);
-
-    value.map_err(|_| ParseError::Eof(Field::TransactionId.to_string()))
+    Ok(TransactionId::decode(cursor)?)
 }
 
 fn decode_layer(cursor: &mut impl ReadExt) -> Result<Layer, ParseError> {
-    let layer = u64::decode(cursor);
-
-    match layer {
-        Ok(layer) => Ok(Layer(layer)),
-        Err(..) => Err(ParseError::Eof(Field::Layer.to_string())),
-    }
+    Ok(Layer(u64::decode(cursor)?))
 }
 
 fn decode_deployer(cursor: &mut impl ReadExt) -> Result<Address, ParseError> {
-    Address::decode(cursor).map_err(|_| ParseError::Eof(Field::DeployerAddr.to_string()))
+    Ok(Address::decode(cursor)?)
 }
 
 fn decode_template(cursor: &mut impl ReadExt) -> Result<TemplateAddr, ParseError> {
-    TemplateAddr::decode(cursor).map_err(|_| ParseError::Eof(Field::TemplateAddr.to_string()))
+    Ok(TemplateAddr::decode(cursor)?)
 }

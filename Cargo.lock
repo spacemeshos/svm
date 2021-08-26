@@ -1959,6 +1959,7 @@ dependencies = [
 name = "svm-codec"
 version = "0.0.0"
 dependencies = [
+ "derive_more",
  "hex",
  "indexmap",
  "maplit",

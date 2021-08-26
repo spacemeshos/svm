@@ -1,6 +1,6 @@
 use svm_types::Gas;
 
-use crate::{Codec, Field, ParseError, ReadExt, WriteExt};
+use crate::{Codec, ParseError, ReadExt, WriteExt};
 
 impl Codec for Gas {
     type Error = ParseError;
@@ -9,11 +9,10 @@ impl Codec for Gas {
         self.unwrap_or(0).encode(w);
     }
 
-    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        match u64::decode(cursor) {
-            Ok(0) => Ok(Gas::new()),
-            Ok(gas) => Ok(Gas::with(gas)),
-            Err(..) => Err(ParseError::Eof(Field::GasUsed.to_string())),
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        match u64::decode(reader)? {
+            0 => Ok(Gas::new()),
+            x => Ok(Gas::with(x)),
         }
     }
 }

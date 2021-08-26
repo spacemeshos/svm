@@ -6,6 +6,7 @@ use svm_types::{
     TemplateAddr, Transaction, TransactionId,
 };
 
+use crate::error::{BoolError, EofError, StringError};
 use crate::version;
 use crate::{ParseError, ReadExt, WriteExt};
 
@@ -21,10 +22,10 @@ pub trait Codec: Sized {
 
     /// Attempts to parse a binary representation of `Self` pointed at by
     /// `cursor`. Returns a [`Codec::Error`] on failure.
-    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error>;
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error>;
 
     /// Like [`Codec::decode`], but can be used with anything resembling bytes.
-    fn decode_bytes<B>(bytes: B) -> std::result::Result<Self, Self::Error>
+    fn decode_bytes<B>(bytes: B) -> Result<Self, Self::Error>
     where
         B: AsRef<[u8]>,
     {
@@ -104,11 +105,11 @@ impl Codec for Envelope {
         self.gas_fee().encode(w);
     }
 
-    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let principal = <[u8; 20]>::decode(cursor)?.into();
-        let amount = u64::decode(cursor)?;
-        let gas_limit = Gas::decode(cursor)?;
-        let gas_fee = u64::decode(cursor)?;
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        let principal = Address::decode(reader)?;
+        let amount = u64::decode(reader)?;
+        let gas_limit = Gas::decode(reader)?;
+        let gas_fee = u64::decode(reader)?;
 
         let envelope = Envelope::new(principal, amount, gas_limit, gas_fee);
         Ok(envelope)
@@ -120,14 +121,14 @@ impl Codec for Envelope {
 }
 
 impl<const N: usize> Codec for [u8; N] {
-    type Error = ParseError;
+    type Error = EofError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_bytes(&self[..])
     }
 
-    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
-        Ok((&cursor.read_bytes(N)?[..]).try_into().unwrap())
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        Ok((&reader.read_bytes(N)?[..]).try_into().unwrap())
     }
 
     fn fixed_size() -> Option<usize> {
@@ -164,17 +165,11 @@ impl Codec for Transaction {
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        println!("BEFORE DECODING ALL");
         let version = u16::decode(reader)?;
-        println!("AFTER VERSION DECODING ALL version is {}", version);
-        let target = <[u8; 20]>::decode(reader)?.into();
-        println!("AFTER TARGETyy DECODING ALL {:?}", target);
+        let target = Address::decode(reader)?.into();
         let func_name = String::decode(reader)?;
-        println!("AFTER FUNCNAME DECODING ALL");
         let verifydata = InputData::decode(reader)?.0.to_vec();
-        println!("AFTER VERIFYDATA DECODING ALL");
         let calldata = InputData::decode(reader)?.0.to_vec();
-        println!("AFTER CALLDATA DECODING ALL");
 
         Ok(Transaction {
             version,
@@ -205,15 +200,15 @@ impl Codec for Context {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        self.tx_id().0.encode(w);
+        self.tx_id().encode(w);
         self.layer().0.encode(w);
-        self.state().0.encode(w);
+        self.state().encode(w);
     }
 
-    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let tx_id = <[u8; 32]>::decode(cursor)?.into();
-        let layer = u64::decode(cursor)?;
-        let state = <[u8; 32]>::decode(cursor)?.into();
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        let tx_id = TransactionId::decode(reader)?;
+        let layer = u64::decode(reader)?;
+        let state = State::decode(reader)?;
 
         let context = Context::new(tx_id, Layer(layer), state);
         Ok(context)
@@ -254,7 +249,7 @@ impl Codec for SpawnAccount {
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let version = version::decode_version(reader)?;
-        let template_addr = <[u8; 20]>::decode(reader)?.into();
+        let template_addr = TemplateAddr::decode(reader)?.into();
         let name = String::decode(reader)?;
         let ctor_name = String::decode(reader)?;
         let calldata = decode_ctor_calldata(reader)?;
@@ -284,44 +279,37 @@ impl Codec for InputData {
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, ParseError> {
-        match reader.read_byte() {
-            Err(..) => Err(ParseError::Eof("input data length".to_string())),
-            Ok(byte) => {
-                let length = byte as usize;
+        let byte = reader.read_byte()?;
+        let length = byte as usize;
 
-                reader
-                    .read_bytes(length)
-                    .map(|x| Self(x))
-                    .map_err(|_| ParseError::Other)
-            }
-        }
+        Ok(Self(reader.read_bytes(length)?))
     }
 }
 
 impl Codec for String {
-    type Error = ParseError;
+    type Error = StringError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(self.as_bytes().len() as u8);
         w.write_bytes(self.as_bytes());
     }
 
-    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let len = reader.read_byte()? as usize;
         let bytes = reader.read_bytes(len)?;
 
-        Ok(String::from_utf8(bytes.to_vec()).map_err(|_| ParseError::Other)?)
+        Ok(String::from_utf8(bytes.to_vec())?)
     }
 }
 
 impl Codec for u16 {
-    type Error = ParseError;
+    type Error = EofError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_bytes(&self.to_be_bytes());
     }
 
-    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let mut buf = [0u8; 2];
         reader.read_fill(&mut buf[..])?;
         Ok(u16::from_be_bytes(buf))
@@ -329,13 +317,13 @@ impl Codec for u16 {
 }
 
 impl Codec for u32 {
-    type Error = ParseError;
+    type Error = EofError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_bytes(&self.to_be_bytes());
     }
 
-    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let mut buf = [0u8; 4];
         reader.read_fill(&mut buf[..])?;
         Ok(u32::from_be_bytes(buf))
@@ -343,13 +331,13 @@ impl Codec for u32 {
 }
 
 impl Codec for u64 {
-    type Error = ParseError;
+    type Error = EofError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_bytes(&self.to_be_bytes());
     }
 
-    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let mut buf = [0u8; 8];
         reader.read_fill(&mut buf[..])?;
         Ok(u64::from_be_bytes(buf))
@@ -357,18 +345,18 @@ impl Codec for u64 {
 }
 
 impl Codec for bool {
-    type Error = ParseError;
+    type Error = BoolError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(if *self { 1 } else { 0 });
     }
 
-    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let byte = reader.read_byte()?;
         match byte {
             1 => Ok(true),
             0 => Ok(false),
-            _ => Err(ParseError::Other),
+            _ => Err(BoolError::InvalidByte(byte)),
         }
     }
 }
@@ -388,7 +376,7 @@ where
         }
     }
 
-    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let len = u16::decode(reader)?;
         let mut vec = Vec::with_capacity(len as usize);
 
@@ -424,7 +412,7 @@ impl Codec for SectionKind {
         .encode(w)
     }
 
-    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         match u16::decode(reader)? {
             SECTION_KIND_CODE_SECTION => Ok(Self::Code),
             SECTION_KIND_DATA_SECTION => Ok(Self::Data),
@@ -439,49 +427,49 @@ impl Codec for SectionKind {
 }
 
 impl Codec for TemplateAddr {
-    type Error = ParseError;
+    type Error = EofError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         self.0.encode(w);
     }
 
-    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
         Ok(<[u8; 20]>::decode(cursor)?.into())
     }
 }
 
 impl Codec for State {
-    type Error = ParseError;
+    type Error = EofError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         self.0.encode(w);
     }
 
-    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
         Ok(<[u8; 32]>::decode(cursor)?.into())
     }
 }
 
 impl Codec for Address {
-    type Error = ParseError;
+    type Error = EofError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         self.0.encode(w);
     }
 
-    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
         Ok(<[u8; 20]>::decode(cursor)?.into())
     }
 }
 
 impl Codec for TransactionId {
-    type Error = ParseError;
+    type Error = EofError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         self.0.encode(w);
     }
 
-    fn decode(cursor: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
         Ok(<[u8; 32]>::decode(cursor)?.into())
     }
 }

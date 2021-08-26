@@ -8,7 +8,7 @@ use svm_types::{
 
 use super::SectionPreview;
 
-use crate::{Codec, Field, ParseError, ReadExt};
+use crate::{Codec, ParseError, ReadExt};
 
 pub trait SectionDecoder: Sized {
     fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError>;
@@ -108,19 +108,14 @@ impl<'a> SectionsDecoder<'a> {
     }
 
     fn read_section_count(&mut self) -> Result<usize, ParseError> {
-        match u16::decode(&mut self.cursor) {
-            Ok(count) => Ok(count as usize),
-            Err(..) => Err(ParseError::Eof(Field::SectionCount.to_string())),
-        }
+        Ok(u16::decode(&mut self.cursor)? as usize)
     }
 
     fn section_bytes(&mut self) -> Result<Vec<u8>, ParseError> {
         let last_preview = self.last_preview.take().unwrap();
 
         let to_skip = last_preview.byte_size();
-        let bytes = self.cursor.read_bytes(to_skip as usize);
-
-        bytes.map_err(|_| ParseError::Eof(Field::Section.to_string()))
+        Ok(self.cursor.read_bytes(to_skip as usize)?)
     }
 }
 
