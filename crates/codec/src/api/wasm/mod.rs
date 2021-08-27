@@ -222,3 +222,34 @@ where
         offset,
     )
 }
+
+#[cfg(test)]
+mod test {
+    //use serde_json::json;
+
+    //use super::*;
+
+    //#[test]
+    //fn encode_then_decode_call() {
+    //    let call = json!({
+    //      "version": 0,
+    //      "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+    //      "func_name": "do_work",
+    //      "verifydata": {"abi": [], "data": []},
+    //      "calldata": {"abi": [], "data": []},
+    //    })
+    //    .to_string();
+
+    //    let mut buf = Buffer::alloc(call.as_bytes().len() as u32);
+    //    buf.as_mut().clone_from_slice(call.as_bytes());
+
+    //    let res_buf_offset = unsafe { wasm_endode_call(buf.offset() as i32) };
+    //    let res_buf = unsafe { Buffer::from_offset(res_buf_offset as usize) };
+    //    println!("GOT BACKA BUFFER");
+    //    let encoded = res_buf.as_result().unwrap().unwrap();
+    //    println!("GOT BACKA BUFFER 2");
+
+    //    println!("{}", std::str::from_utf8(encoded).unwrap());
+    //    assert!(false);
+    //}
+}

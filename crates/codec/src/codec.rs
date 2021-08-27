@@ -251,7 +251,7 @@ impl Codec for SpawnAccount {
         let template_addr = TemplateAddr::decode(reader)?.into();
         let name = String::decode(reader)?;
         let ctor_name = String::decode(reader)?;
-        let calldata = decode_ctor_calldata(reader)?;
+        let calldata = InputData::decode(reader)?.0;
 
         Ok(SpawnAccount {
             version,
@@ -289,7 +289,9 @@ impl Codec for String {
     type Error = StringError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        w.write_byte(self.as_bytes().len() as u8);
+        let len =
+            u8::try_from(self.as_bytes().len()).expect("The string is too long, max 255 bytes.");
+        w.write_byte(len);
         w.write_bytes(self.as_bytes());
     }
 
@@ -475,10 +477,6 @@ impl Codec for TransactionId {
 
 /// Decoders
 
-fn decode_ctor_calldata(cursor: &mut impl ReadExt) -> Result<Vec<u8>, ParseError> {
-    InputData::decode(cursor).map(|x| x.0)
-}
-
 #[cfg(test)]
 mod tests {
     use quickcheck_macros::quickcheck;
@@ -488,27 +486,62 @@ mod tests {
     use super::*;
 
     #[quickcheck]
-    fn encode_decode_bool(b: bool) -> bool {
+    fn encode_then_decode_bool(b: bool) -> bool {
         test_codec_bool(b)
     }
 
     #[quickcheck]
-    fn encode_decode_u16(n: u16) -> bool {
+    fn encode_then_decode_u16(n: u16) -> bool {
         test_codec_bool(n)
     }
 
     #[quickcheck]
-    fn encode_decode_u32(n: u32) -> bool {
+    fn encode_then_decode_u32(n: u32) -> bool {
         test_codec_bool(n)
     }
 
     #[quickcheck]
-    fn encode_decode_u64(n: u64) -> bool {
+    fn encode_then_decode_u64(n: u64) -> bool {
         test_codec_bool(n)
     }
 
     #[test]
-    fn encode_decode_call() {
+    #[should_panic]
+    fn encode_long_string_panics() {
+        let s = std::iter::repeat('0').take(1000).collect::<String>();
+        s.encode_to_vec();
+    }
+
+    #[test]
+    fn encode_then_decode_string() {
+        test_codec("Hello".to_string());
+        test_codec("Bonjour".to_string());
+        test_codec("¿Qué tal?".to_string());
+        test_codec("0000000000000000000000000000".to_string());
+    }
+
+    #[test]
+    fn encode_then_decode_byte_primitives() {
+        test_codec(Address::zeros());
+        test_codec(TemplateAddr::zeros());
+        test_codec(State::zeros());
+        test_codec(TransactionId::zeros());
+    }
+
+    #[test]
+    fn encode_then_decode_section_kind() {
+        test_codec(SectionKind::Api);
+        test_codec(SectionKind::Code);
+        test_codec(SectionKind::Schema);
+    }
+
+    #[test]
+    fn invalid_section_kind() {
+        assert!(SectionKind::decode_bytes(&u32::MAX.to_be_bytes()).is_err());
+    }
+
+    #[test]
+    fn encode_then_decode_transaction() {
         let tx = Transaction {
             version: 0,
             target: Address::of("@target").into(),
@@ -521,7 +554,7 @@ mod tests {
     }
 
     #[test]
-    fn encode_decode_spawn() {
+    fn encode_then_decode_spawn() {
         test_codec(SpawnAccount {
             version: 0,
             account: Account {
@@ -531,5 +564,28 @@ mod tests {
             ctor_name: "initialize".to_string(),
             calldata: vec![0x10, 0x20, 0x30],
         })
+    }
+
+    #[quickcheck]
+    fn encode_then_decode_context(layer: u64) -> bool {
+        test_codec_bool(Context::new(
+            TransactionId::zeros(),
+            Layer(layer),
+            State::zeros(),
+        ))
+    }
+
+    #[quickcheck]
+    fn encode_then_decode_envelope(amount: u64, gas_limit: u64, gas_fee: u64) -> bool {
+        test_codec_bool(Envelope::new(
+            Address::zeros(),
+            amount,
+            if gas_limit == 0 {
+                Gas::new()
+            } else {
+                Gas::from(gas_limit)
+            },
+            gas_fee,
+        ))
     }
 }

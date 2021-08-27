@@ -189,7 +189,6 @@ mod tests {
             "calldata": calldata["data"],
         })
         .to_string();
-        println!("SPAWNING {}", json);
 
         let bytes = encode_spawn(&json).unwrap();
         let data = HexBlob(&bytes);
