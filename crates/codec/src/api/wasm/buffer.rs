@@ -180,6 +180,8 @@ impl Drop for Buffer {
 
 #[cfg(test)]
 mod test {
+    use quickcheck_macros::quickcheck;
+
     use super::*;
 
     #[test]
@@ -195,11 +197,12 @@ mod test {
         Buffer::alloc(u32::MAX);
     }
 
-    #[test]
-    fn offset_and_from_offset() {
-        let buf_1 = Buffer::alloc(100);
+    #[quickcheck]
+    fn offset_and_from_offset(data: Vec<u8>) -> bool {
+        let mut buf_1 = Buffer::alloc(data.len() as u32);
         let buf_2 = unsafe { Buffer::from_offset(buf_1.offset()) };
-        assert_eq!(buf_1, buf_2);
+        buf_1.as_mut().clone_from_slice(&data);
+        buf_1 == buf_2 && buf_1.as_ref() == &data && buf_2.as_ref() == &data
     }
 
     #[test]
