@@ -165,7 +165,7 @@ pub unsafe extern "C" fn wasm_decode_spawn(ptr: *mut u8) -> *mut u8 {
 /// If the encoding failed, the returned WASM buffer will contain a String
 /// containing the error message.
 #[no_mangle]
-pub unsafe extern "C" fn wasm_endode_call(ptr: *mut u8) -> *mut u8 {
+pub unsafe extern "C" fn wasm_encode_call(ptr: *mut u8) -> *mut u8 {
     wasm_call_json(api::json::encode_call, ptr)
 }
 
