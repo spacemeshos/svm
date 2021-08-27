@@ -49,7 +49,7 @@ use std::ops::{Range, RangeFrom};
 /// If for the `capacity` of the `Data` will be bigger - it will also increase
 /// the amount of allocated data.
 #[derive(Debug, PartialEq)]
-pub struct Buffer(Option<Vec<u8>>);
+pub struct Buffer(Option<Vec<u8>>, bool);
 
 impl Buffer {
     const LEN: Range<usize> = 0..4;
@@ -62,12 +62,24 @@ impl Buffer {
     const ERR_MARKER: u8 = 0;
 
     pub fn alloc(len: u32) -> Self {
-        let mut buf = Self(Some(vec![0; len as usize + Self::HEADER_SIZE]));
+        let mut vec = vec![0; len as usize + Self::HEADER_SIZE];
+        vec.shrink_to_fit();
 
-        buf.set_capacity((buf.vec().capacity() - Self::HEADER_SIZE) as u32);
+        assert_eq!(vec.capacity(), len as usize + Self::HEADER_SIZE);
+        assert_eq!(vec.len(), len as usize + Self::HEADER_SIZE);
+
+        let mut buf = Self(Some(vec), true);
+
+        buf.set_capacity(len);
         buf.set_len(len);
 
         buf
+    }
+
+    #[allow(unused)]
+    pub fn then_free(mut self) -> Self {
+        self.1 = false;
+        self
     }
 
     pub fn alloc_ok(data: &[u8]) -> Self {
@@ -114,17 +126,23 @@ impl Buffer {
 
     pub unsafe fn from_offset(offset: usize) -> Self {
         let ptr = offset as *mut u8;
-        let header = Self(Some(Vec::from_raw_parts(
-            ptr,
-            Self::HEADER_SIZE,
-            Self::HEADER_SIZE,
-        )));
+        let header = Self(
+            Some(Vec::from_raw_parts(
+                ptr,
+                Self::HEADER_SIZE,
+                Self::HEADER_SIZE,
+            )),
+            true,
+        );
 
-        Self(Some(Vec::from_raw_parts(
-            ptr,
-            header.len() as usize + Self::HEADER_SIZE,
-            header.capacity() as usize + Self::HEADER_SIZE,
-        )))
+        Self(
+            Some(Vec::from_raw_parts(
+                ptr,
+                header.len() as usize + Self::HEADER_SIZE,
+                header.capacity() as usize + Self::HEADER_SIZE,
+            )),
+            true,
+        )
     }
 
     fn vec(&self) -> &Vec<u8> {
@@ -173,8 +191,10 @@ impl AsMut<[u8]> for Buffer {
 /// [`Buffer::free()`].
 impl Drop for Buffer {
     fn drop(&mut self) {
-        // https://doc.rust-lang.org/nomicon/destructors.html
-        self.0.take().unwrap().leak();
+        if self.1 {
+            // https://doc.rust-lang.org/nomicon/destructors.html
+            self.0.take().unwrap().leak();
+        }
     }
 }
 
@@ -184,36 +204,42 @@ mod test {
 
     use super::*;
 
-    #[test]
-    fn len_of_new_buf() {
-        assert_eq!(Buffer::alloc(0).len(), 0);
-        assert_eq!(Buffer::alloc(1).len(), 1);
-        assert_eq!(Buffer::alloc(16).len(), 16);
-        assert_eq!(Buffer::alloc(u16::MAX as u32).len(), u16::MAX as u32);
+    #[quickcheck]
+    fn len_and_capacity_of_new_buf(len: u16) -> bool {
+        let len = len as u32;
+        let buf = Buffer::alloc(len).then_free();
+        buf.len() == len && buf.capacity() == len
     }
 
     #[test]
     fn u32_max_len() {
-        Buffer::alloc(u32::MAX);
+        Buffer::alloc(u32::MAX).then_free();
     }
 
     #[quickcheck]
-    fn offset_and_from_offset(data: Vec<u8>) -> bool {
+    fn offset_and_from_offset(mut data: Vec<u8>) -> bool {
+        data.truncate(u16::MAX as usize);
+
         let mut buf_1 = Buffer::alloc(data.len() as u32);
         let buf_2 = unsafe { Buffer::from_offset(buf_1.offset()) };
+        println!("AFTER BUFFER");
+
         buf_1.as_mut().clone_from_slice(&data);
+        println!("AFTER WRITE");
+
         buf_1 == buf_2 && buf_1.as_ref() == &data && buf_2.as_ref() == &data
     }
 
-    #[test]
-    fn as_ref_eq_as_mut() {
-        let mut buf = Buffer::alloc(100);
-        assert_eq!(buf.as_ref().to_vec(), buf.as_mut().to_vec());
+    #[quickcheck]
+    fn as_ref_eq_as_mut(len: u16) -> bool {
+        let len = len as u32;
+        let mut buf = Buffer::alloc(len).then_free();
+        buf.as_ref().to_vec() == buf.as_mut().to_vec()
     }
 
     #[test]
     fn set_capacity_ok() {
-        let mut buf = Buffer::alloc(140);
+        let mut buf = Buffer::alloc(140).then_free();
         buf.set_capacity(140);
         buf.set_len(0);
         buf.set_capacity(0);
@@ -222,7 +248,8 @@ mod test {
     #[test]
     #[should_panic]
     fn set_capacity_too_small() {
-        let mut buf = Buffer::alloc(100);
+        let mut buf = Buffer::alloc(100).then_free();
+        assert_eq!(buf.len(), 100);
         buf.set_capacity(99);
     }
 }

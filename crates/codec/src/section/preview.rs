@@ -36,7 +36,7 @@ impl Codec for SectionPreview {
 
     fn encode(&self, w: &mut impl crate::WriteExt) {
         self.kind().encode(w);
-        self.byte_size().encode(w);
+        (u32::from(self.byte_size())).encode(w);
     }
 
     fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
