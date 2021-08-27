@@ -60,11 +60,8 @@ use buffer::Buffer;
 ///
 /// For more info read: `api::wasm::alloc`
 #[no_mangle]
-pub extern "C" fn wasm_alloc(length: i32) -> i32 {
-    Buffer::alloc(length.try_into().unwrap())
-        .offset()
-        .try_into()
-        .unwrap()
+pub extern "C" fn wasm_alloc(length: u32) -> usize {
+    Buffer::alloc(length.try_into().unwrap()).offset()
 }
 
 /// ## WASM Buffer Freeing
@@ -73,30 +70,24 @@ pub extern "C" fn wasm_alloc(length: i32) -> i32 {
 ///
 /// For more info read: `api::wasm::free`
 #[no_mangle]
-pub unsafe extern "C" fn wasm_free(offset: i32) {
-    Buffer::from_offset(offset.try_into().unwrap()).free();
+pub unsafe extern "C" fn wasm_free(offset: usize) {
+    Buffer::from_offset(offset).free();
 }
 
 /// ## WASM Buffer Length
 ///
 /// Returns the buffer `Data` byte-length
 #[no_mangle]
-pub unsafe extern "C" fn wasm_buffer_length(offset: i32) -> i32 {
-    Buffer::from_offset(offset.try_into().unwrap())
-        .as_ref()
-        .len()
-        .try_into()
-        .unwrap()
+pub unsafe extern "C" fn wasm_buffer_length(offset: usize) -> usize {
+    Buffer::from_offset(offset).as_ref().len()
 }
 
 /// ## WASM Buffer Data
 ///
 /// Returns a pointer to the buffer `Data`
 #[no_mangle]
-pub unsafe extern "C" fn wasm_buffer_data(offset: i32) -> i32 {
-    (Buffer::from_offset(offset.try_into().unwrap()).offset() + 8)
-        .try_into()
-        .unwrap()
+pub unsafe extern "C" fn wasm_buffer_data(offset: usize) -> usize {
+    Buffer::from_offset(offset).offset() + 8
 }
 
 // ENCODERS & DECODERS
@@ -108,7 +99,7 @@ pub unsafe extern "C" fn wasm_buffer_data(offset: i32) -> i32 {
 /// Encodes the `Input Data`, and returns a pointer to a new WASM buffer holding the encoded `Input Data`.
 /// If the encoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub unsafe extern "C" fn wasm_encode_inputdata(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_encode_inputdata(offset: usize) -> usize {
     wasm_call_json(api::json::encode_inputdata, offset)
 }
 
@@ -117,7 +108,7 @@ pub unsafe extern "C" fn wasm_encode_inputdata(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded `Input Data`.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub unsafe extern "C" fn wasm_decode_inputdata(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_decode_inputdata(offset: usize) -> usize {
     wasm_call_json(api::json::decode_inputdata, offset)
 }
 
@@ -126,7 +117,7 @@ pub unsafe extern "C" fn wasm_decode_inputdata(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded `Receipt`.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub unsafe extern "C" fn wasm_decode_receipt(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_decode_receipt(offset: usize) -> usize {
     wasm_call_json(api::json::decode_receipt, offset)
 }
 
@@ -139,7 +130,7 @@ pub unsafe extern "C" fn wasm_decode_receipt(offset: i32) -> i32 {
 /// If the encoding failed, the returned WASM buffer will contain a String
 /// containing the error message.
 #[no_mangle]
-pub unsafe extern "C" fn wasm_encode_deploy(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_encode_deploy(offset: usize) -> usize {
     wasm_call_raw(api::json::deploy_template, offset)
 }
 
@@ -152,7 +143,7 @@ pub unsafe extern "C" fn wasm_encode_deploy(offset: i32) -> i32 {
 /// If the encoding fails, the returned WASM buffer will contain a String
 /// containing the error message.
 #[no_mangle]
-pub unsafe extern "C" fn wasm_encode_spawn(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_encode_spawn(offset: usize) -> usize {
     wasm_call_raw(api::json::encode_spawn, offset)
 }
 
@@ -161,7 +152,7 @@ pub unsafe extern "C" fn wasm_encode_spawn(offset: i32) -> i32 {
 /// Returns a pointer to a new WASM buffer holding the decoded transaction.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
-pub unsafe extern "C" fn wasm_decode_spawn(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_decode_spawn(offset: usize) -> usize {
     wasm_call_json(api::json::decode_spawn, offset)
 }
 
@@ -174,7 +165,7 @@ pub unsafe extern "C" fn wasm_decode_spawn(offset: i32) -> i32 {
 /// If the encoding failed, the returned WASM buffer will contain a String
 /// containing the error message.
 #[no_mangle]
-pub unsafe extern "C" fn wasm_endode_call(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_endode_call(offset: usize) -> usize {
     wasm_call_json(api::json::encode_call, offset)
 }
 
@@ -185,18 +176,18 @@ pub unsafe extern "C" fn wasm_endode_call(offset: i32) -> i32 {
 /// If the decoding fails, the returned WASM buffer will contain a String
 /// containing the error message.
 #[no_mangle]
-pub unsafe extern "C" fn wasm_decode_call(offset: i32) -> i32 {
+pub unsafe extern "C" fn wasm_decode_call(offset: usize) -> usize {
     wasm_call_json(api::json::decode_call, offset)
 }
 
 // UTILITIES
 // ---------
 
-unsafe fn wasm_call_raw<F>(decode: F, offset: i32) -> i32
+unsafe fn wasm_call_raw<F>(decode: F, offset: usize) -> usize
 where
     F: Fn(&str) -> Result<Vec<u8>, JsonError>,
 {
-    let buf = Buffer::from_offset(offset.try_into().unwrap());
+    let buf = Buffer::from_offset(offset);
     let json_s = std::str::from_utf8(buf.as_ref()).expect("Invalid UTF-8");
     let result = decode(json_s);
 
@@ -204,11 +195,9 @@ where
         .map(|bytes| Buffer::alloc_ok(&bytes))
         .unwrap_or_else(|e| Buffer::alloc_err(e))
         .offset()
-        .try_into()
-        .unwrap()
 }
 
-unsafe fn wasm_call_json<F>(decode: F, offset: i32) -> i32
+unsafe fn wasm_call_json<F>(decode: F, offset: usize) -> usize
 where
     F: Fn(&str) -> Result<Json, JsonError>,
 {
@@ -223,34 +212,31 @@ where
     )
 }
 
-//#[cfg(test)]
-//mod test {
-//    use serde_json::json;
-//
-//    use super::*;
-//
-//    #[test]
-//    fn encode_then_decode_call() {
-//        let call = json!({
-//          "version": 0,
-//          "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-//          "func_name": "do_work",
-//          "verifydata": {"abi": [], "data": []},
-//          "calldata": {"abi": [], "data": []},
-//        })
-//        .to_string();
-//
-//        let mut buf = Buffer::alloc(call.as_bytes().len() as u32);
-//        buf.as_mut().clone_from_slice(call.as_bytes());
-//
-//        let res_buf_offset = unsafe { wasm_endode_call(buf.offset() as i32) };
-//        let res_buf = unsafe { Buffer::from_offset(res_buf_offset as usize) };
-//        println!("GOT BACKA BUFFER");
-//        let encoded = res_buf.as_result().unwrap().unwrap();
-//        println!("GOT BACKA BUFFER 2");
-//
-//        println!("{}", std::str::from_utf8(encoded).unwrap());
-//        assert!(false);
-//    }
-//}
-//
+#[cfg(test)]
+mod test {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn encode_then_decode_call() {
+        let call = json!({
+          "version": 0,
+          "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+          "func_name": "do_work",
+          "verifydata": {"abi": [], "data": []},
+          "calldata": {"abi": [], "data": []},
+        })
+        .to_string();
+
+        let mut buf = Buffer::alloc(call.as_bytes().len() as u32);
+        buf.as_mut().clone_from_slice(call.as_bytes());
+
+        let res_buf_offset = unsafe { wasm_endode_call(buf.offset() as usize) };
+        let res_buf = unsafe { Buffer::from_offset(res_buf_offset as usize) };
+
+        let encoded = res_buf.as_result().unwrap().unwrap();
+
+        assert!(std::str::from_utf8(encoded).is_ok());
+    }
+}
