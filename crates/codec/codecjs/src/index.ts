@@ -1,5 +1,7 @@
 "use strict";
 
+import { compileFunction } from "vm";
+
 const assert = require("assert");
 const fs = require("fs");
 
@@ -47,72 +49,136 @@ const fs = require("fs");
 //  return JSON.parse(string);
 //}
 //
-function wasmBufferAlloc(wasm: any, length: number): SvmBuffer {
-  let wasmAlloc: ((len: number) => number) = wasm.wasm_alloc;
-  let offset = wasmAlloc(length);
-  return new SvmBuffer(offset);
+
+interface SvmWasmApi {
+  wasm_encode_input(offset: number): number;
+  wasm_decode_input(offset: number): number;
+  wasm_encode_spawn(offset: number): number;
+  wasm_decode_spawn(offset: number): number;
+  wasm_encode_call(offset: number): number;
+  wasm_decode_call(offset: number): number;
+  wasm_decode_receipt(offset: number): number;
 }
 
+/**
+ * 
+ */
 class Svm {
-  exports: any = {};
+  wasm!: WebAssembly.WebAssemblyInstantiatedSource;
+  api!: SvmWasmApi;
+  encoder: TextEncoder = new TextEncoder();
 
+  /**
+   * 
+   * @returns 
+   */
   static compile = async () => {
     const svm = new Svm();
-    svm.exports = WebAssembly.compile(fs.readFileSync("svm_codec.wasm"));
+    let code = fs.readFileSync("svm_codec.wasm");
+    let importOject = {};
+    svm.wasm = await WebAssembly.instantiate(code, importOject);
     return svm;
   };
 
+  private exports(): WebAssembly.Exports {
+    return this.wasm.instance.exports;
+  }
+
+  /**
+   * 
+   * @param data 
+   */
   encodeInput(data: Uint8Array) {
-    let encode: ((offset: number) => void) = this.exports.wasm_encode_input;
-    let buf = this.allocBuf(data);
+    let dataAsJson = {
+      "data": data
+    };
+    let encode = this.exports().encode_input;
+    let json = this.encoder.encode(JSON.stringify(dataAsJson));
+    let buf = this.alloc(json)
+    this.exports().encode_input(buf.offset);
+  }
+
+  /**
+   * 
+   * @param encodedData 
+   */
+  decodeInput(encodedData: Uint8Array) {
+    let decode = this.exports().wasm_decode_input;
+    let buf = this.alloc(encodedData);
+    decode(buf.offset);
+  }
+
+  /**
+   * 
+   * @param encodedReceipt 
+   */
+  decodeReceipt(encodedReceipt: Uint8Array) {
+    let decode: ((bufferOffset: number) => number) = this.exports.wasm_decode_receipt;
+    let buf = this.alloc(encodedReceipt);
+    decode(buf.offset);
+  }
+
+  /**
+   * 
+   * @param encodedSpawn 
+   */
+  decodeSpawn(encodedSpawn: Uint8Array) {
+    let decode: ((bufferOffset: number) => number) = this.exports.wasm_decode_input;
+    let buf = this.alloc(encodedSpawn);
+    decode(buf.offset);
+  }
+
+  /**
+   * 
+   * @param spawn 
+   */
+  encodeSpawn(spawn: object) {
+    let encode: ((bufferOffset: number) => number) = this.exports.wasm_encode_spawn;
+    let json = this.encoder.encode(JSON.stringify(spawn));
+    let buf = this.alloc(json)
     encode(buf.offset);
   }
 
-  decodeInput(wasm: any, encodedData: Uint8Array) {
-    let decode: ((bufferOffset: number) => number) = wasm.wasm_decode_input;
-    let buf = this.allocBuf(encodedData);
-    decode(buf.offset);
-  }
-
-  decodeReceipt(wasm: any, encodedReceipt: Uint8Array) {
-    let decode: ((bufferOffset: number) => number) = wasm.wasm_decode_receipt;
-    let buf = this.allocBuf(encodedReceipt);
-    decode(buf.offset);
-  }
-
-  decodeSpawn(wasm: any, encodedSpawn: Uint8Array) {
-    let decode: ((bufferOffset: number) => number) = wasm.wasm_decode_input;
-    let buf = this.allocBuf(encodedSpawn);
-    decode(buf.offset);
-  }
-
-  encodeSpawn(wasm: any, spawn: any) {
-    let encode: ((bufferOffset: number) => number) = wasm.wasm_decode_input;
-    let buf = this.allocBuf(encodedSpawn);
+  /**
+   * 
+   * @param deploy 
+   */
+  encodeDeploy(deploy: object) {
+    let encode: ((bufferOffset: number) => number) = this.exports.wasm_encode_deploy;
+    let json = this.encoder.encode(JSON.stringify(deploy));
+    let buf = this.alloc(json)
     encode(buf.offset);
   }
 
-  encodeDeploy(wasm: any, deploy: any) {
-    let wasmDecodeInput: ((bufferOffset: number) => number) = wasm.wasm_decode_input;
-    wasmDecodeInput(encodedData.offset);
+  /**
+   * 
+   * @param encodedCall 
+   */
+  decodeCall(encodedCall: Uint8Array) {
+    let decode: ((bufferOffset: number) => number) = this.exports.wasm_decode_call;
+    let buf = this.alloc(encodedCall);
+    decode(buf.offset);
   }
 
-  decodeCall(wasm: any, encodedSpaw: Uint8Array) {
-    let wasmDecodeInput: ((bufferOffset: number) => number) = wasm.wasm_decode_input;
-    wasmDecodeInput(encodedData.offset);
+  /**
+   * 
+   * @param call 
+   */
+  encodeCall(call: object) {
+    let encode: ((bufferOffset: number) => number) = this.exports.wasm_encode_call;
+    let json = this.encoder.encode(JSON.stringify(call));
+    let buf = this.alloc(json)
+    encode(buf.offset);
   }
 
-  encodeCall(wasm: any, spawn: any) {
-    let wasmDecodeInput: ((bufferOffset: number) => number) = wasm.wasm_decode_input;
-    wasmDecodeInput(encodedData.offset);
-  }
-
-  private allocBuf(contents: Uint8Array): SvmBuffer {
+  private alloc(contents: Uint8Array): SvmBuffer {
     let alloc: (() => number) = this.exports.wasm_alloc;
+    let offset = alloc();
+    let buf = new SvmBuffer(offset, this);
     return new SvmBuffer(alloc(), this);
   }
 
-  private freeBuf(buf: SvmBuffer) {
+  private free(buf: SvmBuffer) {
     let free: ((offset: number) => void) = this.exports.wasm_free;
     free(buf.offset);
   }
@@ -134,10 +200,6 @@ class SvmBuffer {
     let memory = this.svm.exports.memory.buffer;
     return new Uint8Array(memory);
   }
-
-  free() {
-
-  }
 }
 
 //
@@ -157,23 +219,6 @@ class SvmBuffer {
 //
 //  return slice;
 //}
-
-function generateAddress(s: string) {
-  // an `Address` takes 20 bytes
-  // which are 40 hexadecimal digits
-  return repeatString(s, 20);
-}
-
-function repeatString(s: string, byteLength: number) {
-  const n = s.length;
-  const t = byteLength * 2;
-
-  assert(t % n == 0);
-
-  let m = t / n;
-
-  return s.repeat(m);
-}
 
 //function binToString(array) {
 //  let result = "";

@@ -197,7 +197,7 @@ where
     F: Fn(&str) -> Result<Vec<u8>, JsonError>,
 {
     let buf = Buffer::from_offset(offset.try_into().unwrap());
-    let json_s = std::str::from_utf8(buf.as_ref()).expect("FIXME");
+    let json_s = std::str::from_utf8(buf.as_ref()).expect("Invalid UTF-8");
     let result = decode(json_s);
 
     result
