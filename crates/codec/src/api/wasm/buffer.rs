@@ -76,7 +76,7 @@ impl Buffer {
         buf
     }
 
-    #[allow(unused)]
+    #[cfg(test)]
     pub fn then_free(mut self) -> Self {
         self.1 = false;
         self
@@ -117,15 +117,14 @@ impl Buffer {
     }
 
     pub fn free(mut self) {
-        let _ = self.0.take();
+        self.0.take();
     }
 
-    pub fn offset(&self) -> usize {
-        self.vec().as_ptr() as usize
+    pub fn ptr(&mut self) -> *mut u8 {
+        self.vec_mut().as_mut_ptr()
     }
 
-    pub unsafe fn from_offset(offset: usize) -> Self {
-        let ptr = offset as *mut u8;
+    pub unsafe fn from_ptr(ptr: *mut u8) -> Self {
         let header = Self(
             Some(Vec::from_raw_parts(
                 ptr,
@@ -191,7 +190,7 @@ impl AsMut<[u8]> for Buffer {
 /// [`Buffer::free()`].
 impl Drop for Buffer {
     fn drop(&mut self) {
-        if self.1 {
+        if self.0.is_some() && self.1 {
             // https://doc.rust-lang.org/nomicon/destructors.html
             self.0.take().unwrap().leak();
         }
@@ -217,17 +216,21 @@ mod test {
     }
 
     #[quickcheck]
-    fn offset_and_from_offset(mut data: Vec<u8>) -> bool {
+    fn ptr_and_from_ptr(mut data: Vec<u8>) -> bool {
         data.truncate(u16::MAX as usize);
 
         let mut buf_1 = Buffer::alloc(data.len() as u32);
-        let buf_2 = unsafe { Buffer::from_offset(buf_1.offset()) };
-        println!("AFTER BUFFER");
+        let buf_2 = unsafe { Buffer::from_ptr(buf_1.ptr()) };
 
         buf_1.as_mut().clone_from_slice(&data);
-        println!("AFTER WRITE");
 
         buf_1 == buf_2 && buf_1.as_ref() == &data && buf_2.as_ref() == &data
+    }
+
+    #[quickcheck]
+    fn free(len: u16) -> bool {
+        Buffer::alloc(len as u32).free();
+        true
     }
 
     #[quickcheck]

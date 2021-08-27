@@ -1975,7 +1975,6 @@ dependencies = [
  "svm-sdk-types",
  "svm-types",
  "thiserror",
- "toml",
 ]
 
 [[package]]
