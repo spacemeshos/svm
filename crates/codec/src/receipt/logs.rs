@@ -62,47 +62,27 @@ fn decode_log(cursor: &mut impl ReadExt) -> Result<ReceiptLog, ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
+    use crate::codec::test_codec;
 
     use super::*;
 
     #[test]
     fn encode_logs_empty() {
-        let mut buf = Vec::new();
-
-        Vec::<ReceiptLog>::new().encode(&mut buf);
-
-        let mut cursor = Cursor::new(&buf[..]);
-        let logs = <Vec<ReceiptLog>>::decode(&mut cursor).unwrap();
-
-        assert!(logs.is_empty());
+        test_codec(Vec::<ReceiptLog>::new());
     }
 
     #[test]
     fn encode_logs_single_entry() {
-        let mut buf = Vec::new();
-
         let log = ReceiptLog::new(b"been here".to_vec());
-        vec![log.clone()].encode(&mut buf);
 
-        let mut cursor = Cursor::new(&buf[..]);
-        let logs = <Vec<ReceiptLog>>::decode(&mut cursor).unwrap();
-
-        assert_eq!(logs, vec![log]);
+        test_codec(vec![log]);
     }
 
     #[test]
     fn encode_logs_single_multiple_entries() {
-        let mut buf = Vec::new();
-
         let log1 = ReceiptLog::new(b"been here".to_vec());
         let log2 = ReceiptLog::new(b"been there".to_vec());
 
-        vec![log1.clone(), log2.clone()].encode(&mut buf);
-
-        let mut cursor = Cursor::new(&buf[..]);
-        let logs = <Vec<ReceiptLog>>::decode(&mut cursor).unwrap();
-
-        assert_eq!(logs, vec![log1, log2]);
+        test_codec(vec![log1, log2]);
     }
 }

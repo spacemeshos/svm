@@ -1,5 +1,6 @@
 use std::convert::{TryFrom, TryInto};
 use std::io::Cursor;
+use std::marker::PhantomData;
 
 use svm_types::{
     Account, Address, Context, Envelope, Gas, Layer, SectionKind, SpawnAccount, State,
@@ -17,6 +18,11 @@ pub trait Codec: Sized {
     type Error;
 
     /// Writes a binary representation of `self` to `w`.
+    ///
+    /// # Panics
+    ///
+    /// This method does not return any errors. Instead, it panics if `self`
+    /// does not meet the conditions necessary for encoding (e.g. a max. size).
     fn encode(&self, w: &mut impl WriteExt);
 
     /// Attempts to parse a binary representation of `Self` pointed at by
@@ -45,9 +51,6 @@ pub trait Codec: Sized {
         self.encode(&mut w);
         w
     }
-
-    #[cfg(test)]
-    fn test_encode_then_decode(&self) {}
 }
 
 #[cfg(test)]
@@ -77,7 +80,44 @@ where
 }
 
 #[derive(Debug)]
-pub struct InputData(pub Vec<u8>);
+pub struct DataWithPrefix<T> {
+    pub data: Vec<u8>,
+    phantom: PhantomData<T>,
+}
+
+pub type InputData = DataWithPrefix<u8>;
+pub type ReturnData = DataWithPrefix<u16>;
+
+impl<T> DataWithPrefix<T> {
+    pub fn new(data: Vec<u8>) -> Self {
+        Self {
+            data,
+            phantom: PhantomData::default(),
+        }
+    }
+}
+
+impl<T> Codec for DataWithPrefix<T>
+where
+    T: Into<u64> + TryFrom<u64> + Codec,
+{
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        T::try_from(self.data.len() as u64)
+            .map_err(|_| ())
+            .unwrap()
+            .encode(w);
+        w.write_bytes(&self.data);
+    }
+
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, ParseError> {
+        let len = T::decode(reader).map_err(|_| ParseError::Eof)?;
+        let len: u64 = len.into();
+
+        Ok(Self::new(reader.read_bytes(len as usize)?))
+    }
+}
 
 /// Encoding of a binary [`Envelope`].
 ///
@@ -116,6 +156,21 @@ impl Codec for Envelope {
 
     fn fixed_size() -> Option<usize> {
         Some(20 + 8 + 8 + 8)
+    }
+}
+
+impl Codec for Gas {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        self.unwrap_or(0).encode(w);
+    }
+
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        match u64::decode(reader)? {
+            0 => Ok(Gas::new()),
+            x => Ok(Gas::with(x)),
+        }
     }
 }
 
@@ -159,16 +214,16 @@ impl Codec for Transaction {
         self.version.encode(w);
         self.target().0.encode(w);
         self.func_name().to_string().encode(w);
-        InputData(self.verifydata.clone()).encode(w);
-        InputData(self.calldata.clone()).encode(w);
+        InputData::new(self.verifydata.clone()).encode(w);
+        InputData::new(self.calldata.clone()).encode(w);
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let version = u16::decode(reader)?;
         let target = Address::decode(reader)?.into();
         let func_name = String::decode(reader)?;
-        let verifydata = InputData::decode(reader)?.0.to_vec();
-        let calldata = InputData::decode(reader)?.0.to_vec();
+        let verifydata = InputData::decode(reader)?.data;
+        let calldata = InputData::decode(reader)?.data;
 
         Ok(Transaction {
             version,
@@ -243,7 +298,7 @@ impl Codec for SpawnAccount {
         self.template_addr().0.encode(w);
         self.account_name().to_string().encode(w);
         self.ctor_name().to_string().encode(w);
-        InputData(self.calldata.clone()).encode(w);
+        InputData::new(self.calldata.clone()).encode(w);
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
@@ -251,7 +306,7 @@ impl Codec for SpawnAccount {
         let template_addr = TemplateAddr::decode(reader)?.into();
         let name = String::decode(reader)?;
         let ctor_name = String::decode(reader)?;
-        let calldata = InputData::decode(reader)?.0;
+        let calldata = InputData::decode(reader)?.data;
 
         Ok(SpawnAccount {
             version,
@@ -262,26 +317,6 @@ impl Codec for SpawnAccount {
             ctor_name,
             calldata,
         })
-    }
-}
-
-impl Codec for InputData {
-    type Error = ParseError;
-
-    fn encode(&self, w: &mut impl WriteExt) {
-        let length = self.0.len();
-
-        assert!(length <= std::u8::MAX as usize);
-
-        w.write_byte(length as u8);
-        w.write_bytes(&self.0[..]);
-    }
-
-    fn decode(reader: &mut impl ReadExt) -> Result<Self, ParseError> {
-        let byte = reader.read_byte()?;
-        let length = byte as usize;
-
-        Ok(Self(reader.read_bytes(length)?))
     }
 }
 
@@ -300,6 +335,18 @@ impl Codec for String {
         let bytes = reader.read_bytes(len)?;
 
         Ok(String::from_utf8(bytes.to_vec())?)
+    }
+}
+
+impl Codec for u8 {
+    type Error = EofError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
+        w.write_byte(*self);
+    }
+
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        reader.read_byte()
     }
 }
 

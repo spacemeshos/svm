@@ -29,11 +29,11 @@
 use svm_types::{Address, Gas, ReceiptLog, SpawnReceipt, State};
 
 use super::error::RuntimeErrorWithLogs;
-use super::{returndata, TY_SPAWN};
-use crate::{Codec, ReadExt, WriteExt};
+use super::TY_SPAWN;
+use crate::{codec::ReturnData, Codec, ParseError, ReadExt, WriteExt};
 
 impl Codec for SpawnReceipt {
-    type Error = std::convert::Infallible;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(TY_SPAWN);
@@ -43,7 +43,7 @@ impl Codec for SpawnReceipt {
         if self.success {
             self.account_addr().encode(w);
             self.init_state().encode(w);
-            encode_returndata(&self, w);
+            ReturnData::new(self.returndata().clone()).encode(w);
             self.gas_used().encode(w);
             self.logs.encode(w);
         } else {
@@ -52,20 +52,20 @@ impl Codec for SpawnReceipt {
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let ty = reader.read_byte().unwrap();
+        let ty = reader.read_byte()?;
         debug_assert_eq!(ty, TY_SPAWN);
 
-        let version = u16::decode(reader).unwrap();
+        let version = u16::decode(reader)?;
         debug_assert_eq!(0, version);
 
-        let is_success = bool::decode(reader).unwrap();
+        let is_success = bool::decode(reader)?;
 
         if is_success {
-            let addr = Address::decode(reader).unwrap();
-            let init_state = State::decode(reader).unwrap();
-            let returndata = returndata::decode(reader).unwrap();
-            let gas_used = Gas::decode(reader).unwrap();
-            let logs = <Vec<ReceiptLog>>::decode(reader).unwrap();
+            let addr = Address::decode(reader)?;
+            let init_state = State::decode(reader)?;
+            let returndata = ReturnData::decode(reader)?.data;
+            let gas_used = Gas::decode(reader)?;
+            let logs = <Vec<ReceiptLog>>::decode(reader)?;
 
             Ok(SpawnReceipt {
                 version,
@@ -84,18 +84,11 @@ impl Codec for SpawnReceipt {
     }
 }
 
-fn encode_returndata(receipt: &SpawnReceipt, w: &mut impl WriteExt) {
-    debug_assert!(receipt.success);
-
-    let data = receipt.returndata();
-    returndata::encode(&data, w);
-}
-
 #[cfg(test)]
 mod tests {
-    use svm_types::{
-        Address, BytesPrimitive, Gas, Receipt, ReceiptLog, RuntimeError, State, TemplateAddr,
-    };
+    use svm_types::{Address, BytesPrimitive, Gas, ReceiptLog, RuntimeError, State, TemplateAddr};
+
+    use crate::codec::test_codec;
 
     use super::*;
 
@@ -104,7 +97,7 @@ mod tests {
         let template_addr = TemplateAddr::of("@Template");
         let error = RuntimeError::TemplateNotFound(template_addr);
 
-        let receipt = SpawnReceipt {
+        test_codec(SpawnReceipt {
             version: 0,
             success: false,
             error: Some(error),
@@ -113,12 +106,7 @@ mod tests {
             returndata: None,
             gas_used: Gas::new(),
             logs: Vec::new(),
-        };
-
-        let bytes = receipt.encode_to_vec();
-        let decoded = Receipt::decode_bytes(bytes).unwrap();
-
-        assert_eq!(decoded.into_spawn(), receipt);
+        });
     }
 
     #[test]
@@ -127,7 +115,7 @@ mod tests {
         let init_state = State::of("some-state");
         let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
-        let receipt = SpawnReceipt {
+        test_codec(SpawnReceipt {
             version: 0,
             success: true,
             error: None,
@@ -136,12 +124,7 @@ mod tests {
             returndata: Some(Vec::new()),
             gas_used: Gas::with(100),
             logs: logs.clone(),
-        };
-
-        let bytes = receipt.encode_to_vec();
-        let decoded = Receipt::decode_bytes(bytes).unwrap();
-
-        assert_eq!(decoded.into_spawn(), receipt);
+        });
     }
 
     #[test]
@@ -151,7 +134,7 @@ mod tests {
         let returndata = vec![0x10, 0x20];
         let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
-        let receipt = SpawnReceipt {
+        test_codec(SpawnReceipt {
             version: 0,
             success: true,
             error: None,
@@ -160,11 +143,6 @@ mod tests {
             returndata: Some(returndata),
             gas_used: Gas::with(100),
             logs: logs.clone(),
-        };
-
-        let bytes = receipt.encode_to_vec();
-        let decoded = Receipt::decode_bytes(bytes).unwrap();
-
-        assert_eq!(decoded.into_spawn(), receipt);
+        });
     }
 }

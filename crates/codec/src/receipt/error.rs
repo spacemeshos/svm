@@ -80,7 +80,7 @@
 
 use svm_types::{Address, ReceiptLog, RuntimeError, TemplateAddr};
 
-use crate::{Codec, ReadExt, WriteExt};
+use crate::{Codec, ParseError, ReadExt, WriteExt};
 
 #[derive(Debug, PartialEq)]
 pub struct RuntimeErrorWithLogs {
@@ -101,7 +101,7 @@ impl RuntimeErrorWithLogs {
 }
 
 impl Codec for RuntimeErrorWithLogs {
-    type Error = std::convert::Infallible;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         encode_err_type(&self.err, w);

@@ -3,8 +3,6 @@
 mod call;
 mod deploy;
 mod error;
-mod gas;
-mod returndata;
 mod spawn;
 
 pub(crate) mod logs;

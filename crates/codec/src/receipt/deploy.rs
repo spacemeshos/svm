@@ -69,26 +69,21 @@ impl Codec for DeployReceipt {
 
 #[cfg(test)]
 mod tests {
-    use svm_types::{BytesPrimitive, DeployReceipt, Gas, Receipt, TemplateAddr};
+    use svm_types::{BytesPrimitive, DeployReceipt, Gas, TemplateAddr};
 
-    use crate::Codec;
+    use crate::codec::test_codec;
 
     #[test]
     fn encode_decode_deploy_template_receipt() {
         let addr = TemplateAddr::repeat(0xAB);
 
-        let receipt = DeployReceipt {
+        test_codec(DeployReceipt {
             version: 0,
             success: true,
             error: None,
             addr: Some(addr),
             gas_used: Gas::with(100),
             logs: Vec::new(),
-        };
-
-        let bytes = receipt.encode_to_vec();
-        let decoded = Receipt::decode_bytes(bytes).unwrap();
-
-        assert_eq!(decoded.into_deploy(), receipt);
+        });
     }
 }

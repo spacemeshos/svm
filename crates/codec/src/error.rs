@@ -47,6 +47,12 @@ pub enum ParseError {
     Other,
 }
 
+impl From<BoolError> for ParseError {
+    fn from(_: BoolError) -> Self {
+        Self::Other
+    }
+}
+
 impl From<EofError> for ParseError {
     fn from(_: EofError) -> Self {
         Self::Eof

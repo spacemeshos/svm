@@ -28,14 +28,13 @@
 
 use std::convert::TryFrom;
 
-use svm_types::{CallReceipt, Gas, ReceiptLog};
+use svm_types::{CallReceipt, Gas, ReceiptLog, State};
 
 use super::error::RuntimeErrorWithLogs;
-use super::returndata;
-use crate::{Codec, ReadExt, WriteExt};
+use crate::{codec::ReturnData, Codec, ParseError, ReadExt, WriteExt};
 
 impl Codec for CallReceipt {
-    type Error = std::convert::Infallible;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(super::TY_CALL);
@@ -44,7 +43,7 @@ impl Codec for CallReceipt {
 
         if self.success {
             self.new_state().0.encode(w);
-            returndata::encode(&self.returndata(), w);
+            ReturnData::new(self.returndata().clone()).encode(w);
             self.gas_used.encode(w);
             self.logs.encode(w);
         } else {
@@ -54,19 +53,19 @@ impl Codec for CallReceipt {
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let ty = reader.read_byte().unwrap();
+        let ty = reader.read_byte()?;
         debug_assert_eq!(ty, crate::receipt::TY_CALL);
 
-        let version = u16::decode(reader).unwrap();
+        let version = u16::decode(reader)?;
         debug_assert_eq!(0, version);
 
-        let is_success = bool::decode(reader).unwrap();
+        let is_success = bool::decode(reader)?;
 
         if is_success {
-            let new_state = <[u8; 32]>::decode(reader).unwrap().into();
-            let returndata = returndata::decode(reader).unwrap();
-            let gas_used = Gas::decode(reader).unwrap();
-            let logs = <Vec<ReceiptLog>>::decode(reader).unwrap();
+            let new_state = State::decode(reader)?;
+            let returndata = ReturnData::decode(reader)?.data;
+            let gas_used = Gas::decode(reader)?;
+            let logs = <Vec<ReceiptLog>>::decode(reader)?;
 
             Ok(CallReceipt {
                 version,
@@ -78,7 +77,7 @@ impl Codec for CallReceipt {
                 logs,
             })
         } else {
-            let x = RuntimeErrorWithLogs::decode(reader).unwrap();
+            let x = RuntimeErrorWithLogs::decode(reader)?;
             Ok(CallReceipt::from_err(x.err, x.logs))
         }
     }
@@ -86,7 +85,9 @@ impl Codec for CallReceipt {
 
 #[cfg(test)]
 mod tests {
-    use svm_types::{Address, BytesPrimitive, Gas, Receipt, ReceiptLog, RuntimeError, State};
+    use svm_types::{Address, BytesPrimitive, Gas, ReceiptLog, RuntimeError, State};
+
+    use crate::codec::test_codec;
 
     use super::*;
 
@@ -94,10 +95,9 @@ mod tests {
     fn encode_decode_call_receipt_error() {
         let account = Address::of("@Account");
         let error = RuntimeError::AccountNotFound(account.into());
-
         let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
-        let receipt = CallReceipt {
+        test_codec(CallReceipt {
             version: 0,
             success: false,
             error: Some(error),
@@ -105,12 +105,7 @@ mod tests {
             returndata: None,
             gas_used: Gas::new(),
             logs,
-        };
-
-        let bytes = receipt.encode_to_vec();
-        let decoded = Receipt::decode_bytes(bytes).unwrap();
-
-        assert_eq!(decoded.into_call(), receipt);
+        });
     }
 
     #[test]
@@ -118,7 +113,7 @@ mod tests {
         let new_state = State::of("some-state");
         let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
-        let receipt = CallReceipt {
+        test_codec(CallReceipt {
             version: 0,
             success: true,
             error: None,
@@ -126,22 +121,16 @@ mod tests {
             returndata: Some(Vec::new()),
             gas_used: Gas::with(100),
             logs: logs.clone(),
-        };
-
-        let bytes = receipt.encode_to_vec();
-        let decoded = Receipt::decode_bytes(bytes).unwrap();
-
-        assert_eq!(decoded.into_call(), receipt);
+        });
     }
 
     #[test]
     fn encode_decode_call_receipt_success_with_returns() {
         let new_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
-
         let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
-        let receipt = CallReceipt {
+        test_codec(CallReceipt {
             version: 0,
             success: true,
             error: None,
@@ -149,11 +138,6 @@ mod tests {
             returndata: Some(returndata),
             gas_used: Gas::with(100),
             logs: logs.clone(),
-        };
-
-        let bytes = receipt.encode_to_vec();
-        let decoded = Receipt::decode_bytes(bytes).unwrap();
-
-        assert_eq!(decoded.into_call(), receipt);
+        });
     }
 }
