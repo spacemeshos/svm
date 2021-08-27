@@ -211,8 +211,8 @@ impl Codec for Transaction {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        self.version.encode(w);
-        self.target().0.encode(w);
+        (self.version as u16).encode(w);
+        self.target().encode(w);
         self.func_name().to_string().encode(w);
         InputData::new(self.verifydata.clone()).encode(w);
         InputData::new(self.calldata.clone()).encode(w);
@@ -589,15 +589,20 @@ mod tests {
 
     #[test]
     fn encode_then_decode_transaction() {
-        let tx = Transaction {
+        test_codec(Transaction {
             version: 0,
             target: Address::of("@target").into(),
             func_name: "do_work".to_string(),
             verifydata: vec![0xAA, 0xBB, 0xCC],
             calldata: vec![0x10, 0x0, 0x30],
-        };
-
-        test_codec(tx);
+        });
+        test_codec(Transaction {
+            version: u16::MAX,
+            target: Address::of("FOOBAR").into(),
+            func_name: "work".to_string(),
+            verifydata: vec![0xAA, 0xBB, 0xCC],
+            calldata: vec![0x10, 0x0, 0x30],
+        });
     }
 
     #[test]
