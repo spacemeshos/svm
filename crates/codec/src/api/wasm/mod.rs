@@ -87,7 +87,7 @@ pub unsafe extern "C" fn wasm_buffer_length(ptr: *mut u8) -> i32 {
 /// Returns a pointer to the buffer `Data`
 #[no_mangle]
 pub unsafe extern "C" fn wasm_buffer_data(ptr: *mut u8) -> *mut u8 {
-    ptr.add(8)
+    Buffer::from_ptr(ptr).ptr().add(8)
 }
 
 // ENCODERS & DECODERS
