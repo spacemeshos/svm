@@ -21,7 +21,8 @@ use core::ops::{Deref, DerefMut};
 
 use crate::ensure;
 
-/// Fixed-Gas replacement for [`std::vec::Vec`].
+/// Fixed-Gas replacement for
+/// [`std::vec::Vec`](https://doc.rust-lang.org/std/vec/struct.Vec.html).
 pub struct Vec<T> {
     len: usize,
     cap: usize,

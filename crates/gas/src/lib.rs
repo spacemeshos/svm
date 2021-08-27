@@ -1,9 +1,10 @@
+//! This crate is responsible for doing gas validation & estimation for transactions.
+
 #![allow(missing_docs)]
 #![allow(unused)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
-
-//! This crate is responsible for doing gas validation & estimation for transactions.
+#![deny(rustdoc::broken_intra_doc_links)]
 
 mod call_graph;
 mod cfg;

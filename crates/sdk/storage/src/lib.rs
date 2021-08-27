@@ -10,6 +10,7 @@
 #![allow(unused)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 mod ext;
 mod mock;

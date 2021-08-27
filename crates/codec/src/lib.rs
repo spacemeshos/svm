@@ -10,6 +10,7 @@
 #![deny(unused)]
 #![deny(dead_code)]
 #![allow(unreachable_code)]
+#![deny(rustdoc::broken_intra_doc_links)]
 #![feature(vec_into_raw_parts)]
 
 mod codec;

@@ -81,30 +81,30 @@ fn encode_context(ctx: &Context) -> svm_byte_array {
 
 unsafe fn destroy(byte_arrays: &[svm_byte_array]) {
     for byte_array in byte_arrays {
-        let _ = api::svm_byte_array_destroy(byte_array.clone());
+        let _ = api::svm_byte_array_destroy(*byte_array);
     }
 }
 
 #[test]
 fn svm_resources_tracking() {
+    tracking::set_tracking_on();
+
+    let ty1 = Type::Str("#1");
+    let s1 = "Hello".to_string();
+    let hello: svm_byte_array = (ty1, s1).into();
+
+    let ty2 = Type::Str("#2");
+    let s2 = "World".to_string();
+    let world: svm_byte_array = (ty2, s2).into();
+
+    let s3 = "New World".to_string();
+    let new_world: svm_byte_array = (ty2, s3).into();
+
+    assert_eq!(api::svm_total_live_resources(), 3);
+
+    let iter = api::svm_resource_iter_new();
+
     unsafe {
-        tracking::set_tracking_on();
-
-        let ty1 = Type::Str("#1");
-        let s1 = "Hello".to_string();
-        let hello: svm_byte_array = (ty1, s1).into();
-
-        let ty2 = Type::Str("#2");
-        let s2 = "World".to_string();
-        let world: svm_byte_array = (ty2, s2).into();
-
-        let s3 = "New World".to_string();
-        let new_world: svm_byte_array = (ty2, s3).into();
-
-        assert_eq!(api::svm_total_live_resources(), 3);
-
-        let iter = api::svm_resource_iter_new();
-
         let r1 = &mut *api::svm_resource_iter_next(iter);
         let r2 = &mut *api::svm_resource_iter_next(iter);
 

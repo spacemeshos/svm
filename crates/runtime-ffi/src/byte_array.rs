@@ -79,7 +79,7 @@ impl svm_byte_array {
         unsafe { std::slice::from_raw_parts_mut(self.bytes as _, self.length as usize) }
     }
 
-    /// Copies `self` into a new [`Vec`](std::vec::Vec).
+    /// Copies `self` into a new [`Vec`].
     pub fn to_vec(&self) -> Vec<u8> {
         self.as_slice().to_vec()
     }
@@ -150,19 +150,18 @@ impl svm_byte_array {
     }
 }
 
-// ///
-// /// # Examples
-// ///
-// /// ```rust
-// /// use svm_runtime_ffi::svm_byte_array;
-// ///
-// /// let array = svm_byte_array::default();
-// ///
-// /// assert_eq!(std::ptr::null(), array.bytes);
-// /// assert_eq!(0, array.length);
-// /// assert_eq!(0, array.capacity);
-// /// ```
-// ///
+///
+/// # Examples
+///
+/// ```rust
+/// use svm_runtime_ffi::svm_byte_array;
+///
+/// let array = svm_byte_array::default();
+///
+/// assert_eq!(array.len(), 0);
+/// assert_eq!(array.capacity(), 0);
+/// ```
+///
 impl Default for svm_byte_array {
     fn default() -> Self {
         Self {
