@@ -76,8 +76,8 @@ impl From<DecodedCall> for Transaction {
 
         Transaction {
             version: decoded.version,
-            func_name: decoded.func_name,
             target,
+            func_name: decoded.func_name,
             verifydata: decoded.verifydata.encode(),
             calldata: decoded.calldata.encode(),
         }
@@ -222,52 +222,25 @@ mod tests {
     }
 
     #[test]
-    fn json_call_valid() {
-        let calldata = json::encode_inputdata(
-            &json!({
-                "abi": ["i32", "i64"],
-                "data": [10, 20],
-            })
-            .to_string(),
-        )
-        .unwrap();
-
-        let verifydata = json::encode_inputdata(
-            &json!({
-                "abi": ["bool", "i8"],
-                "data": [true, 3],
-            })
-            .to_string(),
-        )
-        .unwrap();
-
+    fn encode_then_decode() {
         let json = json!({
             "version": 0,
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
-            "verifydata": verifydata["data"],
-            "calldata": calldata["data"],
+            "calldata": {
+                "abi": ["i32", "i64"],
+                "data": [10, 20],
+            },
+            "verifydata": {
+                "abi": ["bool", "i8"],
+                "data": [true, 3],
+            }
         })
         .to_string();
 
-        let encoded_json = encode_call(&json).unwrap();
-        let json = decode_call(&encoded_json.to_string()).unwrap();
+        let encoded = encode_call(json.as_str()).unwrap();
+        let decoded = decode_call(encoded.to_string().as_str()).unwrap();
 
-        assert_eq!(
-            json,
-            json!({
-                "version": 0,
-                "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-                "func_name": "do_something",
-                "verifydata": {
-                    "abi": ["bool", "i8"],
-                    "data": [true, 3]
-                },
-                "calldata": {
-                    "abi": ["i32", "i64"],
-                    "data": [10, 20]
-                }
-            })
-        );
+        assert_eq!(json, decoded.to_string());
     }
 }
