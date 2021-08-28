@@ -80,16 +80,18 @@ where
     item == decoded && T::fixed_size().map(|x| x == encoded.len()).unwrap_or(true)
 }
 
+/// A sequence of bytes prefixed by their length in the form of a numeric type
+/// `T`.
 #[derive(Debug)]
-pub struct DataWithPrefix<T> {
+pub struct DataWithPrefix<P> {
     pub data: Vec<u8>,
-    phantom: PhantomData<T>,
+    phantom: PhantomData<P>,
 }
 
 pub type InputData = DataWithPrefix<u8>;
 pub type ReturnData = DataWithPrefix<u16>;
 
-impl<T> DataWithPrefix<T> {
+impl<P> DataWithPrefix<P> {
     pub fn new(data: Vec<u8>) -> Self {
         Self {
             data,
@@ -98,14 +100,14 @@ impl<T> DataWithPrefix<T> {
     }
 }
 
-impl<T> Codec for DataWithPrefix<T>
+impl<P> Codec for DataWithPrefix<P>
 where
-    T: Into<u64> + TryFrom<u64> + Codec,
+    P: Into<u64> + TryFrom<u64> + Codec,
 {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        T::try_from(self.data.len() as u64)
+        P::try_from(self.data.len() as u64)
             .map_err(|_| ())
             .unwrap()
             .encode(w);
@@ -113,7 +115,7 @@ where
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, ParseError> {
-        let len = T::decode(reader).map_err(|_| ParseError::Eof)?;
+        let len = P::decode(reader).map_err(|_| ParseError::Eof)?;
         let len: u64 = len.into();
 
         Ok(Self::new(reader.read_bytes(len as usize)?))

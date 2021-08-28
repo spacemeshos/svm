@@ -15,8 +15,8 @@ use svm_types::{CodeKind, CodeSection, GasMode};
 use crate::codec::DataWithPrefix;
 use crate::{Codec, ParseError, ReadExt, WriteExt};
 
-pub const WASM: u16 = 0x00_01;
-pub const GAS_MODE_FIXED: u64 = 0x00_01;
+pub const WASM: u16 = 1;
+pub const GAS_MODE_FIXED: u64 = 1;
 
 impl Codec for CodeSection {
     type Error = ParseError;

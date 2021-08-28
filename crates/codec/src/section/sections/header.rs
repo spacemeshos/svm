@@ -27,8 +27,6 @@ impl Codec for HeaderSection {
         let name = String::decode(reader)?;
         let desc = String::decode(reader)?;
 
-        let section = HeaderSection::new(code_version, name, desc);
-
-        Ok(section)
+        Ok(HeaderSection::new(code_version, name, desc))
     }
 }
