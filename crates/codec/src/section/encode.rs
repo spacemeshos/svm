@@ -43,7 +43,7 @@ impl SectionsEncoder {
         assert!(section_count < std::u16::MAX as usize);
 
         let section_count_size = 2;
-        let previews_size = section_count * SectionPreview::len();
+        let previews_size = section_count * SectionPreview::fixed_size().unwrap();
         let sections_size: usize = self.section_buf.values().map(|buf| buf.len()).sum();
 
         let capacity = section_count_size + previews_size + sections_size;

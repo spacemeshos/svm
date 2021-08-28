@@ -24,11 +24,6 @@ impl SectionPreview {
     pub fn byte_size(&self) -> u32 {
         self.byte_size
     }
-
-    /// The binary byte size of [`Self`].
-    pub const fn len() -> usize {
-        8
-    }
 }
 
 impl Codec for SectionPreview {
@@ -44,5 +39,9 @@ impl Codec for SectionPreview {
         let byte_size = u32::decode(reader)?;
 
         Ok(SectionPreview::new(kind, byte_size))
+    }
+
+    fn fixed_size() -> Option<usize> {
+        Some(8)
     }
 }

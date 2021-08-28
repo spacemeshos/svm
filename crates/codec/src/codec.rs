@@ -60,10 +60,12 @@ where
     E: std::fmt::Debug,
 {
     let encoded = item.encode_to_vec();
-
-    let decoded = T::decode_bytes(encoded).unwrap();
+    let decoded = T::decode_bytes(&encoded).unwrap();
 
     assert_eq!(item, decoded);
+    if let Some(fixed_size) = T::fixed_size() {
+        assert_eq!(fixed_size, encoded.len());
+    }
 }
 
 #[cfg(test)]
@@ -73,10 +75,9 @@ where
     E: std::fmt::Debug,
 {
     let encoded = item.encode_to_vec();
+    let decoded = T::decode_bytes(&encoded).unwrap();
 
-    let decoded = T::decode_bytes(encoded).unwrap();
-
-    item == decoded
+    item == decoded && T::fixed_size().map(|x| x == encoded.len()).unwrap_or(true)
 }
 
 #[derive(Debug)]
