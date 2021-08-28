@@ -10,10 +10,6 @@ use super::SectionPreview;
 
 use crate::{Codec, ParseError, ReadExt};
 
-pub trait SectionDecoder: Sized {
-    fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError>;
-}
-
 /// Decodes a collection of [`Section`] into their native form.
 ///
 /// While running the decoding process, each encountered binary [`Section`] can be decided

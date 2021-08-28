@@ -87,7 +87,7 @@ impl DecodedInputData {
 
 impl JsonSerdeUtils for DecodedInputData {}
 
-fn calldata_to_json(mut calldata: CallData) -> Json {
+pub(crate) fn calldata_to_json(mut calldata: CallData) -> Json {
     let mut abi = vec![];
     let mut data = vec![];
 

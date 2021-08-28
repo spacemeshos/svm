@@ -12,11 +12,12 @@
 
 use svm_types::CtorsSection;
 
-use crate::section::{SectionDecoder, SectionEncoder};
 use crate::{Codec, ParseError, ReadExt, WriteExt};
 
-impl SectionEncoder for CtorsSection {
-    fn encode(&self, w: &mut Vec<u8>) {
+impl Codec for CtorsSection {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
         // `#Ctors`
         let count = self.ctors().len();
 
@@ -29,9 +30,7 @@ impl SectionEncoder for CtorsSection {
             ctor.encode(w);
         }
     }
-}
 
-impl SectionDecoder for CtorsSection {
     fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError> {
         let num_ctors = cursor.read_byte()? as usize;
         let mut section = CtorsSection::with_capacity(num_ctors);

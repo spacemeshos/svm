@@ -54,3 +54,25 @@ pub(crate) fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Json> {
         })
         .collect()
 }
+
+pub(crate) fn get_field<T>(json: &mut Json, name: &str) -> Result<T, JsonError>
+where
+    T: for<'a> Deserialize<'a>,
+{
+    let object = json.as_object_mut().ok_or(JsonError::NotAnObject)?;
+    let value = object
+        .get_mut(name)
+        .ok_or(JsonError::MissingField {
+            field_name: name.to_string(),
+        })?
+        .take();
+    serde_json::from_value(value).map_err(|_| JsonError::InvalidField {
+        path: name.to_string(),
+    })
+}
+
+pub(crate) fn parse_json(json_str: &str) -> Result<Json, JsonError> {
+    let json_deserializer = &mut serde_json::Deserializer::from_str(json_str);
+    let value = serde_path_to_error::deserialize(json_deserializer)?;
+    Ok(value)
+}

@@ -8,12 +8,6 @@ use super::SectionPreview;
 use crate::Codec;
 use crate::WriteExt;
 
-/// A trait to be implemented by [`Section`] encoders.
-pub trait SectionEncoder {
-    /// Encodes `Self` into its binary format. Bytes are appended into `w`.
-    fn encode(&self, w: &mut Vec<u8>);
-}
-
 /// Encodes a collection of [`Section`] into a binary form.
 pub struct SectionsEncoder {
     section_buf: IndexMap<SectionKind, Vec<u8>>,
@@ -79,17 +73,15 @@ impl SectionsEncoder {
         let kind = section.kind();
         let buf = self.section_buf_mut(kind);
 
-        let encoder: &dyn SectionEncoder = match kind {
-            SectionKind::Api => section.as_api(),
-            SectionKind::Header => section.as_header(),
-            SectionKind::Code => section.as_code(),
-            SectionKind::Data => section.as_data(),
-            SectionKind::Ctors => section.as_ctors(),
-            SectionKind::Schema => section.as_schema(),
-            SectionKind::Deploy => section.as_deploy(),
-        };
-
-        encoder.encode(buf);
+        match kind {
+            SectionKind::Api => section.as_api().encode(buf),
+            SectionKind::Header => section.as_header().encode(buf),
+            SectionKind::Code => section.as_code().encode(buf),
+            SectionKind::Data => section.as_data().encode(buf),
+            SectionKind::Ctors => section.as_ctors().encode(buf),
+            SectionKind::Schema => section.as_schema().encode(buf),
+            SectionKind::Deploy => section.as_deploy().encode(buf),
+        }
     }
 
     fn section_buf_mut(&mut self, kind: SectionKind) -> &mut Vec<u8> {
