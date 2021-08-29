@@ -166,7 +166,7 @@ pub unsafe extern "C" fn wasm_decode_spawn(ptr: *mut u8) -> *mut u8 {
 /// containing the error message.
 #[no_mangle]
 pub unsafe extern "C" fn wasm_encode_call(ptr: *mut u8) -> *mut u8 {
-    wasm_call_json(api::json::encode_call, ptr)
+    wasm_call_raw(api::json::encode_call_raw, ptr)
 }
 
 /// Decodes the encoded `Call Account` given as a WASM buffer (parameter
@@ -183,13 +183,13 @@ pub unsafe extern "C" fn wasm_decode_call(ptr: *mut u8) -> *mut u8 {
 // UTILITIES
 // ---------
 
-unsafe fn wasm_call_raw<F>(decode: F, ptr: *mut u8) -> *mut u8
+unsafe fn wasm_call_raw<F>(f: F, ptr: *mut u8) -> *mut u8
 where
     F: Fn(&str) -> Result<Vec<u8>, JsonError>,
 {
     let buf = Buffer::from_ptr(ptr);
     let json_s = std::str::from_utf8(buf.as_ref()).expect("Invalid UTF-8");
-    let result = decode(json_s);
+    let result = f(json_s);
 
     result
         .map(|bytes| Buffer::alloc_ok(&bytes))
@@ -197,13 +197,13 @@ where
         .ptr() as *mut u8
 }
 
-unsafe fn wasm_call_json<F>(decode: F, ptr: *mut u8) -> *mut u8
+unsafe fn wasm_call_json<F>(f: F, ptr: *mut u8) -> *mut u8
 where
     F: Fn(&str) -> Result<Json, JsonError>,
 {
     wasm_call_raw(
         |s| {
-            decode(s).map(|json| {
+            f(s).map(|json| {
                 let json_s = serde_json::to_string(&json).expect("JSON serialization error");
                 json_s.into_bytes()
             })

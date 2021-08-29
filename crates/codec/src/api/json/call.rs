@@ -1,13 +1,11 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as Json};
 
-use svm_abi_decoder::CallData;
 use svm_types::Transaction;
 
-use super::inputdata::DecodedInputData;
+use super::inputdata::{decode_raw_input, DecodedInputData};
 use super::serde_types::*;
 use super::{get_field, parse_json, JsonError};
-use crate::api::json::inputdata::calldata_to_json;
 use crate::Codec;
 
 /// Transforms a user-friendly `call` into an encoded form:
@@ -31,25 +29,24 @@ use crate::Codec;
 /// }
 /// ```
 pub fn encode_call(json: &str) -> Result<Json, JsonError> {
-    let json = &mut parse_json(json)?;
-
-    let tx = Transaction {
-        version: get_field(json, "version")?,
-        target: get_field::<AddressWrapper>(json, "target")?.into(),
-        func_name: get_field(json, "func_name")?,
-        verifydata: get_field::<EncodedOrDecodedCalldata>(json, "verifydata")?.encode(),
-        calldata: get_field::<EncodedOrDecodedCalldata>(json, "calldata")?.encode(),
-    };
-
     Ok(json!({
-        "data": HexBlob(tx.encode_to_vec())
+        "data": HexBlob(encode_call_raw(json)?)
     }))
 }
 
 /// Much like [`encode_call`], but instead of returning a JSON wrapper it
 /// returns the raw bytes.
 pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
-    encode_call(json).map(|json| json.to_string().into_bytes())
+    let json = &mut parse_json(json)?;
+
+    Ok(Transaction {
+        version: get_field(json, "version")?,
+        target: get_field::<AddressWrapper>(json, "target")?.into(),
+        func_name: get_field(json, "func_name")?,
+        verifydata: get_field::<EncodedOrDecodedCalldata>(json, "verifydata")?.encode(),
+        calldata: get_field::<EncodedOrDecodedCalldata>(json, "calldata")?.encode(),
+    }
+    .encode_to_vec())
 }
 
 /// Given a binary [`Transaction`] wrapped inside JSON,
@@ -62,13 +59,19 @@ pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
 /// ```
 pub fn decode_call(json: &str) -> Result<Json, JsonError> {
     let json = &mut parse_json(json)?;
-    let data = get_field::<HexBlob<Vec<u8>>>(json, "data")?;
-    let tx = Transaction::decode_bytes(data.0).map_err(|_| JsonError::InvalidField {
-        path: "data".to_string(),
+    let data = get_field::<HexBlob<Vec<u8>>>(json, "data")?.0;
+    let tx = Transaction::decode_bytes(data).map_err(|_| JsonError::InvalidField {
+        //path: "data".to_string(),
+        path: json.to_string(),
     })?;
 
-    let verifydata = calldata_to_json(CallData::new(&tx.verifydata));
-    let calldata = calldata_to_json(CallData::new(&tx.calldata));
+    let verifydata = EncodedOrDecodedCalldata::Decoded(
+        DecodedInputData::new(&decode_raw_input(tx.verifydata()).unwrap().to_string()).unwrap(),
+    );
+
+    let calldata = EncodedOrDecodedCalldata::Decoded(
+        DecodedInputData::new(&decode_raw_input(tx.calldata()).unwrap().to_string()).unwrap(),
+    );
 
     Ok(json!({
         "version": tx.version,
