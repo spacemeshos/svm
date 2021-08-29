@@ -94,7 +94,7 @@ pub trait BytesPrimitive<const N: usize>:
         Self::zeros().as_ref() == self.as_ref()
     }
 
-    /// Fills a new instance of [`Self`] wihh `byte`.
+    /// Fills a new instance of [`Self`] with `byte`.
     fn repeat(byte: u8) -> Self {
         [byte; N].into()
     }
