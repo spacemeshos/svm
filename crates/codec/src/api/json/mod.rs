@@ -5,9 +5,8 @@ mod deploy;
 mod error;
 mod inputdata;
 mod receipt;
+mod serde_types;
 mod spawn;
-
-pub(crate) mod serde_types;
 
 pub use call::{decode_call, encode_call, encode_call_raw};
 pub use deploy::deploy_template;
@@ -21,7 +20,7 @@ use serde_json::{json, Value as Json};
 
 use svm_types::{Gas, ReceiptLog};
 
-pub(crate) fn gas_to_json(gas: &Gas) -> i64 {
+fn gas_to_json(gas: &Gas) -> i64 {
     if gas.is_some() {
         gas.unwrap() as _
     } else {
@@ -29,7 +28,7 @@ pub(crate) fn gas_to_json(gas: &Gas) -> i64 {
     }
 }
 
-pub(crate) fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Json> {
+fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Json> {
     logs.iter()
         .map(|log| {
             let data = unsafe { String::from_utf8_unchecked(log.as_bytes().to_vec()) };
@@ -41,7 +40,7 @@ pub(crate) fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Json> {
         .collect()
 }
 
-pub(crate) fn get_field<T>(json: &mut Json, name: &str) -> Result<T, JsonError>
+fn get_field<T>(json: &mut Json, name: &str) -> Result<T, JsonError>
 where
     T: for<'a> Deserialize<'a>,
 {
@@ -57,7 +56,7 @@ where
     })
 }
 
-pub(crate) fn parse_json(json_str: &str) -> Result<Json, JsonError> {
+fn parse_json(json_str: &str) -> Result<Json, JsonError> {
     let json_deserializer = &mut serde_json::Deserializer::from_str(json_str);
     let value = serde_path_to_error::deserialize(json_deserializer)?;
     Ok(value)
