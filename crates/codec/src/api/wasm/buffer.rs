@@ -107,19 +107,6 @@ impl Buffer {
         buf
     }
 
-    #[allow(unused)]
-    pub fn as_result(&self) -> Option<Result<&[u8], &str>> {
-        let first_byte = self.as_ref().get(0)?;
-        match *first_byte {
-            Self::OK_MARKER => Some(Ok(&self.as_ref()[1..])),
-            Self::ERR_MARKER => {
-                let s = std::str::from_utf8(&self.as_ref()[1..]).ok()?;
-                Some(Err(s))
-            }
-            _ => None,
-        }
-    }
-
     pub fn alloc_err(string: impl ToString) -> Self {
         let string = string.to_string();
         let len = u32::try_from(string.as_bytes().len()).unwrap() + 1u32;
