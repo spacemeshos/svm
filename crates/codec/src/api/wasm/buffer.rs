@@ -49,7 +49,10 @@ use std::ops::{Range, RangeFrom};
 /// If for the `capacity` of the `Data` will be bigger - it will also increase
 /// the amount of allocated data.
 #[derive(Debug, PartialEq)]
-pub struct Buffer(Option<Vec<u8>>, bool);
+pub struct Buffer {
+    data: Option<Vec<u8>>,
+    leak_on_drop: bool,
+}
 
 impl Buffer {
     const LEN: Range<usize> = 0..4;
@@ -68,7 +71,10 @@ impl Buffer {
         debug_assert_eq!(vec.capacity(), len as usize + Self::HEADER_SIZE);
         debug_assert_eq!(vec.len(), len as usize + Self::HEADER_SIZE);
 
-        let mut buf = Self(Some(vec), true);
+        let mut buf = Self {
+            data: Some(vec),
+            leak_on_drop: true,
+        };
 
         buf.set_capacity(len);
         buf.set_len(len);
@@ -76,9 +82,14 @@ impl Buffer {
         buf
     }
 
+    /// # Panics
+    ///
+    /// Panics is this [`Buffer`] is already set to be freed after use (i.e.
+    /// this function has already been called).
     #[cfg(test)]
     pub fn then_free(mut self) -> Self {
-        self.1 = false;
+        assert!(self.leak_on_drop);
+        self.leak_on_drop = false;
         self
     }
 
@@ -117,7 +128,7 @@ impl Buffer {
     }
 
     pub fn free(mut self) {
-        self.0.take();
+        self.data.take();
     }
 
     pub fn ptr(&mut self) -> *mut u8 {
@@ -125,31 +136,31 @@ impl Buffer {
     }
 
     pub unsafe fn from_ptr(ptr: *mut u8) -> Self {
-        let header = Self(
-            Some(Vec::from_raw_parts(
+        let header = Self {
+            data: Some(Vec::from_raw_parts(
                 ptr,
                 Self::HEADER_SIZE,
                 Self::HEADER_SIZE,
             )),
-            true,
-        );
+            leak_on_drop: true,
+        };
 
-        Self(
-            Some(Vec::from_raw_parts(
+        Self {
+            data: Some(Vec::from_raw_parts(
                 ptr,
                 header.len() as usize + Self::HEADER_SIZE,
                 header.capacity() as usize + Self::HEADER_SIZE,
             )),
-            true,
-        )
+            leak_on_drop: true,
+        }
     }
 
     fn vec(&self) -> &Vec<u8> {
-        self.0.as_ref().unwrap()
+        self.data.as_ref().unwrap()
     }
 
     fn vec_mut(&mut self) -> &mut Vec<u8> {
-        self.0.as_mut().unwrap()
+        self.data.as_mut().unwrap()
     }
 
     pub fn len(&self) -> u32 {
@@ -190,9 +201,9 @@ impl AsMut<[u8]> for Buffer {
 /// [`Buffer::free()`].
 impl Drop for Buffer {
     fn drop(&mut self) {
-        if self.0.is_some() && self.1 {
+        if self.data.is_some() && self.leak_on_drop {
             // https://doc.rust-lang.org/nomicon/destructors.html
-            self.0.take().unwrap().leak();
+            self.data.take().unwrap().leak();
         }
     }
 }
