@@ -65,8 +65,8 @@ impl Buffer {
         let mut vec = vec![0; len as usize + Self::HEADER_SIZE];
         vec.shrink_to_fit();
 
-        assert_eq!(vec.capacity(), len as usize + Self::HEADER_SIZE);
-        assert_eq!(vec.len(), len as usize + Self::HEADER_SIZE);
+        debug_assert_eq!(vec.capacity(), len as usize + Self::HEADER_SIZE);
+        debug_assert_eq!(vec.len(), len as usize + Self::HEADER_SIZE);
 
         let mut buf = Self(Some(vec), true);
 
