@@ -167,13 +167,13 @@ impl Buffer {
         u32::from_be_bytes((&self.vec()[Self::CAPACITY]).try_into().unwrap())
     }
 
-    pub fn set_len(&mut self, len: u32) {
+    fn set_len(&mut self, len: u32) {
         assert!(len <= self.capacity());
 
         self.vec_mut()[Self::LEN].clone_from_slice(&len.to_be_bytes());
     }
 
-    pub fn set_capacity(&mut self, capacity: u32) {
+    fn set_capacity(&mut self, capacity: u32) {
         assert!(capacity >= self.len());
         assert!(capacity as usize <= self.vec().len() - Self::HEADER_SIZE);
 
