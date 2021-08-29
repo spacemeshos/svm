@@ -54,7 +54,9 @@ pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
 pub fn decode_call(json: &str) -> Result<Json, JsonError> {
     let json = &mut parse_json(json)?;
     let data = get_field::<HexBlob<Vec<u8>>>(json, "data")?;
-    let tx = Transaction::decode_bytes(data.0).unwrap();
+    let tx = Transaction::decode_bytes(data.0).map_err(|_| JsonError::InvalidField {
+        path: "data".to_string(),
+    })?;
 
     let verifydata = calldata_to_json(CallData::new(&tx.verifydata));
     let calldata = calldata_to_json(CallData::new(&tx.calldata));
