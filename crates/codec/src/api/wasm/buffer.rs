@@ -50,7 +50,11 @@ use std::ops::{Range, RangeFrom};
 /// the amount of allocated data.
 #[derive(Debug, PartialEq)]
 pub struct Buffer {
+    /// This is an [`Option`] to support better "leak-on-drop" ergonomics. See
+    /// the [`Buffer`] implementation of [`Drop`].
     data: Option<Vec<u8>>,
+
+    /// Should all data be leaked on [`Drop`]?
     leak_on_drop: bool,
 }
 
@@ -127,8 +131,13 @@ impl Buffer {
         buf
     }
 
+    /// Frees all memory used by `self`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `self` has already been freed (i.e. it has no data).
     pub fn free(mut self) {
-        self.data.take();
+        self.data.take().unwrap();
     }
 
     pub fn ptr(&mut self) -> *mut u8 {
