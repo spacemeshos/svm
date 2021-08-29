@@ -618,7 +618,16 @@ mod tests {
             },
             ctor_name: "initialize".to_string(),
             calldata: vec![0x10, 0x20, 0x30],
-        })
+        });
+        test_codec(SpawnAccount {
+            version: u16::MAX,
+            account: Account {
+                name: "@foobar".to_string(),
+                template_addr: TemplateAddr::of("@spam"),
+            },
+            ctor_name: "work!".to_string(),
+            calldata: vec![0x10, 0x20, 0x30],
+        });
     }
 
     #[quickcheck]

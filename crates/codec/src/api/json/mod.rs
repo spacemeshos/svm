@@ -16,24 +16,10 @@ pub use inputdata::{decode_inputdata, encode_inputdata};
 pub use receipt::decode_receipt;
 pub use spawn::{decode_spawn, encode_spawn};
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{json, Value as Json};
 
 use svm_types::{Gas, ReceiptLog};
-
-/// Provides very simple utility functions to working with [`serde_json::Value`]
-/// in an easy way.
-pub(crate) trait JsonSerdeUtils: Serialize + for<'a> Deserialize<'a> {
-    fn to_json(self) -> Json {
-        serde_json::to_value(self).unwrap()
-    }
-
-    fn from_json_str(json_str: &str) -> Result<Self, JsonError> {
-        let json_deserializer = &mut serde_json::Deserializer::from_str(json_str);
-        let item = serde_path_to_error::deserialize(json_deserializer)?;
-        Ok(item)
-    }
-}
 
 pub(crate) fn gas_to_json(gas: &Gas) -> i64 {
     if gas.is_some() {

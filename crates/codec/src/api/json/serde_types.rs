@@ -4,8 +4,6 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use svm_types::{Address, BytesPrimitive, TemplateAddr};
 
-use super::JsonSerdeUtils;
-
 /// A blob of binary data that is encoded via Base16.
 #[derive(Clone, Debug)]
 pub struct HexBlob<T>(pub T);
@@ -40,7 +38,7 @@ impl<'de> Deserialize<'de> for HexBlob<Vec<u8>> {
 pub struct AddressWrapper(pub Address);
 
 #[derive(Clone, Debug, derive_more::Into, derive_more::From)]
-pub struct TemplateAddrWrapper(pub TemplateAddr);
+pub struct TemplateAddrWrapper(TemplateAddr);
 
 impl Serialize for AddressWrapper {
     fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
@@ -95,13 +93,3 @@ impl<'de> Deserialize<'de> for TemplateAddrWrapper {
         }
     }
 }
-
-impl JsonSerdeUtils for AddressWrapper {}
-impl JsonSerdeUtils for TemplateAddrWrapper {}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct EncodedData {
-    pub data: HexBlob<Vec<u8>>,
-}
-
-impl JsonSerdeUtils for EncodedData {}

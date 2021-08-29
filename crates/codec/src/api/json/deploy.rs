@@ -21,7 +21,7 @@ use crate::template;
 pub fn deploy_template(json: &str) -> Result<Vec<u8>, JsonError> {
     let json = &mut parse_json(json)?;
 
-    let _svm_version = get_field::<u32>(json, "svm_version")?;
+    let svm_version = get_field::<u32>(json, "svm_version")?;
     let code_version = get_field(json, "code_version")?;
     let name = get_field(json, "name")?;
     let desc = get_field(json, "desc")?;
@@ -30,7 +30,7 @@ pub fn deploy_template(json: &str) -> Result<Vec<u8>, JsonError> {
     let ctors = get_field::<Vec<String>>(json, "ctors")?;
 
     let layout = to_data_layout(data)?;
-    let code = CodeSection::new_fixed(code, code_version);
+    let code = CodeSection::new_fixed(code, svm_version);
     let data = DataSection::with_layout(layout);
     let ctors = CtorsSection::new(ctors);
     let header = HeaderSection::new(code_version, name, desc);
@@ -66,12 +66,13 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use serde_json::json;
 
     use std::io::Cursor;
 
-    use serde_json::json;
     use svm_layout::FixedLayout;
+
+    use super::*;
 
     #[test]
     fn json_deploy_template_missing_svm_version() {

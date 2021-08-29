@@ -31,16 +31,25 @@ use crate::Codec;
 /// }
 /// ```
 pub fn encode_call(json: &str) -> Result<Json, JsonError> {
+    let json = &mut parse_json(json)?;
+
+    let tx = Transaction {
+        version: get_field(json, "version")?,
+        target: get_field::<AddressWrapper>(json, "target")?.into(),
+        func_name: get_field(json, "func_name")?,
+        verifydata: get_field::<EncodedOrDecodedCalldata>(json, "verifydata")?.encode(),
+        calldata: get_field::<EncodedOrDecodedCalldata>(json, "calldata")?.encode(),
+    };
+
     Ok(json!({
-        "data": HexBlob(encode_call_raw(json)?),
+        "data": HexBlob(tx.encode_to_vec())
     }))
 }
 
 /// Much like [`encode_call`], but instead of returning a JSON wrapper it
 /// returns the raw bytes.
 pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
-    let json = &mut parse_json(json)?;
-    Ok(tx_from_json(json)?.encode_to_vec())
+    encode_call(json).map(|json| json.to_string().into_bytes())
 }
 
 /// Given a binary [`Transaction`] wrapped inside JSON,
@@ -87,17 +96,6 @@ impl EncodedOrDecodedCalldata {
         }
     }
 }
-
-fn tx_from_json(json: &mut Json) -> Result<Transaction, JsonError> {
-    Ok(Transaction {
-        version: get_field(json, "version")?,
-        target: get_field::<AddressWrapper>(json, "target")?.into(),
-        func_name: get_field(json, "func_name")?,
-        verifydata: get_field::<EncodedOrDecodedCalldata>(json, "verifydata")?.encode(),
-        calldata: get_field::<EncodedOrDecodedCalldata>(json, "calldata")?.encode(),
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;
