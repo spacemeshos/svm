@@ -3,20 +3,19 @@ use serde_json::{json, Value};
 use svm_types::RuntimeError;
 use svm_types::{BytesPrimitive, CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
-use super::JsonSerdeUtils;
-use crate::api::json::serde_types::{AddressWrapper, EncodedData, HexBlob, TemplateAddrWrapper};
-use crate::api::json::{self, JsonError};
+use crate::api::json::serde_types::{AddressWrapper, HexBlob, TemplateAddrWrapper};
+use crate::api::json::{self, get_field, parse_json, JsonError};
 use crate::Codec;
 
 /// Given a binary Receipt wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
 pub fn decode_receipt(json: &str) -> Result<Value, JsonError> {
-    let encoded_receipt = EncodedData::from_json_str(json)?;
-    let bytes = encoded_receipt.data.0.as_slice();
+    let json = &mut parse_json(json)?;
+    let encoded_data = get_field::<HexBlob<Vec<u8>>>(json, "data")?.0;
 
-    assert!(bytes.len() > 0);
+    assert!(encoded_data.len() > 0);
 
-    let receipt = Receipt::decode_bytes(bytes).unwrap();
+    let receipt = Receipt::decode_bytes(encoded_data).unwrap();
     let ty = receipt_type(&receipt);
 
     let json = if receipt.success() {
