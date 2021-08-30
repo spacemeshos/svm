@@ -2174,6 +2174,7 @@ dependencies = [
  "quickcheck_macros",
  "sqlx",
  "svm-hash",
+ "svm-types",
  "thiserror",
  "tokio",
 ]

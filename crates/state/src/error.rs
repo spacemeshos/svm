@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
-use crate::Fingerprint;
+use crate::storage::Fingerprint;
 
 /// An alias for [`Result`](std::result::Result)'s with [`StorageError`].
-pub type Result<T> = std::result::Result<T, StorageError>;
+pub type StorageResult<T> = std::result::Result<T, StorageError>;
 
 /// A sum type for all error conditions that can arise in this crate.
 #[derive(Debug, thiserror::Error)]
