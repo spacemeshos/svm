@@ -1,3 +1,5 @@
+//! Implementation of Global State for the Spacemesh Virtual Machine.
+
 mod error;
 mod gs;
 mod storage;
