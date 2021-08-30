@@ -5,7 +5,7 @@ use crate::ParseError;
 /// A trait to be implemented by Decoders
 pub trait ReadExt: Sized {
     /// Tries to read the next byte, but doesn't move the cursor forward.
-    fn seek_byte(&self) -> Option<u8>;
+    fn peek_byte(&self) -> Option<u8>;
 
     /// Reads bytes until `buf` is full.
     fn read_fill(&mut self, buf: &mut [u8]) -> Result<(), ParseError> {
@@ -41,7 +41,7 @@ pub trait WriteExt {
 }
 
 impl ReadExt for Cursor<&[u8]> {
-    fn seek_byte(&self) -> Option<u8> {
+    fn peek_byte(&self) -> Option<u8> {
         self.get_ref().get(self.position() as usize).copied()
     }
 

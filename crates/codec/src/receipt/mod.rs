@@ -32,7 +32,7 @@ impl Codec for Receipt {
     }
 
     fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        Ok(match cursor.seek_byte().unwrap() {
+        Ok(match cursor.peek_byte().unwrap() {
             TY_DEPLOY => {
                 let receipt = DeployReceipt::decode(cursor).unwrap();
                 Receipt::Deploy(receipt)
