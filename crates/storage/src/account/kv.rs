@@ -73,7 +73,7 @@ impl AccountKVStore {
     fn build_key(&self, key: &[u8]) -> Vec<u8> {
         debug_assert_eq!(key.len(), 4);
 
-        let mut buf = Vec::with_capacity(Address::len() + key.len());
+        let mut buf = Vec::with_capacity(Address::N + key.len());
 
         buf.extend_from_slice(self.account_addr.as_slice());
         buf.extend_from_slice(key);

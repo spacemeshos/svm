@@ -20,8 +20,8 @@ mod tests {
 
     #[test]
     fn address_len() {
-        assert_eq!(20, Address::len());
-        assert_eq!(20, TemplateAddr::len());
+        assert_eq!(20, Address::N);
+        assert_eq!(20, TemplateAddr::N);
     }
 
     #[test]

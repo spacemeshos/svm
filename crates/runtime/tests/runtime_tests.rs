@@ -265,7 +265,7 @@ fn memory_runtime_call_func_not_found() {
     let mut runtime = testing::create_memory_runtime();
 
     // 1) `Deploy Template`
-    let layout: FixedLayout = vec![Address::len() as u32].into();
+    let layout: FixedLayout = vec![Address::N as u32].into();
     let message = testing::build_deploy(
         0,
         "My Template",
@@ -306,7 +306,7 @@ fn memory_runtime_call_success() {
     let mut runtime = testing::create_memory_runtime();
 
     // 1) `Deploy Template`
-    let layout: FixedLayout = vec![Address::len() as u32].into();
+    let layout: FixedLayout = vec![Address::N as u32].into();
     let message = testing::build_deploy(
         0,
         "My Template",
@@ -335,7 +335,7 @@ fn memory_runtime_call_success() {
     // Preparing the binary `CallData`
     // Encoding the `Address = "10 10 ... 10"`
     let param: sdk::Address = sdk::Address::repeat(0x10);
-    let mut calldata = svm_sdk::Vec::with_capacity(Address::len() + 1);
+    let mut calldata = svm_sdk::Vec::with_capacity(Address::N + 1);
     param.encode(&mut calldata);
 
     let message = testing::build_call(&spawned_addr, "store_addr", &calldata);

@@ -104,18 +104,19 @@ impl svm_byte_array {
         self.type_id
     }
 
-    ///
+    /// Assuming `self` is of the correct size `N`, transforms it into a `V`
+    /// instance which implements [`BytesPrimitive`].
     pub fn to_bytes_primitive<V, const N: usize>(&self) -> Result<V, String>
     where
         V: BytesPrimitive<N>,
     {
         let bytes = self.as_slice();
 
-        if bytes.len() != V::len() {
+        if bytes.len() != V::N {
             return Err(format!(
                 "Wrong `length` value for `svm_byte_array` representing `{}` (expected: {}, got: {})",
                 stringify!($struct),
-                V::len(),
+                V::N,
                 bytes.len()
             ));
         }
@@ -123,7 +124,8 @@ impl svm_byte_array {
         Ok(V::new(bytes))
     }
 
-    ///
+    /// Creates a new [`svm_byte_array`] from a given [`BytesPrimitive`] `value`
+    /// and a given [`Type`].
     pub fn from_prim<V, const N: usize>(value: &V, ty: Type) -> Self
     where
         V: BytesPrimitive<N>,
@@ -132,7 +134,7 @@ impl svm_byte_array {
         // and it is of type array (i.e: `[u8; N])`.
         let bytes = value.as_slice();
 
-        debug_assert_eq!(V::len(), bytes.len());
+        debug_assert_eq!(V::N, bytes.len());
 
         // API consumer will have to manually destroy `svm_byte_array`
 

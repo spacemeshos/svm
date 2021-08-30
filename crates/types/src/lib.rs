@@ -41,6 +41,9 @@ pub use address::{Address, TemplateAddr};
 pub trait BytesPrimitive<const N: usize>:
     From<[u8; N]> + AsRef<[u8; N]> + std::hash::Hash + PartialEq + Eq + Clone
 {
+    /// The constant number of bytes that make up instances of `Self`.
+    const N: usize = N;
+
     /// Copies the contents of `val` in a new instance of `Self`.
     ///
     /// # Panics
@@ -97,11 +100,6 @@ pub trait BytesPrimitive<const N: usize>:
     /// Fills a new instance of [`Self`] with `byte`.
     fn repeat(byte: u8) -> Self {
         [byte; N].into()
-    }
-
-    /// Returns the constant number of bytes that make up instances of `Self`.
-    fn len() -> usize {
-        N
     }
 
     /// Returns an [`Iterator`] over the contents of `Self`.

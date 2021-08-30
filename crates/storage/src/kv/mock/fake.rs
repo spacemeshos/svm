@@ -208,7 +208,7 @@ impl FakeKV {
     }
 
     fn compute_state(&self, changes: &[Change]) -> State {
-        let capacity = changes.iter().fold(State::len(), |acc, change| {
+        let capacity = changes.iter().fold(State::N, |acc, change| {
             let k = &change.0;
             let v = &change.1;
 
@@ -225,7 +225,7 @@ impl FakeKV {
         }
 
         let bytes = Blake3Hasher::hash(&buf);
-        assert_eq!(bytes.len(), State::len());
+        assert_eq!(bytes.len(), State::N);
 
         State::new(&bytes[..])
     }

@@ -24,7 +24,7 @@ pub mod receipt;
 pub mod template;
 
 pub use codec::Codec;
-pub use error::{EofError, ParseError};
+pub use error::ParseError;
 pub use ext::{ReadExt, WriteExt};
 pub use field::Field;
 pub use section::{SectionPreview, SectionsDecoder, SectionsEncoder};

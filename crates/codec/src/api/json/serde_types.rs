@@ -59,7 +59,7 @@ impl<'de> Deserialize<'de> for AddressWrapper {
 
         let blob = HexBlob::deserialize(de)?;
 
-        if blob.0.len() != Address::len() {
+        if blob.0.len() != Address::N {
             Err(D::Error::custom("Bad length"))
         } else {
             Ok(Self(Address::new(&blob.0[..])))
@@ -86,7 +86,7 @@ impl<'de> Deserialize<'de> for TemplateAddrWrapper {
 
         let blob = HexBlob::deserialize(de)?;
 
-        if blob.0.len() != TemplateAddr::len() {
+        if blob.0.len() != TemplateAddr::N {
             Err(D::Error::custom("Bad length"))
         } else {
             Ok(Self(TemplateAddr::new(&blob.0[..])))

@@ -3,11 +3,10 @@ use std::io::Cursor;
 use std::marker::PhantomData;
 
 use svm_types::{
-    Account, Address, Context, Envelope, Gas, Layer, SectionKind, SpawnAccount, State,
-    TemplateAddr, Transaction, TransactionId,
+    Account, Address, BytesPrimitive, Context, Envelope, Gas, Layer, SectionKind, SpawnAccount,
+    State, TemplateAddr, Transaction, TransactionId,
 };
 
-use crate::error::{BoolError, EofError, StringError};
 use crate::{ParseError, ReadExt, WriteExt};
 
 /// Ability to encode and decode items of a certain type.
@@ -178,7 +177,7 @@ impl Codec for Gas {
 }
 
 impl<const N: usize> Codec for [u8; N] {
-    type Error = EofError;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_bytes(&self[..])
@@ -324,7 +323,7 @@ impl Codec for SpawnAccount {
 }
 
 impl Codec for String {
-    type Error = StringError;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         let len =
@@ -342,7 +341,7 @@ impl Codec for String {
 }
 
 impl Codec for u8 {
-    type Error = EofError;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(*self);
@@ -354,7 +353,7 @@ impl Codec for u8 {
 }
 
 impl Codec for u16 {
-    type Error = EofError;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_bytes(&self.to_be_bytes());
@@ -368,7 +367,7 @@ impl Codec for u16 {
 }
 
 impl Codec for u32 {
-    type Error = EofError;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_bytes(&self.to_be_bytes());
@@ -382,7 +381,7 @@ impl Codec for u32 {
 }
 
 impl Codec for u64 {
-    type Error = EofError;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_bytes(&self.to_be_bytes());
@@ -396,7 +395,7 @@ impl Codec for u64 {
 }
 
 impl Codec for bool {
-    type Error = BoolError;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(if *self { 1 } else { 0 });
@@ -407,7 +406,7 @@ impl Codec for bool {
         match byte {
             1 => Ok(true),
             0 => Ok(false),
-            _ => Err(BoolError::InvalidByte(byte)),
+            _ => Err(ParseError::BadByte(byte)),
         }
     }
 }
@@ -477,55 +476,26 @@ impl Codec for SectionKind {
     }
 }
 
-impl Codec for TemplateAddr {
-    type Error = EofError;
+macro_rules! impl_codec_for_bytes_prim {
+    ($implementor:ident) => {
+        impl Codec for $implementor {
+            type Error = ParseError;
 
-    fn encode(&self, w: &mut impl WriteExt) {
-        self.0.encode(w);
-    }
+            fn encode(&self, w: &mut impl WriteExt) {
+                w.write_bytes(self.as_ref());
+            }
 
-    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        Ok(<[u8; 20]>::decode(cursor)?.into())
-    }
+            fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+                Ok(<[u8; Self::N]>::decode(reader)?.into())
+            }
+        }
+    };
 }
 
-impl Codec for State {
-    type Error = EofError;
-
-    fn encode(&self, w: &mut impl WriteExt) {
-        self.0.encode(w);
-    }
-
-    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        Ok(<[u8; 32]>::decode(cursor)?.into())
-    }
-}
-
-impl Codec for Address {
-    type Error = EofError;
-
-    fn encode(&self, w: &mut impl WriteExt) {
-        self.0.encode(w);
-    }
-
-    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        Ok(<[u8; 20]>::decode(cursor)?.into())
-    }
-}
-
-impl Codec for TransactionId {
-    type Error = EofError;
-
-    fn encode(&self, w: &mut impl WriteExt) {
-        self.0.encode(w);
-    }
-
-    fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        Ok(<[u8; 32]>::decode(cursor)?.into())
-    }
-}
-
-/// Decoders
+impl_codec_for_bytes_prim!(Address);
+impl_codec_for_bytes_prim!(State);
+impl_codec_for_bytes_prim!(TemplateAddr);
+impl_codec_for_bytes_prim!(TransactionId);
 
 #[cfg(test)]
 mod tests {
