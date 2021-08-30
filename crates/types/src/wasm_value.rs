@@ -54,20 +54,13 @@ impl WasmValue {
 /// assert_eq!(n, 10u64);
 /// assert_eq!(m, 20u64);
 /// ```
-impl From<&WasmValue> for u64 {
-    #[inline]
-    fn from(value: &WasmValue) -> u64 {
-        match value {
-            WasmValue::I32(v) => *v as u64,
-            WasmValue::I64(v) => *v,
-        }
-    }
-}
-
 impl From<WasmValue> for u64 {
     #[inline]
     fn from(value: WasmValue) -> u64 {
-        (&value).into()
+        match value {
+            WasmValue::I32(v) => v as u64,
+            WasmValue::I64(v) => v,
+        }
     }
 }
 
