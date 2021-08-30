@@ -21,19 +21,13 @@ pub enum WasmType {
 /// let ty: u8 = WasmType::I64.into();
 /// assert_eq!(ty, 1u8);
 /// ```
-impl From<&WasmType> for u8 {
-    fn from(ty: &WasmType) -> u8 {
+impl From<WasmType> for u8 {
+    #[inline]
+    fn from(ty: WasmType) -> u8 {
         match ty {
             WasmType::I32 => 0,
             WasmType::I64 => 1,
         }
-    }
-}
-
-impl From<WasmType> for u8 {
-    #[inline]
-    fn from(ty: WasmType) -> u8 {
-        (&ty).into()
     }
 }
 
