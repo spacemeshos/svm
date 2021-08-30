@@ -1,17 +1,17 @@
-use serde::{Deserialize, Serialize};
+use std::convert::TryInto;
 
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection, Template};
 
-use super::{serde_types::HexBlob, JsonError, JsonSerdeUtils};
+use super::{get_field, parse_json, serde_types::HexBlob, JsonError};
 use crate::template;
 
 ///
 /// ```json
 /// {
-///   "name": "...",          // string
 ///   "svm_version": "...",   // number (`u32`)
 ///   "code_version": "...",  // number (`u32`)
+///   "name": "...",          // string
 ///   "desc": "...",          // string
 ///   "code": "...",          // string (represents a `blob`)
 ///   "data": "",             // string (represents a `blob`)
@@ -19,12 +19,21 @@ use crate::template;
 /// }
 /// ```
 pub fn deploy_template(json: &str) -> Result<Vec<u8>, JsonError> {
-    let deploy = DecodedDeploy::from_json_str(json)?;
-    let layout = to_data_layout(deploy.data.0)?;
-    let code = CodeSection::new_fixed(deploy.code.0, deploy.svm_version);
+    let json = &mut parse_json(json)?;
+
+    let svm_version = get_field::<u32>(json, "svm_version")?;
+    let code_version = get_field(json, "code_version")?;
+    let name = get_field(json, "name")?;
+    let desc = get_field(json, "desc")?;
+    let code = get_field::<HexBlob<Vec<u8>>>(json, "code")?.0;
+    let data = get_field::<HexBlob<Vec<u8>>>(json, "data")?.0;
+    let ctors = get_field::<Vec<String>>(json, "ctors")?;
+
+    let layout = to_data_layout(data)?;
+    let code = CodeSection::new_fixed(code, svm_version);
     let data = DataSection::with_layout(layout);
-    let ctors = CtorsSection::new(deploy.ctors);
-    let header = HeaderSection::new(deploy.code_version, deploy.name, deploy.desc);
+    let ctors = CtorsSection::new(ctors);
+    let header = HeaderSection::new(code_version, name, desc);
 
     let template = Template::new(code, data, ctors).with_header(Some(header));
 
@@ -40,11 +49,7 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
 
     let data: Vec<u32> = blob
         .chunks_exact(4)
-        .map(|buf| {
-            let bytes: [u8; 4] = [buf[0], buf[1], buf[2], buf[3]];
-
-            u32::from_be_bytes(bytes)
-        })
+        .map(|bytes| u32::from_be_bytes(bytes.try_into().unwrap()))
         .collect();
 
     // Note: `LayoutBuilder` assume that the `first var id` is zero
@@ -59,27 +64,15 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
     Ok(layout)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct DecodedDeploy {
-    svm_version: u32,
-    code_version: u32,
-    name: String,
-    desc: String,
-    code: HexBlob<Vec<u8>>,
-    data: HexBlob<Vec<u8>>,
-    ctors: Vec<String>,
-}
-
-impl JsonSerdeUtils for DecodedDeploy {}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use serde_json::json;
 
     use std::io::Cursor;
 
-    use serde_json::json;
     use svm_layout::FixedLayout;
+
+    use super::*;
 
     #[test]
     fn json_deploy_template_missing_svm_version() {

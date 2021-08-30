@@ -1,4 +1,4 @@
-use svm_types::Address;
+use svm_types::{Address, BytesPrimitive};
 
 use svm_kv::memory::MemRawKV;
 use svm_kv::traits::RawKV;

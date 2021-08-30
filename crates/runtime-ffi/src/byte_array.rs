@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::string::FromUtf8Error;
 
-use svm_types::Type;
+use svm_types::{BytesPrimitive, Type};
 
 use crate::tracking;
 
@@ -102,6 +102,53 @@ impl svm_byte_array {
     /// It's the interned value of the type. (For more info see `tracking::interning.rs`)
     pub fn type_id(&self) -> usize {
         self.type_id
+    }
+
+    /// Assuming `self` is of the correct size `N`, transforms it into a `V`
+    /// instance which implements [`BytesPrimitive`].
+    pub fn to_bytes_primitive<V, const N: usize>(&self) -> Result<V, String>
+    where
+        V: BytesPrimitive<N>,
+    {
+        let bytes = self.as_slice();
+
+        if bytes.len() != V::N {
+            return Err(format!(
+                "Wrong `length` value for `svm_byte_array` representing `{}` (expected: {}, got: {})",
+                stringify!($struct),
+                V::N,
+                bytes.len()
+            ));
+        }
+
+        Ok(V::new(bytes))
+    }
+
+    /// Creates a new [`svm_byte_array`] from a given [`BytesPrimitive`] `value`
+    /// and a given [`Type`].
+    pub fn from_prim<V, const N: usize>(value: &V, ty: Type) -> Self
+    where
+        V: BytesPrimitive<N>,
+    {
+        // `bytes` is a copy of the underlying bytes.
+        // and it is of type array (i.e: `[u8; N])`.
+        let bytes = value.as_slice();
+
+        debug_assert_eq!(V::N, bytes.len());
+
+        // API consumer will have to manually destroy `svm_byte_array`
+
+        let bytes: &[u8] = Box::leak(Box::new(bytes));
+        let length = bytes.len() as u32;
+
+        crate::tracking::increment_live(ty);
+
+        let type_id = crate::tracking::interned_type(ty);
+
+        let bytes = bytes.as_ptr();
+        let capacity = length;
+
+        unsafe { svm_byte_array::from_raw_parts(bytes, length, capacity, type_id) }
     }
 }
 

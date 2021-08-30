@@ -14,6 +14,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+derive_more = "0.99"
 hex = "0.4"
 indexmap = "1.6"
 serde = { version = "1", features = ["derive"] }
@@ -26,7 +27,8 @@ svm-abi-decoder = { path = "../abi/decoder", features = ["dynamic-alloc"], defau
 svm-sdk-std = { path = "../sdk/std", features = ["debug", "dynamic-alloc"], default-features = false }
 svm-sdk-types = { path = "../sdk/types", features = ["debug", "dynamic-alloc"], default-features = false }
 thiserror = "1"
-toml = "0.5"
 
 [dev-dependencies]
-maplit = "1.0.2"
+maplit = "1"
+quickcheck = "1"
+quickcheck_macros = "1"

@@ -2,12 +2,13 @@
 use svm_types::SchemaSection;
 
 // use crate::r#type;
-use crate::section::{SectionDecoder, SectionEncoder};
-use crate::ParseError;
+use crate::{Codec, ParseError, ReadExt, WriteExt};
 // use crate::{Field, ParseError, ReadExt, WriteExt};
 
-impl SectionEncoder for SchemaSection {
-    fn encode(&self, _w: &mut Vec<u8>) {
+impl Codec for SchemaSection {
+    type Error = ParseError;
+
+    fn encode(&self, _w: &mut impl WriteExt) {
         todo!("will be implemented in a future PR...");
         // let mut raw_section = Vec::new();
 
@@ -26,10 +27,8 @@ impl SectionEncoder for SchemaSection {
 
         // w.write_bytes(&raw_section);
     }
-}
 
-impl SectionDecoder for SchemaSection {
-    fn decode(_cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, ParseError> {
+    fn decode(_reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         todo!("will be implemented in a future PR...");
     }
 }

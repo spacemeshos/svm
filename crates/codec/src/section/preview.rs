@@ -1,9 +1,6 @@
-use std::io::Cursor;
-
 use svm_types::SectionKind;
 
-use super::kind;
-use crate::{Field, ParseError, ReadExt, WriteExt};
+use crate::{Codec, ParseError, ReadExt};
 
 /// Preview data for a [`Section`](svm_types::Section).
 #[derive(Debug, Clone, PartialEq)]
@@ -27,33 +24,24 @@ impl SectionPreview {
     pub fn byte_size(&self) -> u32 {
         self.byte_size
     }
+}
 
-    /// The binary byte size of [`Self`].
-    pub const fn len() -> usize {
-        8
+impl Codec for SectionPreview {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl crate::WriteExt) {
+        self.kind().encode(w);
+        (u32::from(self.byte_size())).encode(w);
     }
-}
 
-pub fn encode(preview: &SectionPreview, w: &mut Vec<u8>) {
-    // `Section Kind`
-    kind::encode(preview.kind(), w);
+    fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
+        let kind = SectionKind::decode(reader)?;
+        let byte_size = u32::decode(reader)?;
 
-    // `Section Byte Size`
-    let byte_size = preview.byte_size();
-    w.write_u32_be(byte_size);
-}
+        Ok(SectionPreview::new(kind, byte_size))
+    }
 
-pub fn decode(cursor: &mut Cursor<&[u8]>) -> Result<SectionPreview, ParseError> {
-    // `Section Kind`
-    let kind = kind::decode(cursor)?;
-
-    // `Section Byte Size`
-    match cursor.read_u32_be() {
-        Ok(byte_size) => {
-            let preview = SectionPreview::new(kind, byte_size);
-
-            Ok(preview)
-        }
-        Err(_) => Err(ParseError::NotEnoughBytes(Field::SectionByteSize)),
+    fn fixed_size() -> Option<usize> {
+        Some(8)
     }
 }

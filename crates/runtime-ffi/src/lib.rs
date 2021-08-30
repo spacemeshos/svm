@@ -10,11 +10,8 @@
 #![feature(vec_into_raw_parts)]
 #![feature(ptr_as_uninit)]
 
-mod address;
 mod byte_array;
-mod macros;
 mod r#ref;
-mod state;
 
 pub mod tracking;
 
@@ -32,7 +29,7 @@ mod result;
 #[cfg(feature = "default-rocksdb")]
 pub(crate) use error::raw_utf8_error;
 
-pub(crate) use error::{raw_error, raw_io_error, raw_validate_error};
+pub(crate) use error::raw_error;
 
 #[cfg(feature = "default-rocksdb")]
 pub use api::svm_runtime_create;

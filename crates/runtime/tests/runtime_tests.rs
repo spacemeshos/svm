@@ -3,24 +3,24 @@ use svm_sdk as sdk;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 
-use svm_codec::{Field, ParseError};
+use svm_codec::ParseError;
 use svm_layout::FixedLayout;
 use svm_program::ProgramError;
 use svm_runtime::{testing, Runtime, ValidateError};
 
-use svm_types::{Address, Context, Envelope, Gas, RuntimeError};
-use svm_types::{DeployReceipt, SpawnReceipt};
+use svm_types::{
+    Address, BytesPrimitive, Context, DeployReceipt, Envelope, Gas, RuntimeError, SpawnReceipt,
+};
 
 #[test]
-fn memory_runtime_validate_deploy_not_enough_bytes() {
+fn memory_runtime_validate_deploy_eof() {
     let runtime = testing::create_memory_runtime();
     let message = vec![0xFF, 0xFF];
 
-    let error = ParseError::NotEnoughBytes(Field::SectionKind);
-    let expected = ValidateError::Parse(error);
-
-    let actual = runtime.validate_deploy(&message).unwrap_err();
-    assert_eq!(expected, actual);
+    assert!(matches!(
+        runtime.validate_deploy(&message),
+        Err(ValidateError::Parse(ParseError::Eof))
+    ));
 }
 
 #[test]
@@ -136,27 +136,25 @@ fn memory_runtime_validate_deploy_ok() {
 }
 
 #[test]
-fn memory_runtime_validate_spawn_missing_template_addr() {
+fn memory_runtime_validate_spawn_eof() {
     let runtime = testing::create_memory_runtime();
     let message = vec![0xFF, 0xFF];
 
-    let error = ParseError::NotEnoughBytes(Field::Address);
-    let expected = ValidateError::Parse(error);
-
-    let actual = runtime.validate_spawn(&message).unwrap_err();
-    assert_eq!(expected, actual);
+    assert!(matches!(
+        runtime.validate_spawn(&message),
+        Err(ValidateError::Parse(ParseError::Eof))
+    ));
 }
 
 #[test]
-fn memory_runtime_validate_call_not_enough_bytes() {
+fn memory_runtime_validate_call_eof() {
     let runtime = testing::create_memory_runtime();
     let message = vec![0xFF, 0xFF];
 
-    let error = ParseError::NotEnoughBytes(Field::TargetAddr);
-    let expected = Err(ValidateError::Parse(error));
-
-    let actual = runtime.validate_call(&message);
-    assert_eq!(expected, actual);
+    assert!(matches!(
+        runtime.validate_call(&message),
+        Err(ValidateError::Parse(ParseError::Eof))
+    ));
 }
 
 #[test]
@@ -267,7 +265,7 @@ fn memory_runtime_call_func_not_found() {
     let mut runtime = testing::create_memory_runtime();
 
     // 1) `Deploy Template`
-    let layout: FixedLayout = vec![Address::len() as u32].into();
+    let layout: FixedLayout = vec![Address::N as u32].into();
     let message = testing::build_deploy(
         0,
         "My Template",
@@ -308,7 +306,7 @@ fn memory_runtime_call_success() {
     let mut runtime = testing::create_memory_runtime();
 
     // 1) `Deploy Template`
-    let layout: FixedLayout = vec![Address::len() as u32].into();
+    let layout: FixedLayout = vec![Address::N as u32].into();
     let message = testing::build_deploy(
         0,
         "My Template",
@@ -337,7 +335,7 @@ fn memory_runtime_call_success() {
     // Preparing the binary `CallData`
     // Encoding the `Address = "10 10 ... 10"`
     let param: sdk::Address = sdk::Address::repeat(0x10);
-    let mut calldata = svm_sdk::Vec::with_capacity(Address::len() + 1);
+    let mut calldata = svm_sdk::Vec::with_capacity(Address::N + 1);
     param.encode(&mut calldata);
 
     let message = testing::build_call(&spawned_addr, "store_addr", &calldata);

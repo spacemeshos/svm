@@ -1,17 +1,11 @@
 use std::collections::HashSet;
 use std::io::Cursor;
 
-use svm_codec::{ReadExt, WriteExt};
+use svm_codec::{template, Codec};
+use svm_types::{Account, Address, SectionKind, Template, TemplateAddr};
 
-use svm_codec::template;
-use svm_types::{Account, SectionKind, Template, TemplateAddr};
-
-use crate::env::{self, traits};
-
-use env::ExtAccount;
-
-use traits::{AccountDeserializer, AccountSerializer};
-use traits::{TemplateDeserializer, TemplateSerializer};
+use crate::env::{traits, ExtAccount};
+use traits::{AccountDeserializer, AccountSerializer, TemplateDeserializer, TemplateSerializer};
 
 /// Default serializer for an [`Account`]
 pub struct DefaultAccountSerializer;
@@ -23,46 +17,21 @@ impl AccountSerializer for DefaultAccountSerializer {
     fn serialize(account: &ExtAccount) -> Vec<u8> {
         let mut w = Vec::new();
 
-        encode_template(account, &mut w);
-        encode_name(account, &mut w);
-        encode_spawner(account, &mut w);
+        account.template_addr().0.encode(&mut w);
+        account.name().to_string().encode(&mut w);
+        account.spawner().0.encode(&mut w);
 
         w
     }
-}
-
-fn encode_template(account: &ExtAccount, w: &mut Vec<u8>) {
-    let addr = account.template_addr();
-    w.write_template_addr(addr);
-}
-
-fn encode_name(account: &ExtAccount, w: &mut Vec<u8>) {
-    w.write_string(account.name());
-}
-
-fn encode_spawner(account: &ExtAccount, w: &mut Vec<u8>) {
-    let spawner = account.spawner();
-    w.write_address(spawner);
 }
 
 impl AccountDeserializer for DefaultAccountDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<ExtAccount> {
         let mut cursor = Cursor::new(bytes);
 
-        let template = match cursor.read_template_addr() {
-            Ok(addr) => addr,
-            _ => return None,
-        };
-
-        let name = match cursor.read_string() {
-            Ok(Ok(name)) => name,
-            _ => return None,
-        };
-
-        let spawner = match cursor.read_address() {
-            Ok(addr) => addr,
-            _ => return None,
-        };
+        let template = TemplateAddr::decode(&mut cursor).ok()?;
+        let name = String::decode(&mut cursor).ok()?;
+        let spawner = Address::decode(&mut cursor).ok()?;
 
         let base = Account::new(template, name);
         let account = ExtAccount::new(&base, &spawner);
@@ -71,9 +40,7 @@ impl AccountDeserializer for DefaultAccountDeserializer {
     }
 
     fn deserialize_template_addr(bytes: &[u8]) -> Option<TemplateAddr> {
-        let mut cursor = Cursor::new(bytes);
-
-        cursor.read_template_addr().ok()
+        TemplateAddr::decode_bytes(bytes).ok()
     }
 }
 

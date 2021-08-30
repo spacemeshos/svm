@@ -6,6 +6,7 @@ pub enum JsonError {
     /// The JSON is syntactically invalid due to EOF.
     #[error("The given JSON is syntactically invalid due to EOF.")]
     Eof,
+
     /// JSON syntax error.
     #[error("The given JSON is syntactically invalid at line {line} and column {column}.")]
     InvalidJson {
@@ -14,12 +15,18 @@ pub enum JsonError {
         /// The column number at which this error was found.
         column: usize,
     },
+
     /// A non-optional field was missing.
     #[error("A non-optional field was missing (`{field_name}`).")]
     MissingField { field_name: String },
+
     /// The value of a specific field is invalid.
     #[error("The value of a specific field is invalid (`{path}`).")]
     InvalidField { path: String },
+
+    /// The given JSON is not a JSON object.
+    #[error("The given JSON is not a JSON object.")]
+    NotAnObject,
 }
 
 impl From<std::str::Utf8Error> for JsonError {

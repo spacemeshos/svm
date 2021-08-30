@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value as Json;
+use serde_json::{json, Value as Json};
 
 use svm_types::Transaction;
 
 use super::inputdata::{decode_raw_input, DecodedInputData};
 use super::serde_types::*;
-use crate::api::json::{JsonError, JsonSerdeUtils};
+use super::{get_field, parse_json, JsonError};
 use crate::Codec;
 
 /// Transforms a user-friendly `call` into an encoded form:
@@ -29,19 +29,24 @@ use crate::Codec;
 /// }
 /// ```
 pub fn encode_call(json: &str) -> Result<Json, JsonError> {
-    let encoded_bytes = encode_call_raw(json)?;
-    Ok(EncodedData {
-        data: HexBlob(encoded_bytes),
-    }
-    .to_json())
+    Ok(json!({
+        "data": HexBlob(encode_call_raw(json)?)
+    }))
 }
 
 /// Much like [`encode_call`], but instead of returning a JSON wrapper it
 /// returns the raw bytes.
 pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
-    let decoded_call = DecodedCall::from_json_str(json)?;
-    let tx = Transaction::from(decoded_call);
-    Ok(tx.encode_to_vec())
+    let json = &mut parse_json(json)?;
+
+    Ok(Transaction {
+        version: get_field(json, "version")?,
+        target: get_field::<AddressWrapper>(json, "target")?.into(),
+        func_name: get_field(json, "func_name")?,
+        verifydata: get_field::<EncodedOrDecodedCalldata>(json, "verifydata")?.encode(),
+        calldata: get_field::<EncodedOrDecodedCalldata>(json, "calldata")?.encode(),
+    }
+    .encode_to_vec())
 }
 
 /// Given a binary [`Transaction`] wrapped inside JSON,
@@ -53,53 +58,28 @@ pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
 /// }
 /// ```
 pub fn decode_call(json: &str) -> Result<Json, JsonError> {
-    let encoded_call = EncodedData::from_json_str(json)?;
-    let tx = Transaction::decode_bytes(encoded_call.data.0).unwrap();
+    let json = &mut parse_json(json)?;
+    let data = get_field::<HexBlob<Vec<u8>>>(json, "data")?.0;
+    let tx = Transaction::decode_bytes(data).map_err(|_| JsonError::InvalidField {
+        //path: "data".to_string(),
+        path: json.to_string(),
+    })?;
 
-    Ok(DecodedCall::from(tx).to_json())
-}
+    let verifydata = EncodedOrDecodedCalldata::Decoded(
+        DecodedInputData::new(&decode_raw_input(tx.verifydata()).unwrap().to_string()).unwrap(),
+    );
 
-#[derive(Clone, Serialize, Deserialize)]
-struct DecodedCall {
-    version: u16,
-    target: AddressWrapper,
-    func_name: String,
-    verifydata: EncodedOrDecodedCalldata,
-    calldata: EncodedOrDecodedCalldata,
-}
+    let calldata = EncodedOrDecodedCalldata::Decoded(
+        DecodedInputData::new(&decode_raw_input(tx.calldata()).unwrap().to_string()).unwrap(),
+    );
 
-impl JsonSerdeUtils for DecodedCall {}
-
-impl From<DecodedCall> for Transaction {
-    fn from(decoded: DecodedCall) -> Self {
-        let target = decoded.target.into();
-
-        Transaction {
-            version: decoded.version,
-            func_name: decoded.func_name,
-            target,
-            verifydata: decoded.verifydata.encode(),
-            calldata: decoded.calldata.encode(),
-        }
-    }
-}
-
-impl From<Transaction> for DecodedCall {
-    fn from(tx: Transaction) -> Self {
-        DecodedCall {
-            version: tx.version,
-            target: AddressWrapper::from(&tx.target),
-            func_name: tx.func_name.clone(),
-            verifydata: EncodedOrDecodedCalldata::Decoded(
-                DecodedInputData::new(&decode_raw_input(tx.verifydata()).unwrap().to_string())
-                    .unwrap(),
-            ),
-            calldata: EncodedOrDecodedCalldata::Decoded(
-                DecodedInputData::new(&decode_raw_input(tx.calldata()).unwrap().to_string())
-                    .unwrap(),
-            ),
-        }
-    }
+    Ok(json!({
+        "version": tx.version,
+        "target": AddressWrapper::from(tx.target),
+        "func_name": tx.func_name,
+        "verifydata": verifydata,
+        "calldata": calldata,
+    }))
 }
 
 /// This serves to provide an alternative to users between and decoded
@@ -114,13 +94,11 @@ pub(crate) enum EncodedOrDecodedCalldata {
 impl EncodedOrDecodedCalldata {
     pub fn encode(self) -> Vec<u8> {
         match self {
-            // It's encoded already.
             Self::Encoded(encoded) => encoded.0,
             Self::Decoded(decoded) => decoded.encode().unwrap(),
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -222,52 +200,25 @@ mod tests {
     }
 
     #[test]
-    fn json_call_valid() {
-        let calldata = json::encode_inputdata(
-            &json!({
-                "abi": ["i32", "i64"],
-                "data": [10, 20],
-            })
-            .to_string(),
-        )
-        .unwrap();
-
-        let verifydata = json::encode_inputdata(
-            &json!({
-                "abi": ["bool", "i8"],
-                "data": [true, 3],
-            })
-            .to_string(),
-        )
-        .unwrap();
-
+    fn encode_then_decode() {
         let json = json!({
             "version": 0,
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
-            "verifydata": verifydata["data"],
-            "calldata": calldata["data"],
+            "calldata": {
+                "abi": ["i32", "i64"],
+                "data": [10, 20],
+            },
+            "verifydata": {
+                "abi": ["bool", "i8"],
+                "data": [true, 3],
+            }
         })
         .to_string();
 
-        let encoded_json = encode_call(&json).unwrap();
-        let json = decode_call(&encoded_json.to_string()).unwrap();
+        let encoded = encode_call(json.as_str()).unwrap();
+        let decoded = decode_call(encoded.to_string().as_str()).unwrap();
 
-        assert_eq!(
-            json,
-            json!({
-                "version": 0,
-                "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-                "func_name": "do_something",
-                "verifydata": {
-                    "abi": ["bool", "i8"],
-                    "data": [true, 3]
-                },
-                "calldata": {
-                    "abi": ["i32", "i64"],
-                    "data": [10, 20]
-                }
-            })
-        );
+        assert_eq!(json, decoded.to_string());
     }
 }

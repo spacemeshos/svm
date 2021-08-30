@@ -10,132 +10,67 @@
 //!
 //!
 
-use std::io::Cursor;
-
 use svm_types::{CodeKind, CodeSection, GasMode};
 
-use crate::section::{SectionDecoder, SectionEncoder};
-use crate::{Field, ParseError, ReadExt, WriteExt};
+use crate::codec::DataWithPrefix;
+use crate::{Codec, ParseError, ReadExt, WriteExt};
 
-pub const WASM: u16 = 0x00_01;
-pub const GAS_MODE_FIXED: u64 = 0x00_01;
+pub const WASM: u16 = 1;
+pub const GAS_MODE_FIXED: u64 = 1;
 
-impl SectionEncoder for CodeSection {
-    fn encode(&self, w: &mut Vec<u8>) {
-        // `Code Kind`
-        encode_code_kind(self.kind(), w);
+impl Codec for CodeSection {
+    type Error = ParseError;
 
-        // `Flags`
-        encode_code_flags(self.flags(), w);
+    fn encode(&self, w: &mut impl WriteExt) {
+        self.kind().encode(w);
+        self.flags().encode(w);
+        self.gas_mode().encode(w);
+        (self.svm_version() as u32).encode(w);
+        DataWithPrefix::<u32>::new(self.code().to_vec()).encode(w);
+    }
 
-        // `Gas Mode`
-        encode_gas_mode(self.gas_mode(), w);
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        let kind = CodeKind::decode(reader)?;
+        let flags = u64::decode(reader)?;
+        let gas_mode = GasMode::decode(reader)?;
+        let svm_version = u32::decode(reader)?;
+        let code = DataWithPrefix::<u32>::decode(reader)?.data;
 
-        // `SVM Version`
-        encode_svm_version(self.svm_version(), w);
-
-        // `Code Length`
-        let code = self.code();
-        let length = code.len();
-        assert!(length < std::u32::MAX as usize);
-
-        w.write_u32_be(length as u32);
-
-        // `Code`
-        w.write_bytes(code);
+        Ok(CodeSection::new(kind, code, flags, gas_mode, svm_version))
     }
 }
 
-impl SectionDecoder for CodeSection {
-    fn decode(cursor: &mut Cursor<&[u8]>) -> Result<Self, crate::ParseError> {
-        // `Code Kind`
-        let kind = decode_code_kind(cursor)?;
+impl Codec for CodeKind {
+    type Error = ParseError;
 
-        // `Flags`
-        let flags = decode_code_flags(cursor)?;
+    fn encode(&self, w: &mut impl WriteExt) {
+        match self {
+            Self::Wasm => WASM.encode(w),
+        }
+    }
 
-        // `Gas Mode`
-        let gas_mode = decode_gas_mode(cursor)?;
-
-        // `SVM Version`
-        let svm_version = decode_svm_version(cursor)?;
-
-        // `Code Length`
-        match cursor.read_u32_be() {
-            Err(..) => Err(ParseError::NotEnoughBytes(Field::Code)),
-            Ok(length) => {
-                // `Code`
-
-                match cursor.read_bytes(length as usize) {
-                    Ok(code) => {
-                        let section = CodeSection::new(kind, code, flags, gas_mode, svm_version);
-
-                        Ok(section)
-                    }
-                    Err(..) => Err(ParseError::NotEnoughBytes(Field::Code)),
-                }
-            }
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        match u16::decode(reader)? {
+            WASM => Ok(Self::Wasm),
+            _ => Err(ParseError::InvalidSection),
         }
     }
 }
 
-fn encode_code_kind(kind: CodeKind, w: &mut Vec<u8>) {
-    let raw = match kind {
-        CodeKind::Wasm => WASM,
-    };
+impl Codec for GasMode {
+    type Error = ParseError;
 
-    w.write_u16_be(raw);
-}
-
-fn decode_code_kind(cursor: &mut Cursor<&[u8]>) -> Result<CodeKind, ParseError> {
-    let value = cursor.read_u16_be();
-
-    if value.is_err() {
-        return Err(ParseError::NotEnoughBytes(Field::CodeKind));
+    fn encode(&self, w: &mut impl WriteExt) {
+        match self {
+            GasMode::Fixed => GAS_MODE_FIXED.encode(w),
+            GasMode::Metering => todo!(),
+        }
     }
 
-    match value.unwrap() {
-        WASM => Ok(CodeKind::Wasm),
-        _ => unreachable!(),
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        match u64::decode(reader)? {
+            GAS_MODE_FIXED => Ok(GasMode::Fixed),
+            _ => unreachable!(),
+        }
     }
-}
-
-fn encode_code_flags(flags: u64, w: &mut Vec<u8>) {
-    w.write_u64_be(flags);
-}
-
-fn decode_code_flags(cursor: &mut Cursor<&[u8]>) -> Result<u64, ParseError> {
-    let value = cursor.read_u64_be();
-
-    value.map_err(|_| ParseError::NotEnoughBytes(Field::CodeFlags))
-}
-
-fn encode_gas_mode(gas_mode: GasMode, w: &mut Vec<u8>) {
-    match gas_mode {
-        GasMode::Fixed => w.write_u64_be(GAS_MODE_FIXED),
-        GasMode::Metering => unreachable!(),
-    }
-}
-
-fn encode_svm_version(svm_ver: u32, w: &mut Vec<u8>) {
-    w.write_u32_be(svm_ver);
-}
-
-fn decode_gas_mode(cursor: &mut Cursor<&[u8]>) -> Result<GasMode, ParseError> {
-    let value = cursor.read_u64_be();
-
-    if value.is_err() {
-        return Err(ParseError::NotEnoughBytes(Field::GasMode));
-    }
-
-    match value.unwrap() {
-        GAS_MODE_FIXED => Ok(GasMode::Fixed),
-        _ => unreachable!(),
-    }
-}
-
-fn decode_svm_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
-    let value = cursor.read_u32_be();
-
-    value.map_err(|_| ParseError::NotEnoughBytes(Field::SvmVersion))
 }

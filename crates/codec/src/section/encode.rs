@@ -4,15 +4,9 @@ use std::u16;
 
 use svm_types::{Section, SectionKind, Sections};
 
-use super::preview;
 use super::SectionPreview;
+use crate::Codec;
 use crate::WriteExt;
-
-/// A trait to be implemented by [`Section`] encoders.
-pub trait SectionEncoder {
-    /// Encodes `Self` into its binary format. Bytes are appended into `w`.
-    fn encode(&self, w: &mut Vec<u8>);
-}
 
 /// Encodes a collection of [`Section`] into a binary form.
 pub struct SectionsEncoder {
@@ -49,7 +43,7 @@ impl SectionsEncoder {
         assert!(section_count < std::u16::MAX as usize);
 
         let section_count_size = 2;
-        let previews_size = section_count * SectionPreview::len();
+        let previews_size = section_count * SectionPreview::fixed_size().unwrap();
         let sections_size: usize = self.section_buf.values().map(|buf| buf.len()).sum();
 
         let capacity = section_count_size + previews_size + sections_size;
@@ -57,7 +51,7 @@ impl SectionsEncoder {
         let mut w = Vec::with_capacity(capacity);
 
         // Section Count
-        w.write_u16_be(section_count as u16);
+        (section_count as u16).encode(&mut w);
 
         for (kind, bytes) in self.section_buf.drain(..) {
             // Section Preview
@@ -66,7 +60,7 @@ impl SectionsEncoder {
             assert!(byte_size < std::u32::MAX as usize);
 
             let preview = SectionPreview::new(kind, byte_size as u32);
-            preview::encode(&preview, &mut w);
+            preview.encode(&mut w);
 
             // `Section`
             w.write_bytes(&bytes);
@@ -79,17 +73,15 @@ impl SectionsEncoder {
         let kind = section.kind();
         let buf = self.section_buf_mut(kind);
 
-        let encoder: &dyn SectionEncoder = match kind {
-            SectionKind::Api => section.as_api(),
-            SectionKind::Header => section.as_header(),
-            SectionKind::Code => section.as_code(),
-            SectionKind::Data => section.as_data(),
-            SectionKind::Ctors => section.as_ctors(),
-            SectionKind::Schema => section.as_schema(),
-            SectionKind::Deploy => section.as_deploy(),
-        };
-
-        encoder.encode(buf);
+        match kind {
+            SectionKind::Api => section.as_api().encode(buf),
+            SectionKind::Header => section.as_header().encode(buf),
+            SectionKind::Code => section.as_code().encode(buf),
+            SectionKind::Data => section.as_data().encode(buf),
+            SectionKind::Ctors => section.as_ctors().encode(buf),
+            SectionKind::Schema => section.as_schema().encode(buf),
+            SectionKind::Deploy => section.as_deploy().encode(buf),
+        }
     }
 
     fn section_buf_mut(&mut self, kind: SectionKind) -> &mut Vec<u8> {

@@ -82,9 +82,11 @@ pub fn decode(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use maplit::hashset;
+
+    use svm_types::BytesPrimitive;
+
+    use super::*;
 
     use svm_layout::{FixedLayout, Id, Layout, RawVar};
     use svm_types::{

@@ -11,9 +11,9 @@ use svm_runtime::Runtime;
 use svm_types::{Context, Envelope, Type};
 
 use crate::r#ref::RuntimeRef;
-use crate::tracking;
-use crate::{raw_error, raw_io_error, raw_validate_error, svm_result_t};
-use crate::{svm_byte_array, svm_resource_iter_t, svm_resource_t};
+use crate::{
+    raw_error, svm_byte_array, svm_resource_iter_t, svm_resource_t, svm_result_t, tracking,
+};
 
 static ENVELOPE_TYPE: Type = Type::Str("Tx Envelope");
 static MESSAGE_TYPE: Type = Type::Str("Tx Message");
@@ -175,7 +175,7 @@ pub unsafe extern "C" fn svm_validate_deploy(
             }
             Err(e) => {
                 error!("`svm_validate_deploy` returns `SVM_FAILURE`");
-                raw_validate_error(&e, error());
+                raw_error(&e, error());
                 svm_result_t::SVM_FAILURE
             }
         }
@@ -223,7 +223,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
             }
             Err(e) => {
                 error!("`svm_validate_spawn` returns `SVM_FAILURE`");
-                raw_validate_error(&e, error());
+                raw_error(&e, error());
                 svm_result_t::SVM_FAILURE
             }
         }
@@ -269,7 +269,7 @@ pub unsafe extern "C" fn svm_validate_call(
             }
             Err(e) => {
                 error!("`svm_validate_call` returns `SVM_FAILURE`");
-                raw_validate_error(&e, error());
+                raw_error(&e, error());
                 svm_result_t::SVM_FAILURE
             }
         }
@@ -329,13 +329,13 @@ pub unsafe extern "C" fn svm_deploy(
 
         let envelope = Envelope::decode_bytes(envelope);
         if let Err(e) = envelope {
-            raw_io_error(e, error());
+            raw_error(e, error());
             return svm_result_t::SVM_FAILURE;
         }
 
         let context = Context::decode_bytes(context);
         if let Err(e) = context {
-            raw_io_error(e, error());
+            raw_error(e, error());
             return svm_result_t::SVM_FAILURE;
         }
 
@@ -410,13 +410,13 @@ pub unsafe extern "C" fn svm_spawn(
 
         let envelope = Envelope::decode_bytes(envelope);
         if let Err(e) = envelope {
-            raw_io_error(e, error());
+            raw_error(e, error());
             return svm_result_t::SVM_FAILURE;
         }
 
         let context = Context::decode_bytes(context);
         if let Err(e) = context {
-            raw_io_error(e, error());
+            raw_error(e, error());
             return svm_result_t::SVM_FAILURE;
         }
 
@@ -496,13 +496,13 @@ pub unsafe extern "C" fn svm_verify(
 
         let envelope = Envelope::decode_bytes(envelope);
         if let Err(e) = envelope {
-            raw_io_error(e, error());
+            raw_error(e, error());
             return svm_result_t::SVM_FAILURE;
         }
 
         let context = Context::decode_bytes(context);
         if let Err(e) = context {
-            raw_io_error(e, error());
+            raw_error(e, error());
             return svm_result_t::SVM_FAILURE;
         }
 
@@ -578,13 +578,13 @@ pub unsafe extern "C" fn svm_call(
 
         let envelope = Envelope::decode_bytes(envelope);
         if let Err(e) = envelope {
-            raw_io_error(e, error());
+            raw_error(e, error());
             return svm_result_t::SVM_FAILURE;
         }
 
         let context = Context::decode_bytes(context);
         if let Err(e) = context {
-            raw_io_error(e, error());
+            raw_error(e, error());
             return svm_result_t::SVM_FAILURE;
         }
 

@@ -1,34 +1,29 @@
+#![allow(missing_docs)]
+
+use std::string::FromUtf8Error;
+
 use thiserror::Error;
 
 use crate::Field;
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, Error, PartialEq)]
 pub enum ParseError {
     #[error("Reached EOF")]
-    ReachedEOF,
+    Eof,
 
-    #[error("Expected EOF but there are more left bytes")]
-    ExpectedEOF,
+    #[error("Expected a certain byte value; found one which is illegal.")]
+    BadByte(u8),
 
-    #[error("Field `{0}` must not be empty")]
-    EmptyField(Field),
-
-    #[error("Not enough bytes for field `{0}`")]
-    NotEnoughBytes(Field),
-
-    #[error("Too enough bytes for field `{0}`")]
-    TooManyBytes(Field),
-
-    #[error("Field `{0}` is not supported yet")]
-    NotSupported(Field),
-
-    #[error("Field `{0}` must be a valid UTF-8 string")]
-    InvalidUTF8String(Field),
+    #[error("Found some UTF-8 invalid string. Can't continue.")]
+    String(#[from] FromUtf8Error),
 
     #[error("Unexpected Wasm value layout for field `{0}`")]
     UnexpectedLayout(Field),
 
     #[error("Invalid section kind")]
     InvalidSection,
+
+    #[error("Generic error")]
+    Other,
 }

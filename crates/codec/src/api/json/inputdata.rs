@@ -9,8 +9,9 @@ use svm_abi_encoder::{ByteSize, Encoder};
 use svm_sdk_types::value::{Composite, Primitive, Value as SdkValue};
 use svm_sdk_types::{Address, Amount};
 
-use super::serde_types::{AddressWrapper, EncodedData, HexBlob};
-use super::JsonSerdeUtils;
+use super::get_field;
+use super::parse_json;
+use super::serde_types::{AddressWrapper, HexBlob};
 use crate::api::json::JsonError;
 
 /// Given an `Input Data` JSON, encodes it into a binary `Input Data`
@@ -24,7 +25,7 @@ use crate::api::json::JsonError;
 pub fn encode_inputdata(json: &str) -> Result<Json, JsonError> {
     let decoded = DecodedInputData::new(json)?;
     let calldata = HexBlob(decoded.encode().unwrap());
-    Ok(EncodedData { data: calldata }.to_json())
+    Ok(json!({ "data": calldata }))
 }
 
 pub fn decode_raw_input(data: &[u8]) -> Result<Json, JsonError> {
@@ -34,9 +35,10 @@ pub fn decode_raw_input(data: &[u8]) -> Result<Json, JsonError> {
 
 /// Given a binary `Calldata` (wrapped within a JSON), decodes it into a JSON
 pub fn decode_inputdata(json: &str) -> Result<Json, JsonError> {
-    let encoded = EncodedData::from_json_str(json)?;
-    let calldata = CallData::new(&encoded.data.0);
-    Ok(calldata_to_json(calldata))
+    let json = &mut parse_json(json)?;
+    let encoded_data = get_field::<HexBlob<Vec<u8>>>(json, "data")?.0;
+
+    Ok(calldata_to_json(CallData::new(&encoded_data)))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -48,14 +50,16 @@ pub(crate) struct DecodedInputData {
 
 impl DecodedInputData {
     pub fn new(json: &str) -> Result<Self, JsonError> {
-        let decoded = Self::from_json_str(json)?;
+        let json = &mut parse_json(json)?;
+        let abi = get_field::<Vec<TySig>>(json, "abi")?;
+        let data = get_field::<Vec<Json>>(json, "data")?;
 
-        if decoded.abi.len() != decoded.data.len() {
+        if abi.len() != data.len() {
             Err(JsonError::InvalidField {
                 path: "data".to_string(),
             })
         } else {
-            Ok(decoded)
+            Ok(Self { abi, data })
         }
     }
 
@@ -85,9 +89,7 @@ impl DecodedInputData {
     }
 }
 
-impl JsonSerdeUtils for DecodedInputData {}
-
-fn calldata_to_json(mut calldata: CallData) -> Json {
+pub(crate) fn calldata_to_json(mut calldata: CallData) -> Json {
     let mut abi = vec![];
     let mut data = vec![];
 
@@ -100,7 +102,7 @@ fn calldata_to_json(mut calldata: CallData) -> Json {
 }
 
 mod sdk_value_utils {
-    use svm_types::Address;
+    use svm_types::{Address, BytesPrimitive};
 
     use super::*;
 
@@ -121,7 +123,7 @@ mod sdk_value_utils {
                 Primitive::I64(x) => json!(x),
                 Primitive::U64(x) => json!(x),
                 Primitive::Amount(x) => json!(x.0),
-                Primitive::Address(x) => AddressWrapper(Address::from(x.as_slice())).to_json(),
+                Primitive::Address(x) => json!(AddressWrapper(Address::new(x.as_slice()))),
                 _ => unreachable!(),
             },
             SdkValue::Composite(Composite::Vec(values)) => Json::Array(
@@ -181,7 +183,7 @@ mod sdk_value_utils {
             TySigPrim::Address => serde_json::from_value::<AddressWrapper>(json)
                 .ok()
                 .map(|addr| {
-                    let addr = svm_sdk_types::Address::from(addr.0.bytes());
+                    let addr = svm_sdk_types::Address::from(*addr.0.as_ref());
                     SdkValue::Primitive(Primitive::Address(addr))
                 }),
             TySigPrim::I8 => json_as_numeric::<i8>(json),
@@ -315,8 +317,6 @@ fn encode_array(types: &[TySig], mut value: Json) -> Result<SdkValue, JsonError>
 struct CalldataEncoded {
     calldata: HexBlob<Vec<u8>>,
 }
-
-impl JsonSerdeUtils for CalldataEncoded {}
 
 #[cfg(test)]
 mod tests {

@@ -1,4 +1,4 @@
-use crate::{Layer, State, TransactionId};
+use crate::{BytesPrimitive, Layer, State, TransactionId};
 
 /// Holds the `Transaction`'s Context.
 ///

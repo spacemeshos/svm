@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use crate::kv::StatefulKV;
 
 use svm_hash::{Blake3Hasher, Hasher};
-use svm_types::{Address, State};
+use svm_types::{Address, BytesPrimitive, State};
 
 /// An Account-aware (and `State`-aware) key-value store interface responsible of
 /// mapping `u32` input keys (given as a 4 byte-length slice) to global keys under a raw key-value store.
@@ -73,7 +73,7 @@ impl AccountKVStore {
     fn build_key(&self, key: &[u8]) -> Vec<u8> {
         debug_assert_eq!(key.len(), 4);
 
-        let mut buf = Vec::with_capacity(Address::len() + key.len());
+        let mut buf = Vec::with_capacity(Address::N + key.len());
 
         buf.extend_from_slice(self.account_addr.as_slice());
         buf.extend_from_slice(key);

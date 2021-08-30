@@ -1,7 +1,18 @@
-use crate::impl_bytes_primitive;
+use derive_more::{AsRef, From};
 
-impl_bytes_primitive!(Address, 20);
-impl_bytes_primitive!(TemplateAddr, 20);
+use crate::BytesPrimitive;
+
+/// The address of an [`Account`](crate::Account).
+#[derive(Debug, Default, Copy, Clone, From, Hash, PartialEq, Eq, AsRef)]
+pub struct Address(pub [u8; 20]);
+
+impl BytesPrimitive<20> for Address {}
+
+/// The address of a [`Template`](crate::Template).
+#[derive(Debug, Default, Copy, Clone, From, Hash, PartialEq, Eq, AsRef)]
+pub struct TemplateAddr(pub [u8; 20]);
+
+impl BytesPrimitive<20> for TemplateAddr {}
 
 #[cfg(test)]
 mod tests {
@@ -9,8 +20,8 @@ mod tests {
 
     #[test]
     fn address_len() {
-        assert_eq!(20, Address::len());
-        assert_eq!(20, TemplateAddr::len());
+        assert_eq!(20, Address::N);
+        assert_eq!(20, TemplateAddr::N);
     }
 
     #[test]
@@ -36,59 +47,9 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
 
-        let actual = Address::from(addr.as_slice());
+        let actual = Address::new(addr);
 
         assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn address_from_ptr() {
-        let expected = Address([
-            0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ]);
-
-        let addr: Vec<u8> = vec![
-            0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ];
-
-        let addr_ptr: *const u8 = addr.as_ptr();
-
-        let actual = Address::from(addr_ptr);
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn address_from_c_void() {
-        let expected = Address([
-            0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ]);
-
-        let addr: Vec<u8> = vec![
-            0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ];
-
-        let addr_ptr: *const std::ffi::c_void = addr.as_ptr() as _;
-
-        let actual = Address::from(addr_ptr);
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn address_as_ptr() {
-        let addr = Address([
-            0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ]);
-
-        let addr_ptr: *const u8 = addr.as_ptr();
-
-        assert_eq!(addr, Address::from(addr_ptr));
     }
 
     #[test]
@@ -109,7 +70,7 @@ mod tests {
             b'a', b'd', b'd', b'r', b'e', b's', b's', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
 
-        let expected = Address::from(&bytes[..]);
+        let expected = Address::new(&bytes[..]);
         let actual = Address::of("address");
 
         assert_eq!(expected, actual);
@@ -132,6 +93,6 @@ mod tests {
             0xF0, 0xAB, 0xBC, 0xCD, 0xDE, 0xEF,
         ]);
 
-        assert_eq!(addr.as_str(), "102030405060708090A0B0C0D0E0F0ABBCCDDEEF");
+        assert_eq!(addr.to_string(), "102030405060708090A0B0C0D0E0F0ABBCCDDEEF");
     }
 }

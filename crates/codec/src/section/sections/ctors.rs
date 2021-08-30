@@ -10,15 +10,14 @@
 //!
 //!
 
-use std::io::Cursor;
-
 use svm_types::CtorsSection;
 
-use crate::section::{SectionDecoder, SectionEncoder};
-use crate::{Field, ParseError, ReadExt, WriteExt};
+use crate::{Codec, ParseError, ReadExt, WriteExt};
 
-impl SectionEncoder for CtorsSection {
-    fn encode(&self, w: &mut Vec<u8>) {
+impl Codec for CtorsSection {
+    type Error = ParseError;
+
+    fn encode(&self, w: &mut impl WriteExt) {
         // `#Ctors`
         let count = self.ctors().len();
 
@@ -28,30 +27,19 @@ impl SectionEncoder for CtorsSection {
 
         // Encoding each `Ctor`
         for ctor in self.ctors().iter() {
-            w.write_string(ctor);
+            ctor.encode(w);
         }
     }
-}
 
-impl SectionDecoder for CtorsSection {
-    fn decode(cursor: &mut Cursor<&[u8]>) -> Result<Self, ParseError> {
-        // Decoding each `Ctor`
-        match cursor.read_byte() {
-            Err(..) => Err(ParseError::NotEnoughBytes(Field::CtorsCount)),
-            Ok(count) => {
-                // `Ctors`
-                let mut section = CtorsSection::with_capacity(count as usize);
+    fn decode(cursor: &mut impl ReadExt) -> Result<Self, ParseError> {
+        let num_ctors = cursor.read_byte()? as usize;
+        let mut section = CtorsSection::with_capacity(num_ctors);
 
-                for _ in 0..count {
-                    if let Ok(Ok(ctor)) = cursor.read_string() {
-                        section.push(ctor);
-                    } else {
-                        return Err(ParseError::NotEnoughBytes(Field::Ctor));
-                    }
-                }
-
-                Ok(section)
-            }
+        for _ in 0..num_ctors {
+            let ctor = String::decode(cursor)?;
+            section.push(ctor);
         }
+
+        Ok(section)
     }
 }

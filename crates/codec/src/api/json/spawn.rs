@@ -1,14 +1,11 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
-use std::io::Cursor;
+use serde_json::{json, Value as Json};
 
 use svm_types::{Account, SpawnAccount};
 
 use super::call::EncodedOrDecodedCalldata;
-use super::inputdata::DecodedInputData;
-use super::serde_types::{EncodedData, TemplateAddrWrapper};
-use super::{JsonError, JsonSerdeUtils};
+use super::inputdata::decode_raw_input;
+use super::serde_types::{HexBlob, TemplateAddrWrapper};
+use super::{get_field, parse_json, JsonError};
 use crate::Codec;
 
 ///
@@ -22,64 +19,39 @@ use crate::Codec;
 /// }
 /// ```
 pub fn encode_spawn(json: &str) -> Result<Vec<u8>, JsonError> {
-    let decoded = DecodedSpawn::from_json_str(json)?;
-    let spawn = SpawnAccount::from(decoded);
+    let json = &mut parse_json(json)?;
 
-    Ok(spawn.encode_to_vec())
+    let version = get_field(json, "version")?;
+    let template_addr = get_field::<TemplateAddrWrapper>(json, "template")?.into();
+    let name = get_field(json, "name")?;
+    let ctor_name = get_field(json, "ctor_name")?;
+    let calldata = get_field::<EncodedOrDecodedCalldata>(json, "calldata")?.encode();
+
+    Ok(SpawnAccount {
+        version,
+        ctor_name,
+        account: Account::new(template_addr, name),
+        calldata,
+    }
+    .encode_to_vec())
 }
 
 /// Given a binary [`SpawnAccount`] transaction wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
-pub fn decode_spawn(json: &str) -> Result<Value, JsonError> {
-    let encoded_spawn = EncodedData::from_json_str(json)?;
+pub fn decode_spawn(json: &str) -> Result<Json, JsonError> {
+    let json = &mut parse_json(json)?;
+    let encoded_data = get_field::<HexBlob<Vec<u8>>>(json, "data")?.0;
 
-    let mut cursor = Cursor::new(&encoded_spawn.data.0[..]);
-    let spawn = SpawnAccount::decode(&mut cursor).unwrap();
+    let spawn = SpawnAccount::decode_bytes(encoded_data).unwrap();
+    let decoded_calldata = decode_raw_input(&spawn.calldata).unwrap();
 
-    Ok(DecodedSpawn::from(spawn).to_json())
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct DecodedSpawn {
-    version: u16,
-    #[serde(rename = "template")]
-    template_addr: TemplateAddrWrapper,
-    name: String,
-    ctor_name: String,
-    calldata: EncodedOrDecodedCalldata,
-}
-
-impl JsonSerdeUtils for DecodedSpawn {}
-
-impl From<SpawnAccount> for DecodedSpawn {
-    fn from(spawn: SpawnAccount) -> Self {
-        let template_addr = TemplateAddrWrapper(spawn.template_addr().clone());
-        let decoded_calldata = super::inputdata::decode_raw_input(&spawn.calldata).unwrap();
-
-        Self {
-            version: spawn.version,
-            name: spawn.account.name,
-            template_addr,
-            ctor_name: spawn.ctor_name,
-            calldata: EncodedOrDecodedCalldata::Decoded(
-                DecodedInputData::new(&decoded_calldata.to_string())
-                    .expect("Invalid JSON immediately after serialization"),
-            ),
-        }
-    }
-}
-
-impl From<DecodedSpawn> for SpawnAccount {
-    fn from(wrapper: DecodedSpawn) -> Self {
-        let template_addr = wrapper.template_addr.0;
-
-        SpawnAccount {
-            version: wrapper.version,
-            account: Account::new(template_addr, wrapper.name),
-            ctor_name: wrapper.ctor_name,
-            calldata: wrapper.calldata.encode(),
-        }
-    }
+    Ok(json!({
+        "version": spawn.version,
+        "template": TemplateAddrWrapper::from(spawn.template_addr().clone()),
+        "name": spawn.account.name,
+        "ctor_name": spawn.ctor_name,
+        "calldata": decoded_calldata,
+    }))
 }
 
 #[cfg(test)]
@@ -192,7 +164,6 @@ mod tests {
             "calldata": calldata["data"],
         })
         .to_string();
-        println!("SPAWNING {}", json);
 
         let bytes = encode_spawn(&json).unwrap();
         let data = HexBlob(&bytes);

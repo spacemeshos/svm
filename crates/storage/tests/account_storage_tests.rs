@@ -1,6 +1,6 @@
 use svm_layout::{FixedLayout, Id};
 use svm_storage::{account::AccountStorage, testing};
-use svm_types::Address;
+use svm_types::{Address, BytesPrimitive};
 
 fn assert_var<const N: usize>(account: &AccountStorage, var_id: u32, expected: [u8; N]) {
     let var = account.read_var(Id(var_id));

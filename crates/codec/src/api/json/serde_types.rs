@@ -2,9 +2,7 @@
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use svm_types::{Address, TemplateAddr};
-
-use super::JsonSerdeUtils;
+use svm_types::{Address, BytesPrimitive, TemplateAddr};
 
 /// A blob of binary data that is encoded via Base16.
 #[derive(Clone, Debug)]
@@ -36,11 +34,11 @@ impl<'de> Deserialize<'de> for HexBlob<Vec<u8>> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, derive_more::Into, derive_more::From)]
 pub struct AddressWrapper(pub Address);
 
-#[derive(Clone, Debug)]
-pub struct TemplateAddrWrapper(pub TemplateAddr);
+#[derive(Clone, Debug, derive_more::Into, derive_more::From)]
+pub struct TemplateAddrWrapper(TemplateAddr);
 
 impl Serialize for AddressWrapper {
     fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
@@ -61,10 +59,10 @@ impl<'de> Deserialize<'de> for AddressWrapper {
 
         let blob = HexBlob::deserialize(de)?;
 
-        if blob.0.len() != Address::len() {
+        if blob.0.len() != Address::N {
             Err(D::Error::custom("Bad length"))
         } else {
-            Ok(Self(Address::from(&blob.0[..])))
+            Ok(Self(Address::new(&blob.0[..])))
         }
     }
 }
@@ -88,44 +86,10 @@ impl<'de> Deserialize<'de> for TemplateAddrWrapper {
 
         let blob = HexBlob::deserialize(de)?;
 
-        if blob.0.len() != TemplateAddr::len() {
+        if blob.0.len() != TemplateAddr::N {
             Err(D::Error::custom("Bad length"))
         } else {
-            Ok(Self(TemplateAddr::from(&blob.0[..])))
+            Ok(Self(TemplateAddr::new(&blob.0[..])))
         }
     }
 }
-
-impl From<AddressWrapper> for Address {
-    fn from(wrapper: AddressWrapper) -> Self {
-        wrapper.0
-    }
-}
-
-impl From<TemplateAddrWrapper> for TemplateAddr {
-    fn from(wrapper: TemplateAddrWrapper) -> Self {
-        wrapper.0
-    }
-}
-
-impl<'a> From<&'a Address> for AddressWrapper {
-    fn from(addr: &'a Address) -> Self {
-        Self(addr.clone())
-    }
-}
-
-impl<'a> From<&'a TemplateAddr> for TemplateAddrWrapper {
-    fn from(addr: &'a TemplateAddr) -> Self {
-        Self(addr.clone())
-    }
-}
-
-impl JsonSerdeUtils for AddressWrapper {}
-impl JsonSerdeUtils for TemplateAddrWrapper {}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct EncodedData {
-    pub data: HexBlob<Vec<u8>>,
-}
-
-impl JsonSerdeUtils for EncodedData {}
