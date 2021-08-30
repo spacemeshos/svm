@@ -27,11 +27,11 @@ impl AccountSerializer for DefaultAccountSerializer {
 
 impl AccountDeserializer for DefaultAccountDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<ExtAccount> {
-        let mut reader = Cursor::new(bytes);
+        let mut cursor = Cursor::new(bytes);
 
-        let template = TemplateAddr::decode(&mut reader).ok()?;
-        let name = String::decode(&mut reader).ok()?;
-        let spawner = Address::decode(&mut reader).ok()?;
+        let template = TemplateAddr::decode(&mut cursor).ok()?;
+        let name = String::decode(&mut cursor).ok()?;
+        let spawner = Address::decode(&mut cursor).ok()?;
 
         let base = Account::new(template, name);
         let account = ExtAccount::new(&base, &spawner);
