@@ -560,7 +560,7 @@ mod test {
         storage.rollback().await.is_ok()
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     #[should_panic]
     async fn rewind_panics_without_commits() {
         let mut storage = Storage::in_memory().await.unwrap();
