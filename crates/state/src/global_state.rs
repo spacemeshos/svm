@@ -4,7 +4,7 @@ use svm_types::{Address, BytesPrimitive, Layer, Sections, TemplateAddr};
 
 use crate::account_data::{AccountData, AccountMut};
 use crate::storage::{Fingerprint, Storage};
-use crate::StorageResult as Result;
+use crate::{StorageError, StorageResult as Result};
 
 /// A key-value store with a non-falsifiable state signature, historical data
 /// querying and other features which make it suitable for storing Spacemesh'
@@ -46,7 +46,7 @@ impl GlobalState {
         if let Some(bytes) = opt_value {
             T::decode_bytes(bytes)
                 .map(|data| Some(data))
-                .map_err(|_| crate::StorageError::IllegalData { key_hash })
+                .map_err(|_| StorageError::IllegalData { key_hash })
         } else {
             Ok(None)
         }
@@ -66,10 +66,12 @@ impl GlobalState {
         T: Codec,
         F: Fn(T) -> T,
     {
+        let key_hash = Blake3Hasher::hash(key.as_bytes());
+
         let item = self
             .read_and_decode::<T>(key)
             .await
-            .map(|opt| opt.unwrap())?;
+            .and_then(|opt| opt.ok_or(StorageError::NotFound { key_hash }))?;
 
         self.encode_and_write(&f(item), key).await;
         Ok(())
