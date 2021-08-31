@@ -1,8 +1,6 @@
-#![warn(unused)]
-
 use svm_codec::Codec;
 use svm_hash::{Blake3Hasher, Hasher};
-use svm_types::{Account, Address, BytesPrimitive, Layer, Sections, TemplateAddr};
+use svm_types::{Address, BytesPrimitive, Layer, Sections, TemplateAddr};
 
 use crate::account_data::{AccountData, AccountMut};
 use crate::storage::{Fingerprint, Storage};
@@ -104,27 +102,31 @@ impl GlobalState {
         .await;
     }
 
-    pub async fn account(&self, account_addr: &Address) -> Result<Option<Account>> {
+    pub async fn account_name(&self, account_addr: &Address) -> Result<Option<String>> {
         self.read_and_decode::<AccountData>(&AccountData::key(account_addr))
             .await
-            .map(|res| {
-                res.map(|data| Account {
-                    name: data.name,
-                    template_addr: data.template_addr,
-                })
-            })
+            .map(|res| res.map(|data| data.name))
+    }
+
+    pub async fn account_template_addr(
+        &self,
+        account_addr: &Address,
+    ) -> Result<Option<TemplateAddr>> {
+        self.read_and_decode::<AccountData>(&AccountData::key(account_addr))
+            .await
+            .map(|res| res.map(|data| data.template_addr))
     }
 
     /// Reads and returns the balance of `account_addr`.
     pub async fn account_balance(&self, account_addr: &Address) -> Result<Option<u64>> {
-        self.account_mutable_data(account_addr)
+        self.read_and_decode::<AccountMut>(&AccountMut::key(account_addr))
             .await
             .map(|res| res.map(|data| data.balance))
     }
 
     /// Reads and returns the nonce counter of `account_addr`.
     pub async fn account_counter(&self, account_addr: &Address) -> Result<Option<u64>> {
-        self.account_mutable_data(account_addr)
+        self.read_and_decode::<AccountMut>(&AccountMut::key(account_addr))
             .await
             .map(|res| res.map(|data| data.counter))
     }
@@ -151,11 +153,6 @@ impl GlobalState {
             data
         })
         .await
-    }
-
-    async fn account_mutable_data(&self, account_addr: &Address) -> Result<Option<AccountMut>> {
-        self.read_and_decode::<AccountMut>(&AccountMut::key(account_addr))
-            .await
     }
 
     // TEMPLATE SECTIONS
@@ -262,10 +259,17 @@ mod test {
         )
         .await;
 
-        let account = gs.account(&account_addr).await.unwrap().unwrap();
-        assert_eq!(account.name, "@foobar");
-        assert_eq!(account.template_addr, TemplateAddr::zeros());
-
+        assert_eq!(
+            gs.account_name(&account_addr).await.unwrap().unwrap(),
+            "@foobar"
+        );
+        assert_eq!(
+            gs.account_template_addr(&account_addr)
+                .await
+                .unwrap()
+                .unwrap(),
+            TemplateAddr::zeros()
+        );
         assert_eq!(
             gs.account_balance(&account_addr).await.unwrap().unwrap(),
             42
