@@ -73,11 +73,22 @@ jobs:
           toolchain: nightly
           command: build
           args: --${{ matrix.profile }} --package svm-runtime-ffi --features=default-cranelift,default-memory --no-default-features
+      - name: Cargo Build CLI
+        uses: actions-rs/cargo@v1
+        working-directory: crates/cli
+        with:
+          toolchain: nightly
+          command: build
+          args: --${{ matrix.profile }}
       - name: Prepare Artifact (General)
         run: |
           set -e
           mkdir bins
           mv target/${{ matrix.profile }}/svm.h bins/svm.h
+      - name: Prepare Artifact (CLI)
+        run: |
+          set -e
+          mv target/${{ matrix.profile }}/svm-cli bins/svm-cli
       - name: Prepare Artifact (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
