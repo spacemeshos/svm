@@ -73,6 +73,12 @@ jobs:
           toolchain: nightly
           command: build
           args: --${{ matrix.profile }} --package svm-runtime-ffi --features=default-cranelift,default-memory --no-default-features
+      - name: Cargo Build CLI
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: nightly
+          command: build
+          args: --${{ matrix.profile }} --package svm-cli
       - name: Prepare Artifact (General)
         run: |
           set -e
@@ -83,16 +89,19 @@ jobs:
         run: |
           set -e
           mv target/${{ matrix.profile }}/libsvm_runtime_ffi.so bins/libsvm.so
+          mv target/${{ matrix.profile }}/svm-cli bins/svm-cli
       - name: Prepare Artifact (macOS)
         if: matrix.os == 'macos-latest'
         run: |
           set -e
           mv target/${{ matrix.profile }}/libsvm_runtime_ffi.dylib bins/libsvm.dylib
+          mv target/${{ matrix.profile }}/svm-cli bins/svm-cli
       - name: Prepare Artifact (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           set -e
           mv target/${{ matrix.profile }}/svm_runtime_ffi.dll bins/svm.dll
+          mv target/${{ matrix.profile }}/svm-cli bins/svm-cli
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
         with:
