@@ -21,6 +21,14 @@ pub enum StorageError {
         key_hash: Fingerprint,
     },
 
+    /// Illegal data found in the database.
+    #[error("Illegal data found in the database")]
+    IllegalData { key_hash: Fingerprint },
+
+    /// Expected an item in the database, but wasn't found.
+    #[error("Expected an item in the database, but wasn't found.")]
+    NotFound { key_hash: Fingerprint },
+
     /// A SQLite error happened.
     #[error("SQLite error.")]
     Sqlite(#[from] sqlx::Error),

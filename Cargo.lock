@@ -2173,6 +2173,7 @@ dependencies = [
  "quickcheck_async",
  "quickcheck_macros",
  "sqlx",
+ "svm-codec",
  "svm-hash",
  "svm-types",
  "thiserror",
