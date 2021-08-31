@@ -14,7 +14,7 @@ publish = false
 anyhow = "1"
 blake3 = "1"
 futures = "0.3"
-sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite", "macros"] }
+sqlx = { version = "0.5", features = ["runtime-actix-rustls", "sqlite", "macros"] }
 svm-codec = { path = "../codec" }
 svm-hash = { path = "../hash" }
 svm-types = { path = "../types" }
