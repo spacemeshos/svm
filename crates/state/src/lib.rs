@@ -7,9 +7,11 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 
 mod account_data;
+mod account_storage;
 mod error;
 mod global_state;
 mod storage;
 
+pub use account_storage::AccountStorage;
 pub use error::{StorageError, StorageResult};
 pub use global_state::GlobalState;

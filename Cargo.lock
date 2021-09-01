@@ -2195,6 +2195,7 @@ dependencies = [
  "sqlx",
  "svm-codec",
  "svm-hash",
+ "svm-layout",
  "svm-types",
  "thiserror",
  "tokio",

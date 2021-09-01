@@ -1,5 +1,7 @@
 use svm_codec::Codec;
 use svm_hash::{Blake3Hasher, Hasher};
+
+use svm_layout::{FixedLayout, Id};
 use svm_types::{Address, BytesPrimitive, Layer, Sections, TemplateAddr};
 
 use crate::account_data::{AccountData, AccountMut};
@@ -12,7 +14,7 @@ use crate::{StorageError, StorageResult as Result};
 ///
 /// This data structure is backed by SQLite.
 pub struct GlobalState {
-    storage: Storage,
+    pub(crate) storage: Storage,
 }
 
 impl GlobalState {
@@ -233,6 +235,13 @@ impl GlobalState {
 
 mod keys {
     use super::*;
+
+    pub fn account_var(account_addr: &Address, var_id: u32, layout: &FixedLayout) -> String {
+        let offset = layout.get(Id(var_id)).offset();
+        let key_index = offset % 32;
+
+        format!("accounts:{}:vars:{}", account_addr.to_string(), key_index)
+    }
 
     pub fn template_core(template_addr: &TemplateAddr) -> String {
         format!("templates:{}:core", template_addr.to_string())
