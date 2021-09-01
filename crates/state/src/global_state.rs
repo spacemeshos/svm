@@ -162,26 +162,20 @@ impl GlobalState {
     // TEMPLATE SECTIONS
     // -----------------
 
-    pub async fn template_sections(
-        &self,
-        template_addr: &TemplateAddr,
-    ) -> Result<Option<Sections>> {
-        let core_sections_opt: Option<Sections> = self
+    pub async fn template_sections(&self, template_addr: &TemplateAddr) -> Result<Sections> {
+        let mut core_sections: Sections = self
             .read_and_decode(&keys::template_core(template_addr))
-            .await?;
-        let noncore_sections_opt: Option<Sections> = self
+            .await?
+            .unwrap();
+        let noncore_sections: Sections = self
             .read_and_decode(&keys::template_noncore(template_addr))
-            .await?;
+            .await?
+            .unwrap();
 
-        match (core_sections_opt, noncore_sections_opt) {
-            (Some(mut sections), Some(noncore)) => {
-                for s in noncore.iter().cloned() {
-                    sections.insert(s);
-                }
-                Ok(Some(sections))
-            }
-            _ => return Ok(None),
+        for s in noncore_sections.iter().cloned() {
+            core_sections.insert(s);
         }
+        Ok(core_sections)
     }
 
     pub async fn set_template_core_sections(
