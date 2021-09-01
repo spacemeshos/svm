@@ -43,7 +43,7 @@ impl GlobalState {
         T: Codec,
     {
         let key_hash = Blake3Hasher::hash(key.as_bytes());
-        let opt_value = self.storage.get(&key_hash, None).await?;
+        let opt_value = self.storage.get_by_hash(&key_hash, None).await?;
 
         if let Some(bytes) = opt_value {
             T::decode_bytes(bytes)
