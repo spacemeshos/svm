@@ -250,7 +250,7 @@ mod keys {
 mod test {
     use super::*;
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn set_account_then_get() {
         let mut gs = GlobalState::in_memory().await;
         let account_addr = Address::zeros();
