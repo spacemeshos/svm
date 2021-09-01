@@ -16,6 +16,9 @@ pub trait ReadExt: Sized {
         Ok(())
     }
 
+    /// Converts `self` into a [`Cursor<[u8]>`](std::io::Cursor).
+    fn as_cursor(&self) -> Cursor<&[u8]>;
+
     /// Reads a single byte
     fn read_byte(&mut self) -> Result<u8, ParseError>;
 
@@ -43,6 +46,10 @@ pub trait WriteExt {
 impl ReadExt for Cursor<&[u8]> {
     fn peek_byte(&self) -> Option<u8> {
         self.get_ref().get(self.position() as usize).copied()
+    }
+
+    fn as_cursor(&self) -> Cursor<&[u8]> {
+        Cursor::new(self.get_ref())
     }
 
     fn read_byte(&mut self) -> Result<u8, ParseError> {

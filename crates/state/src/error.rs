@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
-use crate::Fingerprint;
+use crate::storage::Fingerprint;
 
 /// An alias for [`Result`](std::result::Result)'s with [`StorageError`].
-pub type Result<T> = std::result::Result<T, StorageError>;
+pub type StorageResult<T> = std::result::Result<T, StorageError>;
 
 /// A sum type for all error conditions that can arise in this crate.
 #[derive(Debug, thiserror::Error)]
@@ -20,6 +20,14 @@ pub enum StorageError {
         /// They Blake3 hash of the key that caused this collision.
         key_hash: Fingerprint,
     },
+
+    /// Illegal data found in the database.
+    #[error("Illegal data found in the database")]
+    IllegalData { key_hash: Fingerprint },
+
+    /// Expected an item in the database, but wasn't found.
+    #[error("Expected an item in the database, but wasn't found.")]
+    NotFound { key_hash: Fingerprint },
 
     /// A SQLite error happened.
     #[error("SQLite error.")]
