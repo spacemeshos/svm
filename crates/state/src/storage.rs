@@ -564,7 +564,7 @@ mod test {
     #[should_panic]
     async fn rewind_panics_without_commits() {
         let mut storage = Storage::in_memory().await.unwrap();
-        storage.rewind(INITIAL_LAYER_ID).await.unwrap();
+        storage.rewind(Layer(INITIAL_LAYER_ID.0 + 1)).await.unwrap();
     }
 
     #[quickcheck_async::tokio]
