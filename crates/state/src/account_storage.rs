@@ -56,7 +56,7 @@ impl<'a> AccountStorage<'a> {
             .unwrap()
     }
 
-    pub async fn set_var(&mut self, var_id: u32, new_value: &[u8]) {
+    async fn set_var(&mut self, var_id: u32, new_value: &[u8]) {
         let mut value = self.var(var_id).await;
         let key = keys::account_var(&self.address, var_id, &self.layout);
         let offset = self.layout.get(Id(var_id)).offset() as usize % 32;
