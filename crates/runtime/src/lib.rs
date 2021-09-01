@@ -14,7 +14,6 @@ mod env;
 mod error;
 mod func_env;
 mod runtime;
-mod storage;
 mod wasm_store;
 
 pub mod testing;

@@ -1,8 +1,10 @@
+use futures::executor::block_on;
 use wasmer::{imports, NativeFunc};
 
-use svm_layout::{FixedLayout, Id};
-use svm_runtime::testing::{self, WasmFile};
+use svm_layout::FixedLayout;
+use svm_runtime::testing::WasmFile;
 use svm_runtime::{vmcalls, FuncEnv, ProtectedMode};
+use svm_state::{AccountStorage, GlobalState};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, ReceiptLog, TemplateAddr};
 
 /// Creates a new `Wasmer Store`
@@ -61,11 +63,11 @@ macro_rules! __assert_vars_impl {
 
 macro_rules! assert_storage {
     ($env:expr, $($var_id:expr => $expected:expr), *) => {{
-        let borrow = $env.borrow();
-        let storage = borrow.storage();
+        let mut borrow = $env.borrow_mut();
+        let storage = borrow.storage_mut();
 
         $(
-            let actual = storage.read_var(Id($var_id));
+            let actual = storage.get_var($var_id);
             assert_eq!(actual, $expected);
          )*
     }};
@@ -120,7 +122,12 @@ fn vmcalls_get32_set32() {
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
-    let storage = testing::blank_storage(&target_addr, &layout);
+    let storage = AccountStorage::new(
+        block_on(GlobalState::in_memory()),
+        &target_addr,
+        &template_addr,
+        &layout,
+    );
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new(
@@ -162,7 +169,12 @@ fn vmcalls_get64_set64() {
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
-    let storage = testing::blank_storage(&target_addr, &layout);
+    let storage = AccountStorage::new(
+        block_on(GlobalState::in_memory()),
+        &target_addr,
+        &template_addr,
+        &layout,
+    );
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new(
@@ -205,7 +217,12 @@ fn vmcalls_load160() {
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = testing::blank_storage(&target_addr, &layout);
+    let storage = AccountStorage::new(
+        block_on(GlobalState::in_memory()),
+        &target_addr,
+        &template_addr,
+        &layout,
+    );
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -235,7 +252,7 @@ fn vmcalls_load160() {
     {
         let mut borrow = func_env.borrow_mut();
         let storage = borrow.storage_mut();
-        storage.write_var(Id(0), target_addr.as_slice().to_vec());
+        storage.set_var(0, target_addr.as_slice());
     }
 
     let func: NativeFunc<(u32, u32)> = instance.exports.get_native_function("load").unwrap();
@@ -258,7 +275,12 @@ fn vmcalls_store160() {
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = testing::blank_storage(&target_addr, &layout);
+    let storage = AccountStorage::new(
+        block_on(GlobalState::in_memory()),
+        &target_addr,
+        &template_addr,
+        &layout,
+    );
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -306,7 +328,12 @@ fn vmcalls_log() {
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = testing::blank_storage(&target_addr, &layout);
+    let storage = AccountStorage::new(
+        block_on(GlobalState::in_memory()),
+        &target_addr,
+        &template_addr,
+        &layout,
+    );
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(

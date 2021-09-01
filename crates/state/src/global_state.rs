@@ -1,6 +1,7 @@
+use std::sync::{Arc, Mutex, MutexGuard};
+
 use svm_codec::Codec;
 use svm_hash::{Blake3Hasher, Hasher};
-
 use svm_layout::{FixedLayout, Id};
 use svm_types::{Address, BytesPrimitive, Layer, Sections, TemplateAddr};
 
@@ -13,8 +14,9 @@ use crate::{StorageError, StorageResult as Result};
 /// global state.
 ///
 /// This data structure is backed by SQLite.
+#[derive(Debug, Clone)]
 pub struct GlobalState {
-    pub(crate) storage: Storage,
+    pub(crate) storage: Arc<Mutex<Storage>>,
 }
 
 impl GlobalState {
@@ -26,7 +28,7 @@ impl GlobalState {
     /// "good" means that only SVM has ever accessed and modified its contents.
     pub async fn new(sqlite_uri: &str) -> Self {
         Self {
-            storage: Storage::new(sqlite_uri).await.unwrap(),
+            storage: Arc::new(Mutex::new(Storage::new(sqlite_uri).await.unwrap())),
         }
     }
 
@@ -34,8 +36,14 @@ impl GlobalState {
     /// instance. No disk operations at all will be done.
     pub async fn in_memory() -> Self {
         Self {
-            storage: Storage::in_memory().await.unwrap(),
+            storage: Arc::new(Mutex::new(Storage::in_memory().await.unwrap())),
         }
+    }
+
+    pub(crate) fn storage(&self) -> MutexGuard<Storage> {
+        self.storage
+            .lock()
+            .expect("Poisoned lock on global state storage")
     }
 
     async fn read_and_decode<T>(&self, key: &str) -> Result<Option<T>>
@@ -43,7 +51,7 @@ impl GlobalState {
         T: Codec,
     {
         let key_hash = Blake3Hasher::hash(key.as_bytes());
-        let opt_value = self.storage.get(&key_hash, None).await?;
+        let opt_value = self.storage().get(&key_hash, None).await?;
 
         if let Some(bytes) = opt_value {
             T::decode_bytes(bytes)
@@ -58,7 +66,7 @@ impl GlobalState {
     where
         T: Codec,
     {
-        self.storage
+        self.storage()
             .upsert(key.as_bytes(), item.encode_to_vec())
             .await;
     }
@@ -208,27 +216,27 @@ impl GlobalState {
     // ----------
 
     pub async fn checkpoint(&mut self) -> Result<()> {
-        self.storage.checkpoint().await?;
+        self.storage().checkpoint().await?;
         Ok(())
     }
 
     pub async fn commit(&mut self) -> Result<(Layer, Fingerprint)> {
-        let res = self.storage.commit().await?;
+        let res = self.storage().commit().await?;
         Ok(res)
     }
 
     pub async fn current_layer(&mut self) -> Result<(Layer, Fingerprint)> {
-        let res = self.storage.last_layer().await?;
+        let res = self.storage().last_layer().await?;
         Ok(res)
     }
 
     pub async fn rollback(&mut self) -> Result<()> {
-        self.storage.rollback().await?;
+        self.storage().rollback().await?;
         Ok(())
     }
 
     pub async fn rewind(&mut self, layer_id: Layer) -> Result<()> {
-        self.storage.rewind(layer_id).await?;
+        self.storage().rewind(layer_id).await?;
         Ok(())
     }
 }

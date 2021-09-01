@@ -34,6 +34,7 @@ const FINGERPRINT_ONES: Fingerprint = [std::u8::MAX; 32];
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
 const INITIAL_LAYER_ID: Layer = Layer(0);
 
+#[derive(Debug)]
 struct NextLayer {
     id: Layer,
     changes: Changes,
@@ -46,6 +47,7 @@ struct NextLayer {
 ///
 /// Please note that **all** operations might trigger a
 /// [`StorageError::Sqlite`], unless otherwise specified.
+#[derive(Debug)]
 pub struct Storage {
     sqlite: SqlitePool,
     dirty_changes: Changes,

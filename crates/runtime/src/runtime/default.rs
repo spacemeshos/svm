@@ -1,3 +1,4 @@
+use futures::executor::block_on;
 use log::info;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
@@ -6,9 +7,8 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use svm_gas::FuncPrice;
-use svm_layout::FixedLayout;
 use svm_program::Program;
-use svm_storage::account::AccountStorage;
+use svm_state::{AccountStorage, GlobalState};
 use svm_types::{
     Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError,
     ReceiptLog, RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr,
@@ -18,7 +18,6 @@ use svm_types::{
 use super::{Call, Failure, Function, Outcome};
 use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
 use crate::error::ValidateError;
-use crate::storage::StorageBuilderFn;
 use crate::Env;
 use crate::{vmcalls, ProtectedMode};
 use crate::{Config, FuncEnv, Runtime};
@@ -38,11 +37,10 @@ where
     /// Provided host functions to be consumed by running transactions.
     imports: (String, wasmer::Exports),
 
+    global_state: GlobalState,
+
     /// Runtime configuration.
     config: Config,
-
-    /// Builds an `AccountStorage` instance.
-    storage_builder: Box<StorageBuilderFn>,
 
     /// A naive cache for [`Template`]s' [`FuncPrice`]s. The cache key will, in
     /// the future, also include an identifier for which
@@ -63,7 +61,7 @@ where
     pub fn new(
         env: Env<T>,
         imports: (String, wasmer::Exports),
-        storage_builder: Box<StorageBuilderFn>,
+        global_state: GlobalState,
         config: Config,
         template_prices: Option<Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>>,
     ) -> Self {
@@ -75,7 +73,7 @@ where
         Self {
             env,
             imports,
-            storage_builder,
+            global_state,
             config,
             template_prices,
         }
@@ -91,7 +89,7 @@ where
             success: true,
             error: None,
             returndata: Some(self.take_returndata(env)),
-            new_state: Some(self.commit_changes(&env)),
+            new_state: Some(block_on(self.commit_changes(&env))),
             gas_used: out.gas_used(),
             logs: out.take_logs(),
         }
@@ -102,16 +100,6 @@ where
         let err = fail.take_error();
 
         CallReceipt::from_err(err, logs)
-    }
-
-    /// Opens the [`AccountStorage`] associated with the input parameters.
-    pub fn open_storage(
-        &self,
-        target: &Address,
-        state: &State,
-        layout: &FixedLayout,
-    ) -> AccountStorage {
-        (self.storage_builder)(target, state, layout, &self.config)
     }
 
     fn call_ctor(
@@ -143,7 +131,7 @@ where
         svm_types::into_spawn_receipt(receipt, &target)
     }
 
-    fn exec_call<Args, Rets>(&mut self, call: &Call) -> CallReceipt {
+    fn exec_call<'a, Args, Rets>(&'a mut self, call: &Call<'a>) -> CallReceipt {
         let result = self.exec::<(), (), _, _>(&call, |env, out| self.outcome_to_receipt(env, out));
 
         result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
@@ -157,7 +145,12 @@ where
     {
         match self.account_template(&call.target) {
             Ok(template) => {
-                let storage = self.open_storage(&call.target, call.state, template.fixed_layout());
+                let storage = AccountStorage::new(
+                    self.global_state.clone(),
+                    &call.target,
+                    &call.template,
+                    template.fixed_layout(),
+                );
 
                 let mut env = FuncEnv::new(
                     storage,
@@ -316,10 +309,10 @@ where
     }
 
     #[inline]
-    fn commit_changes(&self, env: &FuncEnv) -> State {
+    async fn commit_changes(&self, env: &FuncEnv) -> State {
         let mut borrow = env.borrow_mut();
         let storage = borrow.storage_mut();
-        storage.commit()
+        storage.gs_mut().commit().await.unwrap().1.into()
     }
 
     #[inline]
@@ -723,6 +716,7 @@ where
             // The [`Template`] is faulty.
             let account = ExtAccount::new(spawn.account(), &spawner);
             let account_addr = self.env.compute_account_addr(&spawn);
+
             return SpawnReceipt::from_err(
                 RuntimeError::FuncNotAllowed {
                     target: account_addr,
