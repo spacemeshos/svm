@@ -2,8 +2,8 @@
 
 #![warn(missing_docs)]
 #![warn(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![warn(dead_code)]
+#![warn(unreachable_code)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
 mod account_data;
