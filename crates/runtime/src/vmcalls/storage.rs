@@ -23,7 +23,7 @@ pub fn store160(env: &FuncEnv, mem_ptr: u32, var_id: u32) {
 
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
-    storage.set_var_160(var_id, bytes);
+    storage.set_var_160(var_id, bytes).unwrap();
 }
 
 /// Loads variable `var_id` data into memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]`
@@ -40,7 +40,7 @@ pub fn load160(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
     let start = mem_ptr as usize;
     let view = &borrow.memory().view::<u8>()[start..][..20];
 
-    let bytes = storage.var_160(var_id);
+    let bytes = storage.get_var_160(var_id);
     for (cell, &byte) in view.iter().zip(bytes.iter()) {
         cell.set(byte);
     }
@@ -73,7 +73,7 @@ pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
 pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
     let borrow = env.borrow();
     let storage = borrow.storage();
-    storage.var_i64(var_id) as u64
+    storage.get_var_i64(var_id) as u64
 }
 
 /// Sets the data of variable `var_id` to Little-Endian representation of `value`.
@@ -85,5 +85,7 @@ pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
 pub fn set64(env: &FuncEnv, var_id: u32, value: u64) {
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
-    storage.set_var_i64(var_id, value.try_into().unwrap());
+    storage
+        .set_var_i64(var_id, value.try_into().unwrap())
+        .unwrap();
 }

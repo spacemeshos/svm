@@ -16,20 +16,17 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 
 use svm_hash::{Blake3Hasher, Hasher};
-use svm_types::Layer;
+use svm_types::{Layer, State};
 
 pub use crate::error::{StorageError, StorageResult as Result};
 
-/// Hashes as well as root fingerprints are 256 bits long.
-pub type Fingerprint = [u8; 32];
+type Changes = HashMap<State, Vec<u8>>;
 
-type Changes = HashMap<Fingerprint, Vec<u8>>;
-
-// When initializing [`Fingerprint`]'s on the database, we zero all bits. In
-// memory, however, the initial [`Fingerprint`] is always filled with 1's (by
+// When initializing [`State`]'s on the database, we zero all bits. In
+// memory, however, the initial [`State`] is always filled with 1's (by
 // XOR-ing them together, we still get 0).
-const FINGERPRINT_ZEROS: Fingerprint = [0; 32];
-const FINGERPRINT_ONES: Fingerprint = [std::u8::MAX; 32];
+const STATE_ZEROS: State = State([0; 32]);
+const STATE_ONES: State = State([std::u8::MAX; 32]);
 
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
 const INITIAL_LAYER_ID: Layer = Layer(0);
@@ -38,7 +35,7 @@ const INITIAL_LAYER_ID: Layer = Layer(0);
 struct NextLayer {
     id: Layer,
     changes: Changes,
-    changes_xor_fingerprint: Fingerprint,
+    changes_xor_fingerprint: State,
 }
 
 /// A SQLite-backed key-value store that supports root fingerprinting and
@@ -70,13 +67,13 @@ impl Storage {
             next_layer: NextLayer {
                 id: next_layer_id.unwrap_or(Layer(INITIAL_LAYER_ID.0 + 1)),
                 changes: HashMap::new(),
-                changes_xor_fingerprint: FINGERPRINT_ONES,
+                changes_xor_fingerprint: STATE_ONES,
             },
         };
 
         if next_layer_id.is_none() {
             storage
-                .insert_layer(INITIAL_LAYER_ID, FINGERPRINT_ZEROS, true)
+                .insert_layer(INITIAL_LAYER_ID, STATE_ZEROS, true)
                 .await?;
         }
 
@@ -110,9 +107,9 @@ impl Storage {
         Self::new(":memory:").await
     }
 
-    /// Returns the [`Layer`] and [`Fingerprint`] of the last ever committed
+    /// Returns the [`Layer`] and [`State`] of the last ever committed
     /// layer; i.e. persisted changes without dirty and saved changes.
-    pub async fn last_layer(&self) -> Result<(Layer, Fingerprint)> {
+    pub async fn last_layer(&self) -> Result<(Layer, State)> {
         assert!(self.next_layer.id > INITIAL_LAYER_ID);
 
         let layer_id = Layer(self.next_layer.id.0 - 1);
@@ -133,7 +130,7 @@ impl Storage {
     /// Panics if `layer_id` is invalid.
     pub async fn get(&self, key: &[u8], layer_id: Option<Layer>) -> Result<Option<Vec<u8>>> {
         let hash = Blake3Hasher::hash(key);
-        self.get_by_hash(&hash, layer_id).await
+        self.get_by_hash(&State(hash), layer_id).await
     }
 
     /// Fetches the value associated with a Blake3 `hash`. If `layer`
@@ -145,7 +142,7 @@ impl Storage {
     /// Panics if `layer_id` is invalid.
     pub async fn get_by_hash(
         &self,
-        hash: &Fingerprint,
+        hash: &State,
         layer_id: Option<Layer>,
     ) -> Result<Option<Vec<u8>>> {
         if let Some(layer_id) = layer_id {
@@ -168,7 +165,7 @@ impl Storage {
                 LIMIT 1
                 "#,
             )
-            .bind(&hash[..])
+            .bind(&hash.0[..])
             .fetch_optional(&self.sqlite)
             .await?;
 
@@ -178,7 +175,7 @@ impl Storage {
 
     async fn get_by_hash_historical(
         &self,
-        hash: &Fingerprint,
+        hash: &State,
         layer_id: Layer,
     ) -> Result<Option<Vec<u8>>> {
         let value_opt: Option<(Vec<u8>,)> = sqlx::query_as(
@@ -196,7 +193,7 @@ impl Storage {
             "#,
         )
         .bind(layer_id.0 as i64)
-        .bind(&hash[..])
+        .bind(&hash.0[..])
         .fetch_optional(&self.sqlite)
         .await?;
         Ok(value_opt.map(|x| x.0))
@@ -209,12 +206,12 @@ impl Storage {
         V: Into<Vec<u8>>,
     {
         let hash = Blake3Hasher::hash(key);
-        self.upsert_by_hash(hash, value).await;
+        self.upsert_by_hash(State(hash), value).await;
     }
 
     /// Sets the `value` associated with a Blake3 `hash`. This change will be
     /// "dirty" until a [`Storage::checkpoint`].
-    pub async fn upsert_by_hash<V>(&mut self, hash: Fingerprint, value: V)
+    pub async fn upsert_by_hash<V>(&mut self, hash: State, value: V)
     where
         V: Into<Vec<u8>>,
     {
@@ -235,7 +232,9 @@ impl Storage {
             xor_fingerprint(&mut fingerprint, &xor);
 
             if self.next_layer.changes.insert(change.0, change.1).is_some() {
-                return Err(StorageError::KeyCollision { key_hash: change.0 });
+                return Err(StorageError::KeyCollision {
+                    key_hash: change.0 .0,
+                });
             }
         }
 
@@ -246,7 +245,7 @@ impl Storage {
     /// layer. It returns a [`StorageError::DirtyChanges`] in case there's any
     /// dirty changes that haven't been saved via [`Storage::checkpoint`] before
     /// this call.
-    pub async fn commit(&mut self) -> Result<(Layer, Fingerprint)> {
+    pub async fn commit(&mut self) -> Result<(Layer, State)> {
         if !self.dirty_changes.is_empty() {
             return Err(StorageError::DirtyChanges);
         }
@@ -273,7 +272,7 @@ impl Storage {
                     VALUES (?1, ?2, ?3)
                     "#,
                 )
-                .bind(key_hash.to_vec())
+                .bind(key_hash.0.to_vec())
                 .bind(value)
                 .bind(layer_id.0 as i64)
                 .execute(&self.sqlite),
@@ -289,20 +288,20 @@ impl Storage {
             WHERE "id" = ?2 AND "ready" = 0
             "#,
         )
-        .bind(&fingerprint[..])
+        .bind(&fingerprint.0[..])
         .bind(layer_id.0 as i64)
         .execute(&self.sqlite)
         .await?;
 
         // Reset layer-specific information to default values.
-        self.next_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
+        self.next_layer.changes_xor_fingerprint = STATE_ONES;
         self.next_layer.id.0 += 1;
 
         Ok((layer_id, fingerprint))
     }
 
-    /// Creates a new [`Fingerprint`]-ed layer with the given `id`.
-    async fn insert_layer(&self, id: Layer, fingerprint: Fingerprint, ready: bool) -> Result<()> {
+    /// Creates a new [`State`]-ed layer with the given `id`.
+    async fn insert_layer(&self, id: Layer, fingerprint: State, ready: bool) -> Result<()> {
         sqlx::query(
             r#"
             INSERT INTO "layers" ("id", "fingerprint", "ready")
@@ -310,15 +309,15 @@ impl Storage {
             "#,
         )
         .bind(id.0 as i64)
-        .bind(&fingerprint[..])
+        .bind(&fingerprint.0[..])
         .bind(if ready { 1 } else { 0 })
         .execute(&self.sqlite)
         .await?;
         Ok(())
     }
 
-    /// Queries the current [`Fingerprint`] value of `layer_id`.
-    async fn layer_fingerprint(&self, layer_id: Layer, ready: bool) -> Result<Fingerprint> {
+    /// Queries the current [`State`] value of `layer_id`.
+    async fn layer_fingerprint(&self, layer_id: Layer, ready: bool) -> Result<State> {
         let bytes: (Vec<u8>,) = sqlx::query_as(
             r#"
             SELECT "fingerprint"
@@ -330,7 +329,7 @@ impl Storage {
         .bind(if ready { 1 } else { 0 })
         .fetch_one(&self.sqlite)
         .await?;
-        Ok(bytes.0.try_into().unwrap())
+        Ok(State(bytes.0.try_into().unwrap()))
     }
 
     /// Erases all saved data from memory and completely deletes all layers
@@ -362,7 +361,7 @@ impl Storage {
         // We must now bring `self.next_layer` in a good state.
         self.next_layer.id.0 = layer_id.0 + 1;
         self.next_layer.changes.clear();
-        self.next_layer.changes_xor_fingerprint = FINGERPRINT_ONES;
+        self.next_layer.changes_xor_fingerprint = STATE_ONES;
 
         Ok(())
     }
@@ -390,16 +389,16 @@ async fn max_layer_id(pool: &SqlitePool) -> Result<Option<Layer>> {
     Ok(max_layer_id.map(|x| Layer(x.0.try_into().expect("Negative layer ID!"))))
 }
 
-fn hash_key_value_pair(key_hash: &Fingerprint, value: &[u8]) -> Fingerprint {
+fn hash_key_value_pair(key_hash: &State, value: &[u8]) -> State {
     let mut hasher = Blake3Hasher::default();
-    hasher.update(key_hash);
+    hasher.update(&key_hash.0);
     hasher.update(value);
-    hasher.finalize()
+    State(hasher.finalize())
 }
 
-fn xor_fingerprint(sig_1: &mut Fingerprint, sig_2: &Fingerprint) {
-    for (a, b) in sig_1.iter_mut().zip(sig_2) {
-        *a ^= *b;
+fn xor_fingerprint(sig_1: &mut State, sig_2: &State) {
+    for (a, b) in sig_1.0.iter_mut().zip(sig_2.0) {
+        *a ^= b;
     }
 }
 

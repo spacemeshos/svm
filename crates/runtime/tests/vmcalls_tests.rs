@@ -66,7 +66,7 @@ macro_rules! assert_storage {
         let storage = borrow.storage_mut();
 
         $(
-            let actual = storage.get_var($var_id);
+            let actual = storage.get_var_vec($var_id).unwrap();
             assert_eq!(actual, $expected);
          )*
     }};
