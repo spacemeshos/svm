@@ -1,6 +1,5 @@
 //! Implements common functionality to be consumed by tests.
 
-use futures::executor::block_on;
 use svm_codec::{template, Codec};
 use svm_layout::{FixedLayout, Layout};
 use svm_state::GlobalState;
@@ -52,7 +51,7 @@ pub fn create_memory_runtime() -> DefaultRuntime<DefaultMemEnvTypes> {
     let config = Config::default();
     let imports = ("sm".to_string(), wasmer::Exports::new());
 
-    let global_state = block_on(GlobalState::in_memory());
+    let global_state = GlobalState::in_memory();
     DefaultRuntime::new(env, imports, global_state, config, None)
 }
 

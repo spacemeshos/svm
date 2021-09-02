@@ -1912,7 +1912,6 @@ dependencies = [
  "svm-sdk-tests",
  "svm-sdk-types",
  "svm-state",
- "svm-storage",
  "svm-types",
  "thiserror",
  "tracing",
@@ -2088,7 +2087,7 @@ dependencies = [
  "svm-layout",
  "svm-runtime",
  "svm-sdk",
- "svm-storage",
+ "svm-state",
  "svm-types",
  "wat",
 ]
@@ -2199,18 +2198,6 @@ dependencies = [
  "svm-types",
  "thiserror",
  "tokio",
-]
-
-[[package]]
-name = "svm-storage"
-version = "0.0.0"
-dependencies = [
- "hex",
- "lazy_static",
- "svm-hash",
- "svm-kv",
- "svm-layout",
- "svm-types",
 ]
 
 [[package]]

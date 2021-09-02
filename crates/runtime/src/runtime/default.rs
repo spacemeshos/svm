@@ -312,7 +312,7 @@ where
     async fn commit_changes(&self, env: &FuncEnv) -> State {
         let mut borrow = env.borrow_mut();
         let storage = borrow.storage_mut();
-        storage.gs_mut().commit().await.unwrap().1.into()
+        storage.gs_mut().commit().unwrap().1.into()
     }
 
     #[inline]

@@ -1,5 +1,3 @@
-use futures::executor::block_on;
-
 use std::convert::TryInto;
 
 use svm_layout::{FixedLayout, Id};
@@ -39,7 +37,8 @@ impl AccountStorage {
 
     fn var(&self, var_id: u32) -> [u8; 32] {
         let key = keys::account_var(&self.address, var_id, &self.layout);
-        block_on(self.gs.storage().get(key.as_bytes(), None))
+        self.gs
+            .block_on(self.gs.storage().get(key.as_bytes(), None))
             .unwrap()
             .unwrap_or(vec![0; 32])
             .try_into()

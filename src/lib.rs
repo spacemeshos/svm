@@ -20,5 +20,4 @@ extern crate svm_query;
 extern crate svm_runtime;
 extern crate svm_runtime_ffi;
 extern crate svm_sdk;
-extern crate svm_storage;
 extern crate svm_types;

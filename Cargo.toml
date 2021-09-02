@@ -80,7 +80,6 @@ members = [
   "crates/sdk-tests",
   "crates/kv",
   "crates/layout",
-  "crates/storage",
   "crates/runtime",
   "crates/cli",
   "crates/runtime-ffi",

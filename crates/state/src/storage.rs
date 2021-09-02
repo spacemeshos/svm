@@ -105,7 +105,8 @@ impl Storage {
 
     /// Creates a new, empty [`Storage`] with no persisted state at all. All
     /// state will be kept in an in-memory SQLite instance.
-    pub async fn in_memory() -> Result<Self> {
+    #[cfg(test)]
+    async fn in_memory() -> Result<Self> {
         Self::new(":memory:").await
     }
 

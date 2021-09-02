@@ -1,4 +1,3 @@
-use futures::executor::block_on;
 use wasmer::{imports, NativeFunc};
 
 use svm_layout::FixedLayout;
@@ -123,7 +122,7 @@ fn vmcalls_get32_set32() {
 
     let store = wasmer_store();
     let storage = AccountStorage::new(
-        block_on(GlobalState::in_memory()),
+        GlobalState::in_memory(),
         &target_addr,
         &template_addr,
         &layout,
@@ -170,7 +169,7 @@ fn vmcalls_get64_set64() {
 
     let store = wasmer_store();
     let storage = AccountStorage::new(
-        block_on(GlobalState::in_memory()),
+        GlobalState::in_memory(),
         &target_addr,
         &template_addr,
         &layout,
@@ -218,7 +217,7 @@ fn vmcalls_load160() {
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
     let storage = AccountStorage::new(
-        block_on(GlobalState::in_memory()),
+        GlobalState::in_memory(),
         &target_addr,
         &template_addr,
         &layout,
@@ -276,7 +275,7 @@ fn vmcalls_store160() {
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
     let storage = AccountStorage::new(
-        block_on(GlobalState::in_memory()),
+        GlobalState::in_memory(),
         &target_addr,
         &template_addr,
         &layout,
@@ -329,7 +328,7 @@ fn vmcalls_log() {
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
     let storage = AccountStorage::new(
-        block_on(GlobalState::in_memory()),
+        GlobalState::in_memory(),
         &target_addr,
         &template_addr,
         &layout,
