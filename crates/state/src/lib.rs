@@ -6,7 +6,6 @@
 #![deny(unreachable_code)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
-mod account_data;
 mod account_storage;
 mod error;
 mod global_state;
@@ -16,3 +15,4 @@ mod template_storage;
 pub use account_storage::AccountStorage;
 pub use error::{StorageError, StorageResult};
 pub use global_state::GlobalState;
+pub use template_storage::TemplateStorage;
