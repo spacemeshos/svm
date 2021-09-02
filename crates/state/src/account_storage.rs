@@ -121,6 +121,8 @@ impl AccountStorage {
         let offset = raw_var.offset();
         let byte_size = raw_var.byte_size();
 
+        assert_eq!(new_value.len(), byte_size as usize);
+
         let segments = var_segments(&self.address, offset, byte_size);
 
         for segment in segments.into_iter() {
@@ -134,7 +136,8 @@ impl AccountStorage {
             bytes[segment.range.clone()].copy_from_slice(&new_value[..segment.range.len()]);
             new_value = &new_value[segment.range.len()..];
 
-            self.gs.storage().upsert(segment.key.as_bytes(), &bytes[..]);
+            self.gs
+                .block_on(self.gs.storage().upsert(segment.key.as_bytes(), &bytes[..]));
         }
 
         Ok(())
@@ -218,18 +221,18 @@ fn var_segments(account_addr: &Address, offset: u32, byte_size: u32) -> Vec<Segm
         range: first_range,
     });
 
-    let mut byte_size = 32i64 - (offset % 32) as i64;
+    let mut remaining = 32i64 - (offset % 32) as i64;
 
     segment_index += 1;
 
-    while byte_size > 0 {
+    while remaining > 0 {
         segments.push(Segment {
             key: key_account_var_segment(account_addr, segment_index),
             range: 0..32.min(byte_size as usize),
         });
 
         segment_index += 1;
-        byte_size -= 32;
+        remaining -= 32;
     }
 
     segments
