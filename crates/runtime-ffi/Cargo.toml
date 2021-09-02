@@ -22,7 +22,7 @@ svm-gas = { path="../gas" }
 svm-types = { path="../types" }
 svm-codec = { path="../codec" }
 svm-layout = { path="../layout" }
-svm-storage = { path="../storage", default-features=false }
+svm-state = { path="../state", default-features=false }
 
 [dev-dependencies]
 wat = "1.0"
@@ -41,10 +41,8 @@ default-cranelift = ["svm-runtime/default-cranelift"]
 default-memory = [
     "svm-runtime/default-memory",
     "svm-kv/default-memory",
-    "svm-storage/default-memory",
 ]
 default-rocksdb = [
     "svm-runtime/default-rocksdb",
     "svm-kv/default-rocksdb",
-    "svm-storage/default-rocksdb",
 ]

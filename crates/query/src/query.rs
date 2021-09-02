@@ -37,7 +37,7 @@ pub struct StorageQuery {
 
 /// This trait should be implemented by `AccountStorage` interfaces.
 ///
-/// See `AccountStorage` under the `svm-storage` crate.
+/// See `AccountStorage` under the `svm-state` crate.
 pub trait StorageReader<V, VR: VarRenderer<V>> {
     /// Executes a read request.
     ///
