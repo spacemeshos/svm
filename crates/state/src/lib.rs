@@ -11,6 +11,7 @@ mod account_storage;
 mod error;
 mod global_state;
 mod storage;
+mod template_storage;
 
 pub use account_storage::AccountStorage;
 pub use error::{StorageError, StorageResult};
