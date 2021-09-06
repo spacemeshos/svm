@@ -1,8 +1,8 @@
 //! Implementation of Global State for the Spacemesh Virtual Machine.
 
-#![warn(missing_docs)]
-#![warn(unused)]
-#![warn(dead_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
 #![deny(unreachable_code)]
 #![deny(rustdoc::broken_intra_doc_links)]
 

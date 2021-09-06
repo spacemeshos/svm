@@ -1,7 +1,3 @@
-use std::fmt::Debug;
-
-use svm_types::State;
-
 /// An alias for [`Result`](std::result::Result)'s with [`StorageError`].
 pub type StorageResult<T> = std::result::Result<T, StorageError>;
 
@@ -23,11 +19,18 @@ pub enum StorageError {
 
     /// Illegal data found in the database.
     #[error("Illegal data found in the database")]
-    IllegalData { key_hash: [u8; 32] },
+    IllegalData {
+        /// They Blake3 hash of the key that is associated with the illegal
+        /// data.
+        key_hash: [u8; 32],
+    },
 
     /// Expected an item in the database, but wasn't found.
     #[error("Expected an item in the database, but wasn't found.")]
-    NotFound { key_hash: [u8; 32] },
+    NotFound {
+        /// They Blake3 hash of the key that doesn't have a value.
+        key_hash: [u8; 32],
+    },
 
     /// A SQLite error happened.
     #[error("SQLite error.")]

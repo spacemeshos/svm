@@ -18,6 +18,7 @@ use crate::{StorageError, StorageResult as Result};
 pub struct GlobalState {
     pub(crate) storage: Arc<Mutex<Storage>>,
     runtime: Arc<Mutex<Runtime>>,
+    historical_query_context: Option<Layer>,
 }
 
 impl GlobalState {
@@ -33,6 +34,7 @@ impl GlobalState {
         Self {
             storage: Arc::new(Mutex::new(storage)),
             runtime: Arc::new(Mutex::new(runtime)),
+            historical_query_context: None,
         }
     }
 
@@ -41,6 +43,66 @@ impl GlobalState {
     pub fn in_memory() -> Self {
         Self::new(":memory:")
     }
+
+    /// Returns a mutable reference to the [`Option<Layer>`] that controls the
+    /// historical query parameter used in *all* read operations. When set to
+    /// [`None`], the most recent value is always read; when set to
+    /// [`Some<some_layer>`], only the value present at the time of `some_layer`
+    /// is read.
+    pub fn historical_query(&mut self) -> &mut Option<Layer> {
+        &mut self.historical_query_context
+    }
+
+    // VERSIONING
+    // ----------
+
+    /// Saves dirty changes in preparation of [`GlobalState::commit`]. After
+    /// saving, changes are frozen and can't be removed from the current layer.
+    ///
+    /// This might return a [`StorageError::KeyCollision`] depending on the
+    /// content of the dirty changes, so beware.
+    pub fn checkpoint(&mut self) -> Result<()> {
+        self.block_on(self.storage().checkpoint())?;
+        Ok(())
+    }
+
+    /// Persists all changes to disk and returns the root [`State`] of the new
+    /// layer. It returns a [`StorageError::DirtyChanges`] in case there's any
+    /// dirty changes that haven't been saved via [`GlobalState::checkpoint`]
+    /// before this call.
+    pub fn commit(&mut self) -> Result<(Layer, State)> {
+        Ok(self.block_on(self.storage().commit())?)
+    }
+
+    /// Returns the [`Layer`] and [`State`] of the last ever committed
+    /// layer; i.e. persisted changes without dirty and saved changes.
+    pub fn current_layer(&mut self) -> Result<(Layer, State)> {
+        Ok(self.block_on(self.storage().last_layer())?)
+    }
+
+    /// Erases all dirty changes from memory. Persisted and saved data are left
+    /// untouched.
+    pub fn rollback(&mut self) -> Result<()> {
+        self.block_on(self.storage().rollback())?;
+        Ok(())
+    }
+
+    /// Erases all saved data from memory and completely deletes all layers
+    /// after and excluding `layer_id` from the SQLite store. Persisted data is
+    /// left untouched. It returns a [`StorageError::DirtyChanges`] in case
+    /// there's any dirty changes, i.e. you must call [`GlobalState::rollback`]
+    /// beforehand.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `layer_id` is invalid.
+    pub fn rewind(&mut self, layer_id: Layer) -> Result<()> {
+        self.block_on(self.storage().rewind(layer_id))?;
+        Ok(())
+    }
+
+    // GETTER/SETTER UTILITIES
+    // -----------------------
 
     pub(crate) fn storage(&self) -> MutexGuard<Storage> {
         self.storage
@@ -62,7 +124,10 @@ impl GlobalState {
     where
         T: Codec,
     {
-        let opt_value = self.block_on(self.storage().get(key.as_bytes(), None))?;
+        let opt_value = self.block_on(
+            self.storage()
+                .get(key.as_bytes(), self.historical_query_context),
+        )?;
 
         if let Some(bytes) = opt_value {
             T::decode_bytes(bytes)
@@ -94,32 +159,6 @@ impl GlobalState {
             })?;
 
         self.encode_and_write(&f(old_item), key);
-        Ok(())
-    }
-
-    // VERSIONING
-    // ----------
-
-    pub fn checkpoint(&mut self) -> Result<()> {
-        self.block_on(self.storage().checkpoint())?;
-        Ok(())
-    }
-
-    pub fn commit(&mut self) -> Result<(Layer, State)> {
-        Ok(self.block_on(self.storage().commit())?)
-    }
-
-    pub fn current_layer(&mut self) -> Result<(Layer, State)> {
-        Ok(self.block_on(self.storage().last_layer())?)
-    }
-
-    pub fn rollback(&mut self) -> Result<()> {
-        self.block_on(self.storage().rollback())?;
-        Ok(())
-    }
-
-    pub fn rewind(&mut self, layer_id: Layer) -> Result<()> {
-        self.block_on(self.storage().rewind(layer_id))?;
         Ok(())
     }
 }

@@ -2,12 +2,16 @@ use svm_types::{BytesPrimitive, Sections, TemplateAddr};
 
 use crate::{GlobalState, StorageResult};
 
+/// A [`GlobalState`] wrapper that exposes getters and setters for
+/// [`Template`](svm_types::Template)-related entities.
 pub struct TemplateStorage {
     gs: GlobalState,
     template_addr: TemplateAddr,
 }
 
 impl TemplateStorage {
+    /// Creates a new [`TemplateStorage`] from the given address and
+    /// [`GlobalState`] instance.
     pub fn new(template_addr: &TemplateAddr, gs: GlobalState) -> Self {
         Self {
             template_addr: template_addr.clone(),
@@ -15,11 +19,12 @@ impl TemplateStorage {
         }
     }
 
-    pub fn sections(&self, template_addr: &TemplateAddr) -> StorageResult<Option<Sections>> {
+    /// Reads, decodes and finally returns all [`Sections`] of `self`.
+    pub fn sections(&self) -> StorageResult<Option<Sections>> {
         let core_sections_opt: Option<Sections> =
-            self.gs.read_and_decode(&key_core(template_addr))?;
+            self.gs.read_and_decode(&key_core(&self.template_addr))?;
         let noncore_sections_opt: Option<Sections> =
-            self.gs.read_and_decode(&key_noncore(template_addr))?;
+            self.gs.read_and_decode(&key_noncore(&self.template_addr))?;
 
         match (core_sections_opt, noncore_sections_opt) {
             (Some(mut sections), Some(noncore)) => {
@@ -32,22 +37,21 @@ impl TemplateStorage {
         }
     }
 
-    pub fn set_core(
-        &mut self,
-        template_addr: &TemplateAddr,
-        sections: &Sections,
-    ) -> StorageResult<()> {
-        self.gs.encode_and_write(sections, &key_core(template_addr));
+    /// Overwrites the "core" (mandatory) [`Sections`] associated with
+    /// `self`.
+    pub fn set_core(&mut self, sections: &Sections) -> StorageResult<()> {
+        let key = key_core(&self.template_addr);
+        self.gs.encode_and_write(sections, &key);
+
         Ok(())
     }
 
-    pub fn set_noncore(
-        &mut self,
-        template_addr: &TemplateAddr,
-        sections: &Sections,
-    ) -> StorageResult<()> {
-        self.gs
-            .encode_and_write(sections, &key_noncore(template_addr));
+    /// Overwrites the "non-core" (optional) [`Sections`] associated with
+    /// `self`.
+    pub fn set_noncore(&mut self, sections: &Sections) -> StorageResult<()> {
+        let key = key_noncore(&self.template_addr);
+        self.gs.encode_and_write(sections, &key);
+
         Ok(())
     }
 }

@@ -106,6 +106,7 @@ impl AccountStorage {
         Ok(())
     }
 
+    /// Reads and returns the data associated with `var_id` in a [`Vec<u8>`].
     pub fn get_var_vec(&self, var_id: u32) -> StorageResult<Vec<u8>> {
         let raw_var = self.layout.get(Id(var_id));
         let mut bytes = vec![0; raw_var.byte_size() as usize];
@@ -115,6 +116,7 @@ impl AccountStorage {
         Ok(bytes)
     }
 
+    /// Reads and returns the [`i64`] value associated with `var_id`.
     pub fn get_var_i64(&self, var_id: u32) -> StorageResult<i64> {
         let mut bytes = [0; 8];
         self.get_var(var_id, &mut bytes)?;
@@ -122,6 +124,7 @@ impl AccountStorage {
         Ok(i64::from_le_bytes(bytes))
     }
 
+    /// Reads and returns the [`i32`] value associated with `var_id`.
     pub fn get_var_i32(&self, var_id: u32) -> StorageResult<i32> {
         let mut bytes = [0; 4];
         self.get_var(var_id, &mut bytes)?;
@@ -129,6 +132,7 @@ impl AccountStorage {
         Ok(i32::from_le_bytes(bytes))
     }
 
+    /// Reads and returns the `[u8; 20]` value associated with `var_id`.
     pub fn get_var_160(&self, var_id: u32) -> StorageResult<[u8; 20]> {
         let mut bytes = [0; 20];
         self.get_var(var_id, &mut bytes)?;
@@ -178,18 +182,24 @@ impl AccountStorage {
         Ok(())
     }
 
+    /// Overwrites the 20-bytes-long value associated with `var_id`.
     pub fn set_var_160(&mut self, var_id: u32, new_value: [u8; 20]) -> StorageResult<()> {
         self.set_var(var_id, &new_value[..])
     }
 
+    /// Overwrites the [`i64`] value associated with `var_id`.
     pub fn set_var_i64(&mut self, var_id: u32, new_value: i64) -> StorageResult<()> {
         self.set_var(var_id, &new_value.to_le_bytes()[..])
     }
 
+    /// Overwrites the [`i32`] value associated with `var_id`.
     pub fn set_var_i32(&mut self, var_id: u32, new_value: i32) -> StorageResult<()> {
         self.set_var(var_id, &new_value.to_le_bytes()[..])
     }
 
+    /// Creates a new [`TemplateStorage`] utility instance for the
+    /// [`Template`](svm_types::Template) of this
+    /// [`Account`](svm_types::Account).
     pub fn template_storage(&self) -> TemplateStorage {
         TemplateStorage::new(&self.template_addr, self.gs.clone())
     }

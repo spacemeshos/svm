@@ -218,11 +218,6 @@ impl Storage {
         self.dirty_changes.insert(hash, value.into());
     }
 
-    /// Saves dirty changes in preparation of [`Storage::commit`]. After
-    /// saving, changes are frozen and can't be removed from the current layer.
-    ///
-    /// This might return a [`StorageError::KeyCollision`] depending on the
-    /// content of the dirty changes, so beware.
     pub async fn checkpoint(&mut self) -> Result<()> {
         let mut fingerprint = self.next_layer.changes_xor_fingerprint;
         let dirty_changes = std::mem::take(&mut self.dirty_changes);
@@ -241,10 +236,6 @@ impl Storage {
         Ok(())
     }
 
-    /// Persists all changes to disk and returns the root fingerprint of the new
-    /// layer. It returns a [`StorageError::DirtyChanges`] in case there's any
-    /// dirty changes that haven't been saved via [`Storage::checkpoint`] before
-    /// this call.
     pub async fn commit(&mut self) -> Result<(Layer, State)> {
         if !self.dirty_changes.is_empty() {
             return Err(StorageError::DirtyChanges);
@@ -332,15 +323,6 @@ impl Storage {
         Ok(State(bytes.0.try_into().unwrap()))
     }
 
-    /// Erases all saved data from memory and completely deletes all layers
-    /// after and excluding `layer_id` from the SQLite store. Persisted data is
-    /// left untouched. It returns a [`StorageError::DirtyChanges`] in case
-    /// there's any dirty changes, i.e. you must call [`Storage::rollback`]
-    /// beforehand.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `layer_id` is invalid.
     pub async fn rewind(&mut self, layer_id: Layer) -> Result<()> {
         self.assert_layer_id_is_ready(layer_id);
 
@@ -366,8 +348,6 @@ impl Storage {
         Ok(())
     }
 
-    /// Erases all dirty changes from memory. Persisted and saved data are left
-    /// untouched.
     pub async fn rollback(&mut self) -> Result<()> {
         self.dirty_changes.clear();
         Ok(())
