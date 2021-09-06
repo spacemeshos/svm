@@ -50,7 +50,7 @@ pub fn load160(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
 ///
 /// # Panics
 ///
-/// Panics when variable `var_id` doesn't exist or when it consumes more than 32-bit.
+/// Panics when variable `var_id` doesn't exist or when it consumes more than 32 bits.
 pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
     let borrow = env.borrow();
     let storage = borrow.storage();
@@ -61,21 +61,19 @@ pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
 ///
 /// # Panics
 ///
-/// Panics when variable `var_id` doesn't exist or when it consumes more than 32-bit,
+/// Panics when variable `var_id` doesn't exist or when it consumes more than 32 bits,
 /// or when it has not enough bytes to hold `value`.
 pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
-    storage
-        .set_var_i64(var_id, value.try_into().unwrap())
-        .unwrap();
+    storage.set_var_i32(var_id, value as i32).unwrap();
 }
 
 /// Returns the data stored by variable `var_id` as 64-bit integer.
 ///
 /// # Panics
 ///
-/// Panics when variable `var_id` doesn't exist or when it consumes more than 64-bit.
+/// Panics when variable `var_id` doesn't exist or when it consumes more than 64 bits.
 pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
     let borrow = env.borrow();
     let storage = borrow.storage();
@@ -91,7 +89,5 @@ pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
 pub fn set64(env: &FuncEnv, var_id: u32, value: u64) {
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
-    storage
-        .set_var_i64(var_id, value.try_into().unwrap())
-        .unwrap();
+    storage.set_var_i64(var_id, value as i64).unwrap();
 }

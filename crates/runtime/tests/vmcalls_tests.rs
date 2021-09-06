@@ -251,7 +251,7 @@ fn vmcalls_load160() {
     {
         let mut borrow = func_env.borrow_mut();
         let storage = borrow.storage_mut();
-        storage.set_var(0, target_addr.as_slice());
+        storage.set_var(0, target_addr.as_slice()).unwrap();
     }
 
     let func: NativeFunc<(u32, u32)> = instance.exports.get_native_function("load").unwrap();
