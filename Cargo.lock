@@ -1849,7 +1849,6 @@ dependencies = [
  "svm-gas",
  "svm-layout",
  "svm-program",
- "svm-runtime",
  "svm-types",
  "thiserror",
 ]
