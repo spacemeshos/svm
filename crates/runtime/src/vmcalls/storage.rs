@@ -40,7 +40,7 @@ pub fn load160(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
     let start = mem_ptr as usize;
     let view = &borrow.memory().view::<u8>()[start..][..20];
 
-    let bytes = storage.get_var_160(var_id);
+    let bytes = storage.get_var_160(var_id).unwrap();
     for (cell, &byte) in view.iter().zip(bytes.iter()) {
         cell.set(byte);
     }
@@ -52,7 +52,9 @@ pub fn load160(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
 ///
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 32-bit.
 pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
-    get64(env, var_id).try_into().unwrap()
+    let borrow = env.borrow();
+    let storage = borrow.storage();
+    storage.get_var_i64(var_id).unwrap() as u32
 }
 
 /// Sets the data of variable `var_id` to Little-Endian representation of `value`.
@@ -62,7 +64,11 @@ pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 32-bit,
 /// or when it has not enough bytes to hold `value`.
 pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
-    set64(env, var_id, value.into());
+    let mut borrow = env.borrow_mut();
+    let storage = borrow.storage_mut();
+    storage
+        .set_var_i64(var_id, value.try_into().unwrap())
+        .unwrap();
 }
 
 /// Returns the data stored by variable `var_id` as 64-bit integer.
@@ -73,7 +79,7 @@ pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
 pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
     let borrow = env.borrow();
     let storage = borrow.storage();
-    storage.get_var_i64(var_id) as u64
+    storage.get_var_i64(var_id).unwrap() as u64
 }
 
 /// Sets the data of variable `var_id` to Little-Endian representation of `value`.

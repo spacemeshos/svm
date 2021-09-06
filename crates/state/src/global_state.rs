@@ -62,13 +62,14 @@ impl GlobalState {
     where
         T: Codec,
     {
-        let key_hash = Blake3Hasher::hash(key.as_bytes());
-        let opt_value = self.block_on(self.storage().get(&key_hash, None))?;
+        let opt_value = self.block_on(self.storage().get(key.as_bytes(), None))?;
 
         if let Some(bytes) = opt_value {
             T::decode_bytes(bytes)
                 .map(|data| Some(data))
-                .map_err(|_| StorageError::IllegalData { key_hash })
+                .map_err(|_| StorageError::IllegalData {
+                    key_hash: Blake3Hasher::hash(key.as_bytes()),
+                })
         } else {
             Ok(None)
         }
@@ -86,13 +87,13 @@ impl GlobalState {
         T: Codec,
         F: Fn(T) -> T,
     {
-        let key_hash = Blake3Hasher::hash(key.as_bytes());
+        let old_item = self
+            .read_and_decode::<T>(key)?
+            .ok_or(StorageError::NotFound {
+                key_hash: Blake3Hasher::hash(key.as_bytes()),
+            })?;
 
-        let item = self
-            .read_and_decode::<T>(key)
-            .and_then(|opt| opt.ok_or(StorageError::NotFound { key_hash }))?;
-
-        self.encode_and_write(&f(item), key);
+        self.encode_and_write(&f(old_item), key);
         Ok(())
     }
 
@@ -122,30 +123,3 @@ impl GlobalState {
         Ok(())
     }
 }
-
-//#[cfg(test)]
-//mod test {
-//    use super::*;
-//
-//    #[test]
-//    fn set_account_then_get() {
-//        let mut gs = GlobalState::in_memory();
-//        let account_addr = Address::zeros();
-//
-//        gs.set_account(
-//            &account_addr,
-//            "@foobar".to_string(),
-//            TemplateAddr::zeros(),
-//            42,
-//            1337,
-//        );
-//
-//        assert_eq!(gs.account_name(&account_addr).unwrap().unwrap(), "@foobar");
-//        assert_eq!(
-//            gs.account_template_addr(&account_addr).unwrap().unwrap(),
-//            TemplateAddr::zeros()
-//        );
-//        assert_eq!(gs.account_balance(&account_addr).unwrap().unwrap(), 42);
-//        assert_eq!(gs.account_counter(&account_addr).unwrap().unwrap(), 1337);
-//    }
-//}

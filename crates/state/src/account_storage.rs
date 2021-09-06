@@ -1,5 +1,5 @@
 use std::convert::TryInto;
-use std::ops::Range;
+use std::ops::RangeInclusive;
 
 use svm_codec::Codec;
 use svm_codec::{ParseError, ReadExt, WriteExt};
@@ -9,6 +9,11 @@ use svm_types::{Address, BytesPrimitive, TemplateAddr};
 use crate::TemplateStorage;
 use crate::{GlobalState, StorageResult};
 
+const SEGMENT_SIZE: usize = 32;
+
+/// A [`GlobalState`] wrapper, enriched with utility methods to access and
+/// modify [`Account`](svm_types::Account) data.
+#[derive(Debug, Clone)]
 pub struct AccountStorage {
     gs: GlobalState,
     address: Address,
@@ -17,6 +22,7 @@ pub struct AccountStorage {
 }
 
 impl AccountStorage {
+    /// Creates a new [`AccountStorage`].
     pub fn new(
         gs: GlobalState,
         address: &Address,
@@ -31,6 +37,7 @@ impl AccountStorage {
         }
     }
 
+    /// Saves `self` to the associated [`GlobalState`].
     pub fn create(
         &mut self,
         name: String,
@@ -52,10 +59,12 @@ impl AccountStorage {
         );
     }
 
+    /// Returns an immutable reference to the underlying [`GlobalState`].
     pub fn gs(&self) -> &GlobalState {
         &self.gs
     }
 
+    /// Returns a mutable reference to the underlying [`GlobalState`].
     pub fn gs_mut(&mut self) -> &mut GlobalState {
         &mut self.gs
     }
@@ -68,20 +77,25 @@ impl AccountStorage {
         let offset = raw_var.offset();
         let byte_size = raw_var.byte_size();
 
-        assert_eq!(var.len(), byte_size as usize);
+        assert!(var.len() >= byte_size as usize);
+
+        var = {
+            let len = var.len();
+            &mut var[(byte_size as usize - len)..]
+        };
 
         let segments = var_segments(&self.address, offset, byte_size);
 
         for segment in segments.into_iter() {
-            let bytes: [u8; 32] = self
+            let bytes: [u8; SEGMENT_SIZE] = self
                 .gs
                 .block_on(self.gs.storage().get(segment.key.as_bytes(), None))?
-                .unwrap_or(vec![0; 32])
+                .unwrap_or(vec![0; SEGMENT_SIZE])
                 .try_into()
-                .expect("Unexpected length of value, expected 32 bytes.");
+                .expect("Unexpected length of value.");
 
-            var[..segment.range.len()].copy_from_slice(&bytes[segment.range.clone()]);
-            var = &mut var[segment.range.len()..];
+            var[..segment.len()].copy_from_slice(&bytes[segment.range.clone()]);
+            var = &mut var[segment.len()..];
         }
 
         Ok(())
@@ -95,25 +109,18 @@ impl AccountStorage {
         Ok(bytes)
     }
 
-    pub fn get_var_i64(&self, var_id: u32) -> i64 {
+    pub fn get_var_i64(&self, var_id: u32) -> StorageResult<i64> {
         let mut bytes = [0; 8];
-        self.get_var(var_id, &mut bytes);
+        self.get_var(var_id, &mut bytes)?;
 
-        i64::from_be_bytes(bytes)
+        Ok(i64::from_be_bytes(bytes))
     }
 
-    pub fn get_var_i32(&self, var_id: u32) -> i32 {
-        let mut bytes = [0; 4];
-        self.get_var(var_id, &mut bytes);
-
-        i32::from_be_bytes(bytes)
-    }
-
-    pub fn get_var_160(&self, var_id: u32) -> [u8; 20] {
+    pub fn get_var_160(&self, var_id: u32) -> StorageResult<[u8; 20]> {
         let mut bytes = [0; 20];
-        self.get_var(var_id, &mut bytes);
+        self.get_var(var_id, &mut bytes)?;
 
-        bytes
+        Ok(bytes)
     }
 
     pub fn set_var(&mut self, var_id: u32, mut new_value: &[u8]) -> StorageResult<()> {
@@ -121,20 +128,20 @@ impl AccountStorage {
         let offset = raw_var.offset();
         let byte_size = raw_var.byte_size();
 
-        assert_eq!(new_value.len(), byte_size as usize);
+        assert!(new_value.len() >= byte_size as usize);
 
         let segments = var_segments(&self.address, offset, byte_size);
 
         for segment in segments.into_iter() {
-            let mut bytes: [u8; 32] = self
+            let mut bytes: [u8; SEGMENT_SIZE] = self
                 .gs
                 .block_on(self.gs.storage().get(segment.key.as_bytes(), None))?
-                .unwrap_or(vec![0; 32])
+                .unwrap_or(vec![0; SEGMENT_SIZE])
                 .try_into()
-                .expect("Unexpected length of value, expected 32 bytes.");
+                .expect("Unexpected length of value.");
 
-            bytes[segment.range.clone()].copy_from_slice(&new_value[..segment.range.len()]);
-            new_value = &new_value[segment.range.len()..];
+            bytes[segment.range.clone()].copy_from_slice(&new_value[..segment.len()]);
+            new_value = &new_value[segment.len()..];
 
             self.gs
                 .block_on(self.gs.storage().upsert(segment.key.as_bytes(), &bytes[..]));
@@ -206,34 +213,49 @@ fn key_account_var_segment(account_addr: &Address, segment: u32) -> String {
     )
 }
 
+#[derive(Debug)]
 struct Segment {
     key: String,
-    range: Range<usize>,
+    range: RangeInclusive<usize>,
+}
+
+impl Segment {
+    fn len(&self) -> usize {
+        // E.g. `0..=2` contains 3 elements.
+        *self.range.end() - *self.range.start() + 1
+    }
 }
 
 fn var_segments(account_addr: &Address, offset: u32, byte_size: u32) -> Vec<Segment> {
-    let mut segment_index = offset / 32;
+    let mut remaining_size = i64::from(byte_size);
     let mut segments = vec![];
+    let mut segment_index = offset as usize / SEGMENT_SIZE;
+    let mut segment_start = offset as usize % SEGMENT_SIZE;
+    let mut segment_end = (segment_start + byte_size as usize - 1).min(SEGMENT_SIZE - 1);
 
-    let first_range = (offset % 32) as usize..((offset % 32) + byte_size).min(32) as usize;
     segments.push(Segment {
-        key: key_account_var_segment(account_addr, segment_index),
-        range: first_range,
+        key: key_account_var_segment(account_addr, segment_index as u32),
+        range: segment_start..=segment_end,
     });
 
-    let mut remaining = 32i64 - (offset % 32) as i64;
+    remaining_size -= segment_end as i64 - segment_start as i64 + 1;
+    segment_start = 0;
 
-    segment_index += 1;
-
-    while remaining > 0 {
-        segments.push(Segment {
-            key: key_account_var_segment(account_addr, segment_index),
-            range: 0..32.min(byte_size as usize),
-        });
-
+    while remaining_size > 0 {
         segment_index += 1;
-        remaining -= 32;
+        segment_end = (SEGMENT_SIZE - 1).min(remaining_size as usize - 1);
+        remaining_size -= SEGMENT_SIZE as i64;
+
+        segments.push(Segment {
+            key: key_account_var_segment(account_addr, segment_index as u32),
+            range: segment_start..=segment_end,
+        });
     }
+
+    debug_assert_eq!(
+        segments.iter().map(|s| s.len()).sum::<usize>(),
+        byte_size as usize
+    );
 
     segments
 }
@@ -310,5 +332,109 @@ impl Codec for AccountMut {
         let counter = u64::decode(reader)?;
 
         Ok(Self { balance, counter })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use svm_layout::FixedLayoutBuilder;
+
+    use super::*;
+
+    fn fixed_layout() -> FixedLayout {
+        let mut builder = FixedLayoutBuilder::new();
+
+        builder.set_first(Id(1));
+        builder.push(10);
+        builder.push(20);
+        builder.push(4);
+        builder.push(30);
+        builder.push(64);
+        builder.push(31);
+        builder.push(100);
+
+        builder.build()
+    }
+
+    #[test]
+    fn immutable_metadata() {
+        let layout = fixed_layout();
+        let address = Address::repeat(0xff);
+        let template_addr = TemplateAddr::repeat(0x80);
+        let name = "@name";
+        let balance = 42;
+        let counter = 0;
+
+        let gs = GlobalState::in_memory();
+        let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
+        account.create(name.to_string(), template_addr, balance, counter);
+
+        assert_eq!(account.name(&address).unwrap().unwrap(), name);
+        assert_eq!(
+            account.template_addr(&address).unwrap().unwrap(),
+            template_addr
+        );
+        assert_eq!(account.balance(&address).unwrap().unwrap(), balance);
+        assert_eq!(account.counter(&address).unwrap().unwrap(), counter);
+    }
+
+    #[test]
+    fn mutable_metadata() {
+        let layout = fixed_layout();
+        let address = Address::repeat(0xff);
+        let template_addr = TemplateAddr::repeat(0x80);
+        let name = "@name";
+        let balance = 42;
+        let counter = 0;
+
+        let gs = GlobalState::in_memory();
+        let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
+        account.create(name.to_string(), template_addr, balance, counter);
+
+        assert_eq!(account.balance(&address).unwrap().unwrap(), balance);
+        assert_eq!(account.counter(&address).unwrap().unwrap(), counter);
+
+        account.set_balance(&address, 1000).unwrap();
+
+        assert_eq!(account.balance(&address).unwrap().unwrap(), 1000);
+        assert_eq!(account.counter(&address).unwrap().unwrap(), counter);
+
+        account.set_counter(&address, 10).unwrap();
+        assert_eq!(account.balance(&address).unwrap().unwrap(), 1000);
+        assert_eq!(account.counter(&address).unwrap().unwrap(), 10);
+
+        account.set_counter(&address, 100).unwrap();
+        assert_eq!(account.balance(&address).unwrap().unwrap(), 1000);
+        assert_eq!(account.counter(&address).unwrap().unwrap(), 100);
+    }
+
+    #[test]
+    fn account_vars() {
+        let layout = fixed_layout();
+        let address = Address::repeat(0xff);
+        let template_addr = TemplateAddr::repeat(0x80);
+        let name = "@name";
+        let balance = 42;
+        let counter = 0;
+
+        let gs = GlobalState::in_memory();
+        let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
+        account.create(name.to_string(), template_addr, balance, counter);
+
+        account.set_var(1, &[1; 10]).unwrap();
+        account.set_var(2, &[2; 20]).unwrap();
+        account.set_var(3, &[3; 4]).unwrap();
+        account.set_var(4, &[4; 30]).unwrap();
+        account.set_var(5, &[5; 64]).unwrap();
+        account.set_var(6, &[6; 31]).unwrap();
+        account.set_var(7, &[7; 100]).unwrap();
+
+        assert_eq!(account.get_var_vec(1).unwrap(), &[1; 10]);
+        assert_eq!(account.get_var_vec(2).unwrap(), &[2; 20]);
+        assert_eq!(account.get_var_vec(3).unwrap(), &[3; 4]);
+        assert_eq!(account.get_var_vec(4).unwrap(), &[4; 30]);
+        assert_eq!(account.get_var_vec(5).unwrap(), &[5; 64]);
+        assert_eq!(account.get_var_vec(6).unwrap(), &[6; 31]);
+        assert_eq!(account.get_var_vec(7).unwrap(), &[7; 100]);
     }
 }

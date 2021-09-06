@@ -215,7 +215,7 @@ impl Storage {
     where
         V: Into<Vec<u8>>,
     {
-        self.dirty_changes.entry(hash).or_insert(value.into());
+        self.dirty_changes.insert(hash, value.into());
     }
 
     /// Saves dirty changes in preparation of [`Storage::commit`]. After
@@ -566,7 +566,7 @@ mod test {
     #[should_panic]
     async fn rewind_panics_without_commits() {
         let mut storage = Storage::in_memory().await.unwrap();
-        storage.rewind(INITIAL_LAYER_ID).await.unwrap();
+        storage.rewind(Layer(INITIAL_LAYER_ID.0 + 1)).await.unwrap();
     }
 
     #[quickcheck_async::tokio]

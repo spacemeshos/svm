@@ -22,7 +22,6 @@ wat = "1"
 svm-hash = { path = "../hash" }
 svm-types = { path = "../types" }
 svm-layout = { path = "../layout" }
-svm-kv = { path = "../kv", default-features = false }
 svm-state = { path = "../state" }
 svm-codec = { path = "../codec" }
 svm-gas = { path = "../gas" }
@@ -42,5 +41,5 @@ default-cranelift = [
     "wasmer/default-cranelift",
     "wasmer/default-universal"
 ]
-default-memory = ["svm-kv/default-memory"]
-default-rocksdb = ["svm-kv/default-rocksdb"]
+default-memory = []
+default-rocksdb = []
