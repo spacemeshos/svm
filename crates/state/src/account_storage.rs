@@ -75,8 +75,11 @@ impl AccountStorage {
         let offset = raw_var.offset();
         let byte_size = raw_var.byte_size();
 
-        assert!(var.len() >= byte_size as usize);
-        var = &mut var[..byte_size as usize];
+        if var.len() < byte_size as usize {
+            panic!("The given buffer is not large enough");
+        } else if var.len() > byte_size as usize {
+            var = &mut var[..byte_size as usize];
+        }
 
         let segments = var_segments(
             &self.address,
@@ -156,8 +159,11 @@ impl AccountStorage {
         let offset = raw_var.offset();
         let byte_size = raw_var.byte_size();
 
-        assert!(new_value.len() >= byte_size as usize);
-        new_value = &new_value[..byte_size as usize];
+        if new_value.len() < byte_size as usize {
+            panic!("The given buffer is not large enough");
+        } else if new_value.len() > byte_size as usize {
+            new_value = &new_value[..byte_size as usize];
+        }
 
         let segments = var_segments(
             &self.address,
@@ -448,21 +454,21 @@ mod test {
         let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
         account.create(name.to_string(), template_addr, balance, counter);
 
-        account.set_var_bytes(1, &[1; 10]).unwrap();
-        account.set_var_bytes(2, &[2; 20]).unwrap();
-        account.set_var_bytes(3, &[3; 4]).unwrap();
-        account.set_var_bytes(4, &[4; 30]).unwrap();
-        account.set_var_bytes(5, &[5; 64]).unwrap();
-        account.set_var_bytes(6, &[6; 31]).unwrap();
-        account.set_var_bytes(7, &[7; 100]).unwrap();
+        account.set_var_bytes(0, &[1; 10]).unwrap();
+        account.set_var_bytes(1, &[2; 20]).unwrap();
+        account.set_var_bytes(2, &[3; 4]).unwrap();
+        account.set_var_bytes(3, &[4; 30]).unwrap();
+        account.set_var_bytes(4, &[5; 64]).unwrap();
+        account.set_var_bytes(5, &[6; 31]).unwrap();
+        account.set_var_bytes(6, &[7; 100]).unwrap();
 
-        assert_eq!(account.get_var_vec(7).unwrap(), &[7; 100]);
-        assert_eq!(account.get_var_vec(6).unwrap(), &[6; 31]);
-        assert_eq!(account.get_var_vec(5).unwrap(), &[5; 64]);
-        assert_eq!(account.get_var_vec(4).unwrap(), &[4; 30]);
-        assert_eq!(account.get_var_vec(3).unwrap(), &[3; 4]);
-        assert_eq!(account.get_var_vec(2).unwrap(), &[2; 20]);
-        assert_eq!(account.get_var_vec(1).unwrap(), &[1; 10]);
+        assert_eq!(account.get_var_vec(6).unwrap(), &[7; 100]);
+        assert_eq!(account.get_var_vec(5).unwrap(), &[6; 31]);
+        assert_eq!(account.get_var_vec(4).unwrap(), &[5; 64]);
+        assert_eq!(account.get_var_vec(3).unwrap(), &[4; 30]);
+        assert_eq!(account.get_var_vec(2).unwrap(), &[3; 4]);
+        assert_eq!(account.get_var_vec(1).unwrap(), &[2; 20]);
+        assert_eq!(account.get_var_vec(0).unwrap(), &[1; 10]);
     }
 
     #[test]
@@ -478,12 +484,12 @@ mod test {
         let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
         account.create(name.to_string(), template_addr, balance, counter);
 
-        account.set_var_i32(8, -20414).unwrap();
-        account.set_var_i64(9, 1337).unwrap();
-        account.set_var_i64(10, i64::MAX).unwrap();
+        account.set_var_i32(7, -20414).unwrap();
+        account.set_var_i64(8, 1337).unwrap();
+        account.set_var_i64(9, i64::MAX).unwrap();
 
-        assert_eq!(account.get_var_i32(8).unwrap(), -20414);
-        assert_eq!(account.get_var_i64(9).unwrap(), 1337);
-        assert_eq!(account.get_var_i64(10).unwrap(), i64::MAX);
+        assert_eq!(account.get_var_i32(7).unwrap(), -20414);
+        assert_eq!(account.get_var_i64(8).unwrap(), 1337);
+        assert_eq!(account.get_var_i64(9).unwrap(), i64::MAX);
     }
 }
