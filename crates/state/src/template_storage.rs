@@ -23,12 +23,14 @@ impl TemplateStorage {
 
     /// Reads, decodes and finally returns all [`Sections`] of `self`.
     pub fn sections(&self) -> StorageResult<Option<Sections>> {
-        let core_sections_opt: Option<Sections> =
-            self.gs.read_and_decode(&key_core(&self.template_addr))?;
-        let noncore_sections_opt: Option<Sections> =
-            self.gs.read_and_decode(&key_noncore(&self.template_addr))?;
+        let core = self
+            .gs
+            .read_and_decode::<Sections>(&key_core(&self.template_addr))?;
+        let noncore = self
+            .gs
+            .read_and_decode::<Sections>(&key_noncore(&self.template_addr))?;
 
-        match (core_sections_opt, noncore_sections_opt) {
+        match (core, noncore) {
             (Some(mut sections), Some(noncore)) => {
                 for s in noncore.iter().cloned() {
                     sections.insert(s);
