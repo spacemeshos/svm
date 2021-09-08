@@ -352,48 +352,6 @@ impl Codec for u8 {
     }
 }
 
-impl Codec for u16 {
-    type Error = ParseError;
-
-    fn encode(&self, w: &mut impl WriteExt) {
-        w.write_bytes(&self.to_be_bytes());
-    }
-
-    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let mut buf = [0u8; 2];
-        reader.read_fill(&mut buf[..])?;
-        Ok(u16::from_be_bytes(buf))
-    }
-}
-
-impl Codec for u32 {
-    type Error = ParseError;
-
-    fn encode(&self, w: &mut impl WriteExt) {
-        w.write_bytes(&self.to_be_bytes());
-    }
-
-    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let mut buf = [0u8; 4];
-        reader.read_fill(&mut buf[..])?;
-        Ok(u32::from_be_bytes(buf))
-    }
-}
-
-impl Codec for u64 {
-    type Error = ParseError;
-
-    fn encode(&self, w: &mut impl WriteExt) {
-        w.write_bytes(&self.to_be_bytes());
-    }
-
-    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let mut buf = [0u8; 8];
-        reader.read_fill(&mut buf[..])?;
-        Ok(u64::from_be_bytes(buf))
-    }
-}
-
 impl Codec for bool {
     type Error = ParseError;
 
@@ -475,6 +433,36 @@ impl Codec for SectionKind {
         }
     }
 }
+
+// IMPL'S WITH MACROS
+// ------------------
+//
+// Here we'll place `impl Codec`'s that use macros. These should be converted to
+// `const` generics, but it's not possible at the time of writing due to Rust
+// limitations.
+
+macro_rules! impl_codec_for_number {
+    ($numeric_type:ident) => {
+        impl Codec for $numeric_type {
+            type Error = ParseError;
+
+            fn encode(&self, w: &mut impl WriteExt) {
+                w.write_bytes(&self.to_be_bytes());
+            }
+
+            fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+                let mut buf = [0u8; $numeric_type::BITS as usize / 8];
+                reader.read_fill(&mut buf[..])?;
+                Ok($numeric_type::from_be_bytes(buf))
+            }
+        }
+    };
+}
+
+impl_codec_for_number!(u16);
+impl_codec_for_number!(u32);
+impl_codec_for_number!(u64);
+impl_codec_for_number!(u128);
 
 macro_rules! impl_codec_for_bytes_prim {
     ($implementor:ident) => {

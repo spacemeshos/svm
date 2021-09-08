@@ -45,7 +45,7 @@ impl AccountStorage {
         name: String,
         template_addr: TemplateAddr,
         balance: u64,
-        counter: u64,
+        counter: u128,
     ) {
         self.gs.encode_and_write(
             &AccountData {
@@ -223,7 +223,7 @@ impl AccountStorage {
     }
 
     /// Reads and returns the nonce counter of `self`.
-    pub fn counter(&self) -> StorageResult<Option<u64>> {
+    pub fn counter(&self) -> StorageResult<Option<u128>> {
         self.gs
             .read_and_decode::<AccountMut>(&AccountMut::key(&self.address))
             .map(|res| res.map(|data| data.counter))
@@ -239,7 +239,7 @@ impl AccountStorage {
     }
 
     /// Replaces the current nonce counter of `self`.
-    pub fn set_counter(&mut self, counter: u64) -> StorageResult<()> {
+    pub fn set_counter(&mut self, counter: u128) -> StorageResult<()> {
         self.gs
             .replace(&AccountMut::key(&self.address), |mut data: AccountMut| {
                 data.counter = counter;
@@ -344,7 +344,7 @@ impl Codec for AccountData {
 
 pub struct AccountMut {
     pub balance: u64,
-    pub counter: u64,
+    pub counter: u128,
 }
 
 impl AccountMut {
@@ -372,7 +372,7 @@ impl Codec for AccountMut {
         }
 
         let balance = u64::decode(reader)?;
-        let counter = u64::decode(reader)?;
+        let counter = u128::decode(reader)?;
 
         Ok(Self { balance, counter })
     }
