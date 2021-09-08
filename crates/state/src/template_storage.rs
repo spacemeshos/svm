@@ -2,10 +2,12 @@ use svm_types::{BytesPrimitive, Sections, TemplateAddr};
 
 use crate::{GlobalState, StorageResult};
 
-/// A [`GlobalState`] wrapper that exposes getters and setters for
-/// [`Template`](svm_types::Template)-related entities.
+/// A [`GlobalState`] wrapper, enriched with utility methods to access and
+/// modify [`Template`](svm_types::Template) data.
 pub struct TemplateStorage {
-    gs: GlobalState,
+    /// The internal [`GlobalState`] instance used to access the database layer.
+    pub gs: GlobalState,
+
     template_addr: TemplateAddr,
 }
 

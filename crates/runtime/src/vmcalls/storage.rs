@@ -23,7 +23,7 @@ pub fn store160(env: &FuncEnv, mem_ptr: u32, var_id: u32) {
 
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
-    storage.set_var_160(var_id, bytes).unwrap();
+    storage.set_var_bytes(var_id, &bytes[..]).unwrap();
 }
 
 /// Loads variable `var_id` data into memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]`
@@ -40,7 +40,7 @@ pub fn load160(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
     let start = mem_ptr as usize;
     let view = &borrow.memory().view::<u8>()[start..][..20];
 
-    let bytes = storage.get_var_160(var_id).unwrap();
+    let bytes = storage.get_var_array::<160>(var_id).unwrap();
     for (cell, &byte) in view.iter().zip(bytes.iter()) {
         cell.set(byte);
     }

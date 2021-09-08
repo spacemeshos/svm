@@ -15,7 +15,9 @@ const SEGMENT_SIZE: usize = 32;
 /// modify [`Account`](svm_types::Account) data.
 #[derive(Debug, Clone)]
 pub struct AccountStorage {
-    gs: GlobalState,
+    /// The internal [`GlobalState`] instance used to access the database layer.
+    pub gs: GlobalState,
+
     address: Address,
     template_addr: TemplateAddr,
     layout: FixedLayout,
@@ -59,20 +61,11 @@ impl AccountStorage {
         );
     }
 
-    /// Returns an immutable reference to the underlying [`GlobalState`].
-    pub fn gs(&self) -> &GlobalState {
-        &self.gs
-    }
-
-    /// Returns a mutable reference to the underlying [`GlobalState`].
-    pub fn gs_mut(&mut self) -> &mut GlobalState {
-        &mut self.gs
-    }
-
     /// Reads `var_id` from the storage layer and writes its contents into
     /// `var`.
     ///
-    /// In case `var` is larger, only the first relevant bytes get overwritten.
+    /// In case `var` is larger than necessary, only the first relevant bytes
+    /// are overwritten.
     ///
     /// # Panics
     ///
@@ -116,6 +109,22 @@ impl AccountStorage {
         Ok(bytes)
     }
 
+    /// Reads and returns the an array of bytes that holds the value associated
+    /// with `var_id`.
+    ///
+    /// In case `var` is larger
+    /// than necessary, only the leading relevant bytes are overwritten.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `N` is not large enough to hold the `var_id` value.
+    pub fn get_var_array<const N: usize>(&self, var_id: u32) -> StorageResult<[u8; N]> {
+        let mut bytes = [0; N];
+        self.get_var(var_id, &mut bytes)?;
+
+        Ok(bytes)
+    }
+
     /// Reads and returns the [`i64`] value associated with `var_id`.
     pub fn get_var_i64(&self, var_id: u32) -> StorageResult<i64> {
         let mut bytes = [0; 8];
@@ -132,14 +141,6 @@ impl AccountStorage {
         Ok(i32::from_le_bytes(bytes))
     }
 
-    /// Reads and returns the `[u8; 20]` value associated with `var_id`.
-    pub fn get_var_160(&self, var_id: u32) -> StorageResult<[u8; 20]> {
-        let mut bytes = [0; 20];
-        self.get_var(var_id, &mut bytes)?;
-
-        Ok(bytes)
-    }
-
     /// Replaces the `var_id` value in the storage layer with the contents of
     /// `new_value`.
     ///
@@ -150,7 +151,7 @@ impl AccountStorage {
     ///
     /// Panics if `new_value` is not large enough to contain a fully-qualified
     /// `var_id` value.
-    pub fn set_var(&mut self, var_id: u32, mut new_value: &[u8]) -> StorageResult<()> {
+    pub fn set_var_bytes(&mut self, var_id: u32, mut new_value: &[u8]) -> StorageResult<()> {
         let raw_var = self.layout.get(Id(var_id));
         let offset = raw_var.offset();
         let byte_size = raw_var.byte_size();
@@ -182,19 +183,14 @@ impl AccountStorage {
         Ok(())
     }
 
-    /// Overwrites the 20-bytes-long value associated with `var_id`.
-    pub fn set_var_160(&mut self, var_id: u32, new_value: [u8; 20]) -> StorageResult<()> {
-        self.set_var(var_id, &new_value[..])
-    }
-
     /// Overwrites the [`i64`] value associated with `var_id`.
     pub fn set_var_i64(&mut self, var_id: u32, new_value: i64) -> StorageResult<()> {
-        self.set_var(var_id, &new_value.to_le_bytes()[..])
+        self.set_var_bytes(var_id, &new_value.to_le_bytes()[..])
     }
 
     /// Overwrites the [`i32`] value associated with `var_id`.
     pub fn set_var_i32(&mut self, var_id: u32, new_value: i32) -> StorageResult<()> {
-        self.set_var(var_id, &new_value.to_le_bytes()[..])
+        self.set_var_bytes(var_id, &new_value.to_le_bytes()[..])
     }
 
     /// Creates a new [`TemplateStorage`] utility instance for the
@@ -205,47 +201,47 @@ impl AccountStorage {
     }
 
     /// Reads and returns the [`Account`](svm_types::Account) name of
-    /// `account_addr`.
-    pub fn name(&self, account_addr: &Address) -> StorageResult<Option<String>> {
+    /// `self`.
+    pub fn name(&self) -> StorageResult<Option<String>> {
         self.gs
-            .read_and_decode::<AccountData>(&AccountData::key(account_addr))
+            .read_and_decode::<AccountData>(&AccountData::key(&self.address))
             .map(|res| res.map(|data| data.name))
     }
 
-    /// Reads and returns the [`TemplateAddr`] of `account_addr`.
-    pub fn template_addr(&self, account_addr: &Address) -> StorageResult<Option<TemplateAddr>> {
+    /// Reads and returns the [`TemplateAddr`] of `self`.
+    pub fn template_addr(&self) -> StorageResult<Option<TemplateAddr>> {
         self.gs
-            .read_and_decode::<AccountData>(&AccountData::key(account_addr))
+            .read_and_decode::<AccountData>(&AccountData::key(&self.address))
             .map(|res| res.map(|data| data.template_addr))
     }
 
-    /// Reads and returns the balance of `account_addr`.
-    pub fn balance(&self, account_addr: &Address) -> StorageResult<Option<u64>> {
+    /// Reads and returns the balance of `self`.
+    pub fn balance(&self) -> StorageResult<Option<u64>> {
         self.gs
-            .read_and_decode::<AccountMut>(&AccountMut::key(account_addr))
+            .read_and_decode::<AccountMut>(&AccountMut::key(&self.address))
             .map(|res| res.map(|data| data.balance))
     }
 
-    /// Reads and returns the nonce counter of `account_addr`.
-    pub fn counter(&self, account_addr: &Address) -> StorageResult<Option<u64>> {
+    /// Reads and returns the nonce counter of `self`.
+    pub fn counter(&self) -> StorageResult<Option<u64>> {
         self.gs
-            .read_and_decode::<AccountMut>(&AccountMut::key(account_addr))
+            .read_and_decode::<AccountMut>(&AccountMut::key(&self.address))
             .map(|res| res.map(|data| data.counter))
     }
 
-    /// Replaces the current balance of `account_addr`.
-    pub fn set_balance(&mut self, account_addr: &Address, balance: u64) -> StorageResult<()> {
+    /// Replaces the current balance of `self`.
+    pub fn set_balance(&mut self, balance: u64) -> StorageResult<()> {
         self.gs
-            .replace(&AccountMut::key(account_addr), |mut data: AccountMut| {
+            .replace(&AccountMut::key(&self.address), |mut data: AccountMut| {
                 data.balance = balance;
                 data
             })
     }
 
-    /// Replaces the current nonce counter of `account_addr`.
-    pub fn set_counter(&mut self, account_addr: &Address, counter: u64) -> StorageResult<()> {
+    /// Replaces the current nonce counter of `self`.
+    pub fn set_counter(&mut self, counter: u64) -> StorageResult<()> {
         self.gs
-            .replace(&AccountMut::key(account_addr), |mut data: AccountMut| {
+            .replace(&AccountMut::key(&self.address), |mut data: AccountMut| {
                 data.counter = counter;
                 data
             })
@@ -419,13 +415,10 @@ mod test {
         let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
         account.create(name.to_string(), template_addr, balance, counter);
 
-        assert_eq!(account.name(&address).unwrap().unwrap(), name);
-        assert_eq!(
-            account.template_addr(&address).unwrap().unwrap(),
-            template_addr
-        );
-        assert_eq!(account.balance(&address).unwrap().unwrap(), balance);
-        assert_eq!(account.counter(&address).unwrap().unwrap(), counter);
+        assert_eq!(account.name().unwrap().unwrap(), name);
+        assert_eq!(account.template_addr().unwrap().unwrap(), template_addr);
+        assert_eq!(account.balance().unwrap().unwrap(), balance);
+        assert_eq!(account.counter().unwrap().unwrap(), counter);
     }
 
     #[test]
@@ -441,21 +434,21 @@ mod test {
         let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
         account.create(name.to_string(), template_addr, balance, counter);
 
-        assert_eq!(account.balance(&address).unwrap().unwrap(), balance);
-        assert_eq!(account.counter(&address).unwrap().unwrap(), counter);
+        assert_eq!(account.balance().unwrap().unwrap(), balance);
+        assert_eq!(account.counter().unwrap().unwrap(), counter);
 
-        account.set_balance(&address, 1000).unwrap();
+        account.set_balance(1000).unwrap();
 
-        assert_eq!(account.balance(&address).unwrap().unwrap(), 1000);
-        assert_eq!(account.counter(&address).unwrap().unwrap(), counter);
+        assert_eq!(account.balance().unwrap().unwrap(), 1000);
+        assert_eq!(account.counter().unwrap().unwrap(), counter);
 
-        account.set_counter(&address, 10).unwrap();
-        assert_eq!(account.balance(&address).unwrap().unwrap(), 1000);
-        assert_eq!(account.counter(&address).unwrap().unwrap(), 10);
+        account.set_counter(10).unwrap();
+        assert_eq!(account.balance().unwrap().unwrap(), 1000);
+        assert_eq!(account.counter().unwrap().unwrap(), 10);
 
-        account.set_counter(&address, 100).unwrap();
-        assert_eq!(account.balance(&address).unwrap().unwrap(), 1000);
-        assert_eq!(account.counter(&address).unwrap().unwrap(), 100);
+        account.set_counter(100).unwrap();
+        assert_eq!(account.balance().unwrap().unwrap(), 1000);
+        assert_eq!(account.counter().unwrap().unwrap(), 100);
     }
 
     #[test]
@@ -471,13 +464,13 @@ mod test {
         let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
         account.create(name.to_string(), template_addr, balance, counter);
 
-        account.set_var(1, &[1; 10]).unwrap();
-        account.set_var(2, &[2; 20]).unwrap();
-        account.set_var(3, &[3; 4]).unwrap();
-        account.set_var(4, &[4; 30]).unwrap();
-        account.set_var(5, &[5; 64]).unwrap();
-        account.set_var(6, &[6; 31]).unwrap();
-        account.set_var(7, &[7; 100]).unwrap();
+        account.set_var_bytes(1, &[1; 10]).unwrap();
+        account.set_var_bytes(2, &[2; 20]).unwrap();
+        account.set_var_bytes(3, &[3; 4]).unwrap();
+        account.set_var_bytes(4, &[4; 30]).unwrap();
+        account.set_var_bytes(5, &[5; 64]).unwrap();
+        account.set_var_bytes(6, &[6; 31]).unwrap();
+        account.set_var_bytes(7, &[7; 100]).unwrap();
 
         assert_eq!(account.get_var_vec(7).unwrap(), &[7; 100]);
         assert_eq!(account.get_var_vec(6).unwrap(), &[6; 31]);
