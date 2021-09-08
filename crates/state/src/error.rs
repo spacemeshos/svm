@@ -11,14 +11,6 @@ pub enum StorageError {
     #[error("Please checkout dirty changes or rollback to avoid data loss.")]
     DirtyChanges,
 
-    /// Two checkpoints have resulted in key collision, which prevents unordered
-    /// transaction replaying.
-    #[error("Key collision from two different checkpoints.")]
-    KeyCollision {
-        /// They Blake3 hash of the key that caused this collision.
-        key_hash: State,
-    },
-
     /// Illegal data found in the database.
     #[error("Illegal data found in the database")]
     IllegalData {

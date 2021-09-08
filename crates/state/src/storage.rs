@@ -227,9 +227,7 @@ impl Storage {
             let xor = hash_key_value_pair(&change.0, &change.1);
             xor_fingerprint(&mut fingerprint, &xor);
 
-            if self.next_layer.changes.insert(change.0, change.1).is_some() {
-                return Err(StorageError::KeyCollision { key_hash: change.0 });
-            }
+            self.next_layer.changes.insert(change.0, change.1);
         }
 
         Ok(())
@@ -650,19 +648,5 @@ mod test {
 
         let fingerprint_1 = storage.commit().await.unwrap().1;
         fingeprint_0 == fingerprint_1
-    }
-
-    #[quickcheck_async::tokio]
-    async fn checkpoint_collision_detection() -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
-
-        storage.upsert(b"foo", "bar").await;
-        storage.checkpoint().await.unwrap();
-
-        storage.upsert(b"foo", "spam").await;
-        matches!(
-            storage.checkpoint().await,
-            Err(StorageError::KeyCollision { key_hash: _ })
-        )
     }
 }
