@@ -178,7 +178,7 @@ impl Storage {
         hash: &State,
         layer_id: Layer,
     ) -> Result<Option<Vec<u8>>> {
-        let value_opt: Option<(Vec<u8>,)> = sqlx::query_as(
+        let value: Option<(Vec<u8>,)> = sqlx::query_as(
             r#"
             SELECT "value"
             FROM "values"
@@ -196,7 +196,8 @@ impl Storage {
         .bind(&hash.0[..])
         .fetch_optional(&self.sqlite)
         .await?;
-        Ok(value_opt.map(|x| x.0))
+
+        Ok(value.map(|x| x.0))
     }
 
     /// Sets the `value` associated with the Blake3 hash of `key`. See
