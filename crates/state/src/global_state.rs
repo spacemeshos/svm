@@ -133,7 +133,7 @@ impl GlobalState {
             T::decode_bytes(bytes)
                 .map(|data| Some(data))
                 .map_err(|_| StorageError::IllegalData {
-                    key_hash: Blake3Hasher::hash(key.as_bytes()),
+                    key_hash: State(Blake3Hasher::hash(key.as_bytes())),
                 })
         } else {
             Ok(None)
@@ -155,7 +155,7 @@ impl GlobalState {
         let old_item = self
             .read_and_decode::<T>(key)?
             .ok_or(StorageError::NotFound {
-                key_hash: Blake3Hasher::hash(key.as_bytes()),
+                key_hash: State(Blake3Hasher::hash(key.as_bytes())),
             })?;
 
         self.encode_and_write(&f(old_item), key);

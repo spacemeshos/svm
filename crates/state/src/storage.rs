@@ -228,9 +228,7 @@ impl Storage {
             xor_fingerprint(&mut fingerprint, &xor);
 
             if self.next_layer.changes.insert(change.0, change.1).is_some() {
-                return Err(StorageError::KeyCollision {
-                    key_hash: change.0 .0,
-                });
+                return Err(StorageError::KeyCollision { key_hash: change.0 });
             }
         }
 

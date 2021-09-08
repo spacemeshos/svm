@@ -1,3 +1,5 @@
+use svm_types::State;
+
 /// An alias for [`Result`](std::result::Result)'s with [`StorageError`].
 pub type StorageResult<T> = std::result::Result<T, StorageError>;
 
@@ -14,7 +16,7 @@ pub enum StorageError {
     #[error("Key collision from two different checkpoints.")]
     KeyCollision {
         /// They Blake3 hash of the key that caused this collision.
-        key_hash: [u8; 32],
+        key_hash: State,
     },
 
     /// Illegal data found in the database.
@@ -22,14 +24,14 @@ pub enum StorageError {
     IllegalData {
         /// They Blake3 hash of the key that is associated with the illegal
         /// data.
-        key_hash: [u8; 32],
+        key_hash: State,
     },
 
     /// Expected an item in the database, but wasn't found.
     #[error("Expected an item in the database, but wasn't found.")]
     NotFound {
         /// They Blake3 hash of the key that doesn't have a value.
-        key_hash: [u8; 32],
+        key_hash: State,
     },
 
     /// A SQLite error happened.
