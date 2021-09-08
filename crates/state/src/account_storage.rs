@@ -318,18 +318,18 @@ impl Codec for AccountData {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        let encoding_version = 0u8;
+        let version = 0u8;
+        version.encode(w);
 
-        encoding_version.encode(w);
         self.template_addr.encode(w);
         self.name.encode(w);
     }
 
     fn decode(reader: &mut impl ReadExt) -> std::result::Result<Self, Self::Error> {
-        let encoding_version = u8::decode(reader)?;
+        let version = u8::decode(reader)?;
 
-        if encoding_version != 0 {
-            return Err(ParseError::BadByte(encoding_version));
+        if version != 0 {
+            return Err(ParseError::BadByte(version));
         }
 
         let template_addr = TemplateAddr::decode(reader)?;
@@ -380,26 +380,10 @@ impl Codec for AccountMut {
 
 #[cfg(test)]
 mod test {
-    use svm_layout::FixedLayoutBuilder;
-
     use super::*;
 
     fn fixed_layout() -> FixedLayout {
-        let mut builder = FixedLayoutBuilder::new();
-
-        builder.set_first(Id(1));
-        builder.push(10);
-        builder.push(20);
-        builder.push(4);
-        builder.push(30);
-        builder.push(64);
-        builder.push(31);
-        builder.push(100);
-        builder.push(4);
-        builder.push(8);
-        builder.push(8);
-
-        builder.build()
+        FixedLayout::from(vec![10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
     }
 
     #[test]
