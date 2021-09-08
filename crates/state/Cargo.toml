@@ -20,6 +20,7 @@ svm-codec = { path = "../codec" }
 svm-hash = { path = "../hash" }
 svm-layout = { path = "../layout" }
 svm-types = { path = "../types" }
+tokio = { version = "1", features = ["rt"] }
 thiserror = "1"
 
 [dev-dependencies]

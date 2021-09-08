@@ -4,7 +4,7 @@ use wasmer::Memory;
 
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use svm_storage::account::AccountStorage;
+use svm_state::AccountStorage;
 use svm_types::{Address, Context, Envelope, ReceiptLog, TemplateAddr};
 
 /// [`FuncEnv`] is a container for the accessible data by running [`Wasmer instance`](wasmer::Instance).

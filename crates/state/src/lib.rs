@@ -1,17 +1,18 @@
 //! Implementation of Global State for the Spacemesh Virtual Machine.
 
-#![warn(missing_docs)]
-#![warn(unused)]
-#![warn(dead_code)]
-#![warn(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
-mod account_data;
 mod account_storage;
 mod error;
 mod global_state;
 mod storage;
+mod template_storage;
 
 pub use account_storage::AccountStorage;
 pub use error::{StorageError, StorageResult};
 pub use global_state::GlobalState;
+pub use template_storage::TemplateStorage;

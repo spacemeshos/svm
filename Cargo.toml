@@ -28,7 +28,6 @@ parity-wasm = "0.42.2"
 seq-macro = "0.2"
 svm-cli = { path = "crates/cli" }
 svm-hash = { path = "crates/hash" }
-svm-kv = { path = "crates/kv", default-features = false }
 svm-gas = { path = "crates/gas" }
 svm-query = { path = "crates/query" }
 svm-types = { path = "crates/types" }
@@ -43,7 +42,6 @@ svm-sdk-tests = { path = "crates/sdk-tests" }
 svm-codec = { path = "crates/codec" }
 svm-layout = { path = "crates/layout" }
 svm-program = { path = "crates/program" }
-svm-storage = { path = "crates/storage", default-features = false }
 svm-runtime = { path = "crates/runtime", default-features = false }
 svm-runtime-ffi = { path = "crates/runtime-ffi", default-features = false }
 svm-state = { path = "crates/state", default-features = false }
@@ -79,9 +77,7 @@ members = [
   "crates/sdk/macros",
   "crates/sdk",
   "crates/sdk-tests",
-  "crates/kv",
   "crates/layout",
-  "crates/storage",
   "crates/runtime",
   "crates/cli",
   "crates/runtime-ffi",
@@ -100,10 +96,8 @@ default-cranelift = [
 default-memory = [
   "svm-runtime-ffi/default-memory",
   "svm-runtime/default-memory",
-  "svm-kv/default-memory",
 ]
 default-rocksdb = [
   "svm-runtime-ffi/default-rocksdb",
   "svm-runtime/default-rocksdb",
-  "svm-kv/default-rocksdb",
 ]

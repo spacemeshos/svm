@@ -137,25 +137,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
-name = "bindgen"
-version = "0.59.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "453c49e5950bb0eb63bb3df640e31618846c89d5b7faa54040d76e98e0134375"
-dependencies = [
- "bitflags",
- "cexpr",
- "clang-sys",
- "lazy_static",
- "lazycell",
- "peeking_take_while",
- "proc-macro2",
- "quote",
- "regex",
- "rustc-hash",
- "shlex",
-]
-
-[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -244,18 +225,6 @@ name = "cc"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e70cc2f62c6ce1868963827bd677764c62d07c3d9a3e1fb1177ee1a9ab199eb2"
-dependencies = [
- "jobserver",
-]
-
-[[package]]
-name = "cexpr"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db507a7679252d2276ed0dd8113c6875ec56d3089f9225b2b42c30cc1f8e5c89"
-dependencies = [
- "nom",
-]
 
 [[package]]
 name = "cfg-if"
@@ -279,17 +248,6 @@ dependencies = [
  "num-integer",
  "num-traits",
  "winapi",
-]
-
-[[package]]
-name = "clang-sys"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "853eda514c284c2287f4bf20ae614f8781f40a81d32ecda6e91449304dfe077c"
-dependencies = [
- "glob",
- "libc",
- "libloading",
 ]
 
 [[package]]
@@ -584,19 +542,6 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44533bbbb3bb3c1fa17d9f2e4e38bbbaf8396ba82193c4cb1b6445d711445d36"
-dependencies = [
- "atty",
- "humantime",
- "log",
- "regex",
- "termcolor",
-]
-
-[[package]]
-name = "env_logger"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a19187fea3ac7e84da7dacf48de0c45d63c6a76f9490dae389aead16c243fce3"
@@ -814,15 +759,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
-name = "humantime"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df004cfca50ef23c36850aaaa59ad52cc70d0e90243c3c7737a4dd32dc7a3c4f"
-dependencies = [
- "quick-error",
-]
-
-[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -866,15 +802,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd25036021b0de88a0aff6b850051563c6516d0bf53f8638938edbb9de732736"
 
 [[package]]
-name = "jobserver"
-version = "0.1.22"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "972f5ae5d1cb9c6ae417789196c803205313edde988685da5e3aae0827b9e7fd"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "js-sys"
 version = "0.3.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -888,12 +815,6 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
-
-[[package]]
-name = "lazycell"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "leb128"
@@ -928,18 +849,6 @@ checksum = "6f84d96438c15fcd6c3f244c8fce01d1e2b9c6b5623e9c711dc9286d8fc92d6a"
 dependencies = [
  "cfg-if 1.0.0",
  "winapi",
-]
-
-[[package]]
-name = "librocksdb-sys"
-version = "6.20.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c309a9d2470844aceb9a4a098cf5286154d20596868b75a6b36357d2bb9ca25d"
-dependencies = [
- "bindgen",
- "cc",
- "glob",
- "libc",
 ]
 
 [[package]]
@@ -1205,12 +1114,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "peeking_take_while"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
-
-[[package]]
 name = "percent-encoding"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1315,18 +1218,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "quick-error"
-version = "1.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
-
-[[package]]
 name = "quickcheck"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "588f6378e4dd99458b60ec275b4477add41ce4fa9f64dcba6f15adccb19b50d6"
 dependencies = [
- "env_logger 0.8.4",
+ "env_logger",
  "log",
  "rand",
 ]
@@ -1538,16 +1435,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rocksdb"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23d83c02c429044d58474eaf5ae31e062d0de894e21125b47437ec0edc1397e6"
-dependencies = [
- "libc",
- "librocksdb-sys",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1709,12 +1596,6 @@ checksum = "740223c51853f3145fe7c90360d2d4232f2b62e3449489c207eccde818979982"
 dependencies = [
  "lazy_static",
 ]
-
-[[package]]
-name = "shlex"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42a568c8f2cd051a4d283bd6eb0343ac214c1b0f1ac19f93e1175b2dee38c73d"
 
 [[package]]
 name = "signal-hook-registry"
@@ -1897,7 +1778,6 @@ dependencies = [
  "svm-codec",
  "svm-gas",
  "svm-hash",
- "svm-kv",
  "svm-layout",
  "svm-program",
  "svm-query",
@@ -1912,7 +1792,6 @@ dependencies = [
  "svm-sdk-tests",
  "svm-sdk-types",
  "svm-state",
- "svm-storage",
  "svm-types",
  "thiserror",
  "tracing",
@@ -2016,16 +1895,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "svm-kv"
-version = "0.0.0"
-dependencies = [
- "env_logger 0.7.1",
- "log",
- "rocksdb",
- "svm-types",
-]
-
-[[package]]
 name = "svm-layout"
 version = "0.0.0"
 
@@ -2053,18 +1922,17 @@ name = "svm-runtime"
 version = "0.0.0"
 dependencies = [
  "byteorder",
+ "futures",
  "lazy_static",
  "log",
  "maplit",
  "svm-codec",
  "svm-gas",
  "svm-hash",
- "svm-kv",
  "svm-layout",
  "svm-program",
  "svm-sdk",
  "svm-state",
- "svm-storage",
  "svm-types",
  "thiserror",
  "wasmer",
@@ -2083,11 +1951,10 @@ dependencies = [
  "svm-abi-encoder",
  "svm-codec",
  "svm-gas",
- "svm-kv",
  "svm-layout",
  "svm-runtime",
  "svm-sdk",
- "svm-storage",
+ "svm-state",
  "svm-types",
  "wat",
 ]
@@ -2198,18 +2065,6 @@ dependencies = [
  "svm-types",
  "thiserror",
  "tokio",
-]
-
-[[package]]
-name = "svm-storage"
-version = "0.0.0"
-dependencies = [
- "hex",
- "lazy_static",
- "svm-hash",
- "svm-kv",
- "svm-layout",
- "svm-types",
 ]
 
 [[package]]

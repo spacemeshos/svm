@@ -1,6 +1,4 @@
-use std::fmt::Debug;
-
-use crate::storage::Fingerprint;
+use svm_types::State;
 
 /// An alias for [`Result`](std::result::Result)'s with [`StorageError`].
 pub type StorageResult<T> = std::result::Result<T, StorageError>;
@@ -13,21 +11,20 @@ pub enum StorageError {
     #[error("Please checkout dirty changes or rollback to avoid data loss.")]
     DirtyChanges,
 
-    /// Two checkpoints have resulted in key collision, which prevents unordered
-    /// transaction replaying.
-    #[error("Key collision from two different checkpoints.")]
-    KeyCollision {
-        /// They Blake3 hash of the key that caused this collision.
-        key_hash: Fingerprint,
-    },
-
     /// Illegal data found in the database.
     #[error("Illegal data found in the database")]
-    IllegalData { key_hash: Fingerprint },
+    IllegalData {
+        /// They Blake3 hash of the key that is associated with the illegal
+        /// data.
+        key_hash: State,
+    },
 
     /// Expected an item in the database, but wasn't found.
     #[error("Expected an item in the database, but wasn't found.")]
-    NotFound { key_hash: Fingerprint },
+    NotFound {
+        /// They Blake3 hash of the key that doesn't have a value.
+        key_hash: State,
+    },
 
     /// A SQLite error happened.
     #[error("SQLite error.")]

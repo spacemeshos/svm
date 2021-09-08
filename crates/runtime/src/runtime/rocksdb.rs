@@ -4,8 +4,7 @@ use std::rc::Rc;
 
 use storage::StorageBuilderFn;
 use svm_layout::Layout;
-use svm_storage::account::{AccountKVStore, AccountStorage};
-use svm_storage::kv::StatefulKV;
+use svm_state::AccountStorage;
 use svm_types::{AccountAddr, State};
 
 use crate::{env, storage};
