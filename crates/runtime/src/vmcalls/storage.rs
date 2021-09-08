@@ -2,50 +2,6 @@ use std::convert::TryInto;
 
 use crate::FuncEnv;
 
-/// Stores memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]` into variable `var_id`.
-///
-/// # Panics
-///
-/// Panics if variable `var_id`'s length isn't 20 bytes.
-pub fn store160(env: &FuncEnv, mem_ptr: u32, var_id: u32) {
-    let bytes: [u8; 20] = {
-        let borrow = env.borrow();
-        let memory = borrow.memory();
-        let start = mem_ptr as usize;
-        let view = &memory.view::<u8>()[start..][..20];
-
-        view.iter()
-            .map(|cell| cell.get())
-            .collect::<Vec<u8>>()
-            .try_into()
-            .unwrap()
-    };
-
-    let mut borrow = env.borrow_mut();
-    let storage = borrow.storage_mut();
-    storage.set_var_bytes(var_id, &bytes[..]).unwrap();
-}
-
-/// Loads variable `var_id` data into memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]`
-///
-/// Returns the variable's length.
-///
-/// # Panics
-///
-/// Panics if variable `var_id`'s length isn't 20 bytes.
-pub fn load160(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
-    let borrow = env.borrow();
-    let storage = borrow.storage();
-
-    let start = mem_ptr as usize;
-    let view = &borrow.memory().view::<u8>()[start..][..20];
-
-    let bytes = storage.get_var_array::<160>(var_id).unwrap();
-    for (cell, &byte) in view.iter().zip(bytes.iter()) {
-        cell.set(byte);
-    }
-}
-
 /// Returns the data stored by variable `var_id` as 32-bit integer.
 ///
 /// # Panics
@@ -90,4 +46,56 @@ pub fn set64(env: &FuncEnv, var_id: u32, value: u64) {
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
     storage.set_var_i64(var_id, value as i64).unwrap();
+}
+
+/// Stores memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]` into variable `var_id`.
+///
+/// # Panics
+///
+/// Panics if variable `var_id`'s length isn't 20 bytes.
+pub fn store160(env: &FuncEnv, mem_ptr: u32, var_id: u32) {
+    store::<20>(env, mem_ptr, var_id);
+}
+
+/// Loads variable `var_id` data into memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]`
+///
+/// Returns the variable's length.
+///
+/// # Panics
+///
+/// Panics if variable `var_id`'s length isn't 20 bytes.
+pub fn load160(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
+    load::<20>(env, var_id, mem_ptr);
+}
+
+fn store<const N: usize>(env: &FuncEnv, mem_ptr: u32, var_id: u32) {
+    let bytes: [u8; N] = {
+        let borrow = env.borrow();
+        let memory = borrow.memory();
+        let start = mem_ptr as usize;
+        let view = &memory.view::<u8>()[start..][..N];
+
+        view.iter()
+            .map(|cell| cell.get())
+            .collect::<Vec<u8>>()
+            .try_into()
+            .unwrap()
+    };
+
+    let mut borrow = env.borrow_mut();
+    let storage = borrow.storage_mut();
+    storage.set_var_bytes(var_id, &bytes[..]).unwrap();
+}
+
+fn load<const N: usize>(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
+    let borrow = env.borrow();
+    let storage = borrow.storage();
+
+    let start = mem_ptr as usize;
+    let view = &borrow.memory().view::<u8>()[start..][..N];
+
+    let bytes = storage.get_var_array::<N>(var_id).unwrap();
+    for (cell, &byte) in view.iter().zip(bytes.iter()) {
+        cell.set(byte);
+    }
 }
