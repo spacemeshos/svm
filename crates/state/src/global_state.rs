@@ -58,9 +58,6 @@ impl GlobalState {
 
     /// Saves dirty changes in preparation of [`GlobalState::commit`]. After
     /// saving, changes are frozen and can't be removed from the current layer.
-    ///
-    /// This might return a [`StorageError::KeyCollision`] depending on the
-    /// content of the dirty changes, so beware.
     pub fn checkpoint(&mut self) -> Result<()> {
         self.block_on(self.storage().checkpoint())?;
         Ok(())
