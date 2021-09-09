@@ -32,10 +32,10 @@ impl AccountStorage {
         balance: u64,
         counter: u128,
     ) -> StorageResult<Self> {
-        let template_storage = TemplateStorage::new(&template_addr, gs.clone());
-        let sections = template_storage.sections()?.unwrap();
-        let code_section = sections.get(SectionKind::Code).as_data();
-        let layout = code_section.layouts()[0].as_fixed().clone();
+        let template_storage = TemplateStorage::load(gs.clone(), &template_addr)?;
+        let sections = template_storage.sections()?;
+        let data_section = sections.get(SectionKind::Data).as_data();
+        let layout = data_section.layouts()[0].as_fixed().clone();
 
         gs.encode_and_write(
             &AccountData {
@@ -57,16 +57,16 @@ impl AccountStorage {
 
     /// Creates a new [`AccountStorage`].
     pub fn load(gs: GlobalState, address: &Address) -> StorageResult<Self> {
-        let account_data = AccountData::read(&gs, address)?.unwrap();
-        let template_storage = TemplateStorage::new(&account_data.template_addr, gs.clone());
-        let sections = template_storage.sections()?.unwrap();
-        let code_section = sections.get(SectionKind::Code).as_data();
+        let account_data = AccountData::read(&gs, address)?;
+        let template_storage = TemplateStorage::load(gs.clone(), &account_data.template_addr)?;
+        let sections = template_storage.sections()?;
+        let data_section = sections.get(SectionKind::Data).as_data();
 
         Ok(Self {
             gs,
             address: address.clone(),
             template_addr: account_data.template_addr,
-            layout: code_section.layouts()[0].as_fixed().clone(),
+            layout: data_section.layouts()[0].as_fixed().clone(),
         })
     }
 
@@ -211,37 +211,37 @@ impl AccountStorage {
     /// Creates a new [`TemplateStorage`] utility instance for the
     /// [`Template`](svm_types::Template) of this
     /// [`Account`](svm_types::Account).
-    pub fn template_storage(&self) -> TemplateStorage {
-        TemplateStorage::new(&self.template_addr, self.gs.clone())
+    pub fn template_storage(&self) -> StorageResult<TemplateStorage> {
+        TemplateStorage::load(self.gs.clone(), &self.template_addr)
     }
 
     /// Reads and returns the [`Account`](svm_types::Account) name of
     /// `self`.
-    pub fn name(&self) -> StorageResult<Option<String>> {
-        self.gs
-            .read_and_decode::<AccountData>(&AccountData::key(&self.address))
-            .map(|res| res.map(|data| data.name))
+    pub fn name(&self) -> StorageResult<String> {
+        let key = AccountData::key(&self.address);
+
+        Ok(self.gs.read_and_decode::<AccountData>(key.as_str())?.name)
     }
 
     /// Reads and returns the [`TemplateAddr`] of `self`.
-    pub fn template_addr(&self) -> StorageResult<Option<TemplateAddr>> {
+    pub fn template_addr(&self) -> StorageResult<TemplateAddr> {
         self.gs
             .read_and_decode::<AccountData>(&AccountData::key(&self.address))
-            .map(|res| res.map(|data| data.template_addr))
+            .map(|data| data.template_addr)
     }
 
     /// Reads and returns the balance of `self`.
-    pub fn balance(&self) -> StorageResult<Option<u64>> {
+    pub fn balance(&self) -> StorageResult<u64> {
         self.gs
             .read_and_decode::<AccountMut>(&AccountMut::key(&self.address))
-            .map(|res| res.map(|data| data.balance))
+            .map(|data| data.balance)
     }
 
     /// Reads and returns the nonce counter of `self`.
-    pub fn counter(&self) -> StorageResult<Option<u128>> {
+    pub fn counter(&self) -> StorageResult<u128> {
         self.gs
             .read_and_decode::<AccountMut>(&AccountMut::key(&self.address))
-            .map(|res| res.map(|data| data.counter))
+            .map(|data| data.counter)
     }
 
     /// Replaces the current balance of `self`.
@@ -328,7 +328,7 @@ impl AccountData {
         format!("accounts:{}:immutable", account_addr.to_string())
     }
 
-    pub fn read(gs: &GlobalState, address: &Address) -> StorageResult<Option<Self>> {
+    pub fn read(gs: &GlobalState, address: &Address) -> StorageResult<Self> {
         gs.read_and_decode::<Self>(&Self::key(address))
     }
 }
@@ -399,27 +399,49 @@ impl Codec for AccountMut {
 
 #[cfg(test)]
 mod test {
+    use svm_layout::Layout;
+    use svm_types::{CodeSection, CtorsSection, DataSection, Sections, Template};
+
     use super::*;
 
     fn fixed_layout() -> FixedLayout {
         FixedLayout::from(vec![10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
     }
 
-    fn gs_with_template() -> (GlobalState, FixedLayout) {
+    fn new_template(gs: &GlobalState) -> TemplateAddr {
         let template_addr = TemplateAddr::repeat(0x80);
-        let mut gs = GlobalState::in_memory();
-        let mut templates = TemplateStorage::new(&template_addr, gs);
+
+        let code_section = CodeSection::new(
+            svm_types::CodeKind::Wasm,
+            vec![],
+            0,
+            svm_types::GasMode::Fixed,
+            0,
+        );
+        let data_section = DataSection::with_layout(Layout::Fixed(fixed_layout()));
+        let ctors_section = CtorsSection::new(vec![]);
+
+        let core_sections = Template::new(code_section, data_section, ctors_section)
+            .sections()
+            .clone();
+        let noncore_sections = Sections::with_capacity(0);
+
+        TemplateStorage::create(gs.clone(), &template_addr, core_sections, noncore_sections)
+            .unwrap();
+
+        template_addr
     }
 
     #[test]
     fn immutable_metadata() {
+        let gs = GlobalState::in_memory();
+
         let address = Address::repeat(0xff);
-        let template_addr = TemplateAddr::repeat(0x80);
+        let template_addr = new_template(&gs);
         let name = "@name";
         let balance = 42;
         let counter = 0;
 
-        let gs = GlobalState::in_memory();
         let account = AccountStorage::create(
             gs,
             &address,
@@ -430,21 +452,22 @@ mod test {
         )
         .unwrap();
 
-        assert_eq!(account.name().unwrap().unwrap(), name);
-        assert_eq!(account.template_addr().unwrap().unwrap(), template_addr);
-        assert_eq!(account.balance().unwrap().unwrap(), balance);
-        assert_eq!(account.counter().unwrap().unwrap(), counter);
+        assert_eq!(account.name().unwrap(), name);
+        assert_eq!(account.template_addr().unwrap(), template_addr);
+        assert_eq!(account.balance().unwrap(), balance);
+        assert_eq!(account.counter().unwrap(), counter);
     }
 
     #[test]
     fn mutable_metadata() {
+        let gs = GlobalState::in_memory();
+
         let address = Address::repeat(0xff);
-        let template_addr = TemplateAddr::repeat(0x80);
+        let template_addr = new_template(&gs);
         let name = "@name";
         let balance = 42;
         let counter = 0;
 
-        let gs = GlobalState::in_memory();
         let mut account = AccountStorage::create(
             gs,
             &address,
@@ -455,32 +478,33 @@ mod test {
         )
         .unwrap();
 
-        assert_eq!(account.balance().unwrap().unwrap(), balance);
-        assert_eq!(account.counter().unwrap().unwrap(), counter);
+        assert_eq!(account.balance().unwrap(), balance);
+        assert_eq!(account.counter().unwrap(), counter);
 
         account.set_balance(1000).unwrap();
 
-        assert_eq!(account.balance().unwrap().unwrap(), 1000);
-        assert_eq!(account.counter().unwrap().unwrap(), counter);
+        assert_eq!(account.balance().unwrap(), 1000);
+        assert_eq!(account.counter().unwrap(), counter);
 
         account.set_counter(10).unwrap();
-        assert_eq!(account.balance().unwrap().unwrap(), 1000);
-        assert_eq!(account.counter().unwrap().unwrap(), 10);
+        assert_eq!(account.balance().unwrap(), 1000);
+        assert_eq!(account.counter().unwrap(), 10);
 
         account.set_counter(100).unwrap();
-        assert_eq!(account.balance().unwrap().unwrap(), 1000);
-        assert_eq!(account.counter().unwrap().unwrap(), 100);
+        assert_eq!(account.balance().unwrap(), 1000);
+        assert_eq!(account.counter().unwrap(), 100);
     }
 
     #[test]
     fn account_byte_vars() {
+        let gs = GlobalState::in_memory();
+
         let address = Address::repeat(0xff);
-        let template_addr = TemplateAddr::repeat(0x80);
+        let template_addr = new_template(&gs);
         let name = "@name";
         let balance = 42;
         let counter = 0;
 
-        let gs = GlobalState::in_memory();
         let mut account = AccountStorage::create(
             gs,
             &address,
@@ -510,13 +534,14 @@ mod test {
 
     #[test]
     fn account_numeric_vars() {
+        let gs = GlobalState::in_memory();
+
         let address = Address::repeat(0xff);
-        let template_addr = TemplateAddr::repeat(0x80);
+        let template_addr = new_template(&gs);
         let name = "@name";
         let balance = 42;
         let counter = 0;
 
-        let gs = GlobalState::in_memory();
         let mut account = AccountStorage::create(
             gs,
             &address,

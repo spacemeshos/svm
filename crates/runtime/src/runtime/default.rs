@@ -1,5 +1,6 @@
 use futures::executor::block_on;
 use log::info;
+use svm_codec::Codec;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
 use std::cell::RefCell;
@@ -8,39 +9,29 @@ use std::rc::Rc;
 
 use svm_gas::FuncPrice;
 use svm_program::Program;
-use svm_state::{AccountStorage, GlobalState};
+use svm_state::{AccountStorage, GlobalState, TemplateStorage};
 use svm_types::{
     Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError,
-    ReceiptLog, RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr,
-    Transaction,
+    ReceiptLog, RuntimeError, SectionKind, SpawnAccount, SpawnReceipt, State, Template,
+    TemplateAddr, Transaction,
 };
 
 use super::{Call, Failure, Function, Outcome};
-use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
+use crate::env::{ExtAccount, ExtSpawn, PriceResolverRegistry};
 use crate::error::ValidateError;
-use crate::Env;
 use crate::{vmcalls, ProtectedMode};
-use crate::{Config, FuncEnv, Runtime};
+use crate::{FuncEnv, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
 /// Default [`Runtime`] implementation based on [`Wasmer`](https://wasmer.io).
-pub struct DefaultRuntime<T>
-where
-    T: EnvTypes,
-{
-    /// Runtime Environment.
-    ///
-    /// Used mainly for managing an Account's persistence.
-    env: Env<T>,
-
+pub struct DefaultRuntime {
     /// Provided host functions to be consumed by running transactions.
     imports: (String, wasmer::Exports),
 
     global_state: GlobalState,
 
-    /// Runtime configuration.
-    config: Config,
+    price_registry: PriceResolverRegistry,
 
     /// A naive cache for [`Template`]s' [`FuncPrice`]s. The cache key will, in
     /// the future, also include an identifier for which
@@ -49,20 +40,16 @@ where
     template_prices: Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>,
 }
 
-impl<T> DefaultRuntime<T>
-where
-    T: EnvTypes,
-{
+impl DefaultRuntime {
     /// Initializes a new [`DefaultRuntime`].
     ///
     /// `template_prices` offers an easy way to inject an append-only, naive caching mechanism to
     /// the [`Template`] pricing logic; using a `None` will result in a new
     /// empty cache and on-the-fly calculation for all [`Template`]s.
     pub fn new(
-        env: Env<T>,
         imports: (String, wasmer::Exports),
         global_state: GlobalState,
-        config: Config,
+        price_registry: PriceResolverRegistry,
         template_prices: Option<Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>>,
     ) -> Self {
         let template_prices = if let Some(tp) = template_prices {
@@ -71,11 +58,10 @@ where
             Rc::new(RefCell::new(HashMap::default()))
         };
         Self {
-            env,
             imports,
             global_state,
-            config,
             template_prices,
+            price_registry,
         }
     }
 
@@ -145,12 +131,15 @@ where
     {
         match self.account_template(&call.target) {
             Ok(template) => {
-                let storage = AccountStorage::new(
+                let storage = AccountStorage::create(
                     self.global_state.clone(),
                     &call.target,
-                    &call.template,
-                    template.fixed_layout(),
-                );
+                    "NAME_TODO".to_string(),
+                    call.template,
+                    0,
+                    0,
+                )
+                .unwrap();
 
                 let mut env = FuncEnv::new(
                     storage,
@@ -462,6 +451,9 @@ where
         interests.insert(SectionKind::Data);
         interests.insert(SectionKind::Ctors);
 
+        let accounts = AccountStorage::load(self.gs, account_addr).unwrap();
+        let template_addr = accounts.template_addr().unwrap();
+        let templates = TemplateStorage::load(self.gs, &template_addr).unwrap();
         let template = self.env.account_template(account_addr, Some(interests));
         template.ok_or_else(|| RuntimeError::AccountNotFound(account_addr.clone()))
     }
@@ -612,10 +604,7 @@ where
     }
 }
 
-impl<T> Runtime for DefaultRuntime<T>
-where
-    T: EnvTypes,
-{
+impl Runtime for DefaultRuntime {
     fn validate_deploy(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
         let template = self.env.parse_deploy(message, None)?;
         let code = template.code();
@@ -630,17 +619,15 @@ where
     }
 
     fn validate_spawn(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
-        self.env
-            .parse_spawn(message)
+        SpawnAccount::decode_bytes(message)
             .map(|_| ())
             .map_err(Into::into)
     }
 
     fn validate_call(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
-        self.env
-            .parse_call(message)
+        Transaction::decode_bytes(message)
             .map(|_| ())
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 
     fn deploy(&mut self, envelope: &Envelope, message: &[u8], _context: &Context) -> DeployReceipt {
@@ -674,10 +661,8 @@ where
         info!("Runtime `spawn`");
 
         let gas_limit = envelope.gas_limit();
-        let base = self
-            .env
-            .parse_spawn(message)
-            .expect("Should have called `validate_spawn` first");
+        let base =
+            SpawnAccount::decode_bytes(message).expect("Should have called `validate_spawn` first");
 
         let template_addr = base.account.template_addr();
 
@@ -759,10 +744,8 @@ where
     }
 
     fn verify(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
-        let tx = self
-            .env
-            .parse_call(message)
-            .expect("Should have called `validate_call` first");
+        let tx =
+            Transaction::decode_bytes(message).expect("Should have called `validate_call` first");
 
         // ### Important:
         //
@@ -785,10 +768,8 @@ where
     }
 
     fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
-        let tx = self
-            .env
-            .parse_call(message)
-            .expect("Should have called `validate_call` first");
+        let tx =
+            Transaction::decode_bytes(message).expect("Should have called `validate_call` first");
 
         let call = self.build_call(
             &tx,

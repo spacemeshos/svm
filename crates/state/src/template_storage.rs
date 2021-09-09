@@ -13,31 +13,35 @@ pub struct TemplateStorage {
 }
 
 impl TemplateStorage {
-    /// Creates a new [`TemplateStorage`] from the given address and
+    /// Loads a [`TemplateStorage`] from the given address and
     /// [`GlobalState`] instance.
-    pub fn new(template_addr: &TemplateAddr, gs: GlobalState) -> Self {
-        Self {
-            addr: template_addr.clone(),
+    pub fn load(gs: GlobalState, template_addr: &TemplateAddr) -> StorageResult<Self> {
+        Ok(Self {
             gs,
-        }
+            addr: template_addr.clone(),
+        })
+    }
+
+    /// Loads a [`TemplateStorage`] from the given address and
+    /// [`GlobalState`] instance.
+    pub fn create(
+        mut gs: GlobalState,
+        template_addr: &TemplateAddr,
+        core_sections: Sections,
+        noncore_sections: Sections,
+    ) -> StorageResult<Self> {
+        gs.encode_and_write(&core_sections, &key_core(&template_addr));
+        gs.encode_and_write(&noncore_sections, &key_noncore(&template_addr));
+
+        Ok(Self {
+            gs,
+            addr: template_addr.clone(),
+        })
     }
 
     /// Reads, decodes and finally returns all [`Sections`] of `self`.
-    pub fn sections(&self) -> StorageResult<Option<Sections>> {
-        let core = self.gs.read_and_decode::<Sections>(&key_core(&self.addr))?;
-        let noncore = self
-            .gs
-            .read_and_decode::<Sections>(&key_noncore(&self.addr))?;
-
-        match (core, noncore) {
-            (Some(mut sections), Some(noncore)) => {
-                for s in noncore.iter().cloned() {
-                    sections.insert(s);
-                }
-                Ok(Some(sections))
-            }
-            _ => return Ok(None),
-        }
+    pub fn sections(&self) -> StorageResult<Sections> {
+        read_sections(&self.gs, &self.addr)
     }
 
     /// Overwrites the "core" (mandatory) [`Sections`] associated with
@@ -65,4 +69,14 @@ fn key_core(template_addr: &TemplateAddr) -> String {
 
 fn key_noncore(template_addr: &TemplateAddr) -> String {
     format!("templates:{}:noncore", template_addr.to_string())
+}
+
+fn read_sections(gs: &GlobalState, addr: &TemplateAddr) -> StorageResult<Sections> {
+    let mut sections = gs.read_and_decode::<Sections>(&key_core(addr))?;
+    let noncore = gs.read_and_decode::<Sections>(&key_noncore(addr))?;
+
+    for s in noncore.iter().cloned() {
+        sections.insert(s);
+    }
+    Ok(sections)
 }

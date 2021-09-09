@@ -47,7 +47,7 @@ pub trait AccountStore {
 
 impl AccountStore for AccountStorage {
     fn store(&mut self, account: &ExtAccount, addr: &Address) {
-        let storage = AccountStorage::create(
+        AccountStorage::create(
             GlobalState::in_memory(),
             addr,
             account.name().to_string(),
@@ -61,16 +61,12 @@ impl AccountStore for AccountStorage {
     fn load(&self, addr: &Address) -> Option<ExtAccount> {
         let storage = AccountStorage::load(GlobalState::in_memory(), addr).unwrap();
 
-        Some(ExtAccount {
-            base: Account {
-                name: storage.name().unwrap().unwrap(),
-                template_addr: storage.template_addr().unwrap().unwrap(),
-            },
-            spawner: addr.clone(),
-        })
+        let account = Account::new(storage.template_addr().unwrap(), storage.name().unwrap());
+
+        Some(ExtAccount::new(&account, &addr))
     }
 
     fn resolve_template_addr(&self, addr: &Address) -> Option<TemplateAddr> {
-        self.template_addr().unwrap()
+        Some(self.load(addr)?.base().template_addr().clone())
     }
 }

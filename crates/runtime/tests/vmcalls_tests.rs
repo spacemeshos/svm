@@ -121,12 +121,7 @@ fn vmcalls_get32_set32() {
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
-    let storage = AccountStorage::new(
-        GlobalState::in_memory(),
-        &target_addr,
-        &template_addr,
-        &layout,
-    );
+    let storage = AccountStorage::load(GlobalState::in_memory(), &target_addr).unwrap();
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new(
@@ -168,12 +163,7 @@ fn vmcalls_get64_set64() {
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
-    let storage = AccountStorage::new(
-        GlobalState::in_memory(),
-        &target_addr,
-        &template_addr,
-        &layout,
-    );
+    let storage = AccountStorage::load(GlobalState::in_memory(), &target_addr).unwrap();
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new(
@@ -216,12 +206,7 @@ fn vmcalls_load160() {
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = AccountStorage::new(
-        GlobalState::in_memory(),
-        &target_addr,
-        &template_addr,
-        &layout,
-    );
+    let storage = AccountStorage::load(GlobalState::in_memory(), &target_addr).unwrap();
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -274,12 +259,7 @@ fn vmcalls_store160() {
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = AccountStorage::new(
-        GlobalState::in_memory(),
-        &target_addr,
-        &template_addr,
-        &layout,
-    );
+    let storage = AccountStorage::load(GlobalState::in_memory(), &target_addr).unwrap();
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -327,12 +307,7 @@ fn vmcalls_log() {
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = AccountStorage::new(
-        GlobalState::in_memory(),
-        &target_addr,
-        &template_addr,
-        &layout,
-    );
+    let storage = AccountStorage::load(GlobalState::in_memory(), &target_addr).unwrap();
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(

@@ -43,7 +43,7 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
 }
 
 /// Creates an in-memory `Runtime` backed by a `state_kv`.
-pub fn create_memory_runtime() -> DefaultRuntime<DefaultMemEnvTypes> {
+pub fn create_memory_runtime() -> DefaultRuntime {
     let template_store = DefaultMemTemplateStore::new();
     let account_store = DefaultMemAccountStore::new();
     let env = Env::<DefaultMemEnvTypes>::new(account_store, template_store);

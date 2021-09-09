@@ -117,24 +117,22 @@ impl GlobalState {
             .block_on(future)
     }
 
-    pub(crate) fn read_and_decode<T>(&self, key: &str) -> Result<Option<T>>
+    pub(crate) fn read_and_decode<T>(&self, key: &str) -> Result<T>
     where
         T: Codec,
     {
-        let opt_value = self.block_on(
-            self.storage()
-                .get(key.as_bytes(), self.historical_query_context),
-        )?;
+        let bytes = self
+            .block_on(
+                self.storage()
+                    .get(key.as_bytes(), self.historical_query_context),
+            )?
+            .ok_or(StorageError::NotFound {
+                key_hash: State(Blake3Hasher::hash(key.as_bytes())),
+            })?;
 
-        if let Some(bytes) = opt_value {
-            T::decode_bytes(bytes)
-                .map(|data| Some(data))
-                .map_err(|_| StorageError::IllegalData {
-                    key_hash: State(Blake3Hasher::hash(key.as_bytes())),
-                })
-        } else {
-            Ok(None)
-        }
+        T::decode_bytes(bytes).map_err(|_| StorageError::IllegalData {
+            key_hash: State(Blake3Hasher::hash(key.as_bytes())),
+        })
     }
 
     pub(crate) fn encode_and_write<T>(&mut self, item: &T, key: &str) -> ()
@@ -149,11 +147,7 @@ impl GlobalState {
         T: Codec,
         F: Fn(T) -> T,
     {
-        let old_item = self
-            .read_and_decode::<T>(key)?
-            .ok_or(StorageError::NotFound {
-                key_hash: State(Blake3Hasher::hash(key.as_bytes())),
-            })?;
+        let old_item = self.read_and_decode::<T>(key)?;
 
         self.encode_and_write(&f(old_item), key);
         Ok(())

@@ -3,10 +3,10 @@ use std::collections::{HashMap, HashSet};
 use std::io::Cursor;
 use std::rc::Rc;
 
+use svm_codec::template;
 use svm_codec::ParseError;
-use svm_codec::{template, Codec};
 use svm_gas::{resolvers, PriceResolver};
-use svm_types::{Address, SectionKind, SpawnAccount, Template, TemplateAddr, Transaction};
+use svm_types::{Address, SectionKind, Template, TemplateAddr};
 
 /// Default implementations
 mod default;
@@ -136,22 +136,6 @@ where
         let template = template::decode(cursor, interests)?;
 
         Ok(template)
-    }
-
-    /// Parses a binary [`SpawnAccount`] transaction.
-    ///
-    /// On success returns [`Spawn Account`],
-    /// On failure returns [`ParseError`].
-    pub fn parse_spawn(&self, bytes: &[u8]) -> Result<SpawnAccount, ParseError> {
-        SpawnAccount::decode_bytes(bytes)
-    }
-
-    /// Parses a binary `Call Account` (a.k.a a [`Transaction`]).
-    ///
-    /// On success returns [`Transaction`],
-    /// On failure returns [`ParseError`].
-    pub fn parse_call(&self, bytes: &[u8]) -> Result<Transaction, ParseError> {
-        Transaction::decode_bytes(bytes)
     }
 
     /// Saves a [`Template`] at the given [`TemplateAddr`].
