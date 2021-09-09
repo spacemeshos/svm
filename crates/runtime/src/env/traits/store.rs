@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
-use svm_types::{Address, SectionKind, Template, TemplateAddr};
+use svm_state::{AccountStorage, GlobalState};
+use svm_types::{Account, Address, SectionKind, Template, TemplateAddr};
 
 use crate::env::{ExtAccount, TemplateHash};
 
@@ -42,4 +43,34 @@ pub trait AccountStore {
     /// Returns `None` if there is no associated [`TemplateAddr`].
     #[must_use]
     fn resolve_template_addr(&self, addr: &Address) -> Option<TemplateAddr>;
+}
+
+impl AccountStore for AccountStorage {
+    fn store(&mut self, account: &ExtAccount, addr: &Address) {
+        let storage = AccountStorage::create(
+            GlobalState::in_memory(),
+            addr,
+            account.name().to_string(),
+            account.template_addr().clone(),
+            0,
+            0,
+        )
+        .unwrap();
+    }
+
+    fn load(&self, addr: &Address) -> Option<ExtAccount> {
+        let storage = AccountStorage::load(GlobalState::in_memory(), addr).unwrap();
+
+        Some(ExtAccount {
+            base: Account {
+                name: storage.name().unwrap().unwrap(),
+                template_addr: storage.template_addr().unwrap().unwrap(),
+            },
+            spawner: addr.clone(),
+        })
+    }
+
+    fn resolve_template_addr(&self, addr: &Address) -> Option<TemplateAddr> {
+        self.template_addr().unwrap()
+    }
 }

@@ -1,10 +1,9 @@
 use std::convert::TryInto;
 use std::ops::RangeInclusive;
 
-use svm_codec::Codec;
-use svm_codec::{ParseError, ReadExt, WriteExt};
+use svm_codec::{Codec, ParseError, ReadExt, WriteExt};
 use svm_layout::{FixedLayout, Id};
-use svm_types::{Address, BytesPrimitive, TemplateAddr};
+use svm_types::{Address, BytesPrimitive, SectionKind, TemplateAddr};
 
 use crate::TemplateStorage;
 use crate::{GlobalState, StorageResult};
@@ -24,41 +23,51 @@ pub struct AccountStorage {
 }
 
 impl AccountStorage {
-    /// Creates a new [`AccountStorage`].
-    pub fn new(
-        gs: GlobalState,
-        address: &Address,
-        template_addr: &TemplateAddr,
-        layout: &FixedLayout,
-    ) -> Self {
-        Self {
-            gs,
-            address: address.clone(),
-            template_addr: template_addr.clone(),
-            layout: layout.clone(),
-        }
-    }
-
     /// Saves `self` to the associated [`GlobalState`].
     pub fn create(
-        &mut self,
+        mut gs: GlobalState,
+        address: &Address,
         name: String,
         template_addr: TemplateAddr,
         balance: u64,
         counter: u128,
-    ) {
-        self.gs.encode_and_write(
+    ) -> StorageResult<Self> {
+        let template_storage = TemplateStorage::new(&template_addr, gs.clone());
+        let sections = template_storage.sections()?.unwrap();
+        let code_section = sections.get(SectionKind::Code).as_data();
+        let layout = code_section.layouts()[0].as_fixed().clone();
+
+        gs.encode_and_write(
             &AccountData {
                 name,
                 template_addr,
             },
-            &AccountData::key(&self.address),
+            &AccountData::key(address),
         );
 
-        self.gs.encode_and_write(
-            &AccountMut { balance, counter },
-            &AccountMut::key(&self.address),
-        );
+        gs.encode_and_write(&AccountMut { balance, counter }, &AccountMut::key(address));
+
+        Ok(Self {
+            gs,
+            address: address.clone(),
+            template_addr,
+            layout,
+        })
+    }
+
+    /// Creates a new [`AccountStorage`].
+    pub fn load(gs: GlobalState, address: &Address) -> StorageResult<Self> {
+        let account_data = AccountData::read(&gs, address)?.unwrap();
+        let template_storage = TemplateStorage::new(&account_data.template_addr, gs.clone());
+        let sections = template_storage.sections()?.unwrap();
+        let code_section = sections.get(SectionKind::Code).as_data();
+
+        Ok(Self {
+            gs,
+            address: address.clone(),
+            template_addr: account_data.template_addr,
+            layout: code_section.layouts()[0].as_fixed().clone(),
+        })
     }
 
     /// Reads `var_id` from the storage layer and writes its contents into
@@ -318,6 +327,10 @@ impl AccountData {
     pub fn key(account_addr: &Address) -> String {
         format!("accounts:{}:immutable", account_addr.to_string())
     }
+
+    pub fn read(gs: &GlobalState, address: &Address) -> StorageResult<Option<Self>> {
+        gs.read_and_decode::<Self>(&Self::key(address))
+    }
 }
 
 impl Codec for AccountData {
@@ -392,9 +405,14 @@ mod test {
         FixedLayout::from(vec![10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
     }
 
+    fn gs_with_template() -> (GlobalState, FixedLayout) {
+        let template_addr = TemplateAddr::repeat(0x80);
+        let mut gs = GlobalState::in_memory();
+        let mut templates = TemplateStorage::new(&template_addr, gs);
+    }
+
     #[test]
     fn immutable_metadata() {
-        let layout = fixed_layout();
         let address = Address::repeat(0xff);
         let template_addr = TemplateAddr::repeat(0x80);
         let name = "@name";
@@ -402,8 +420,15 @@ mod test {
         let counter = 0;
 
         let gs = GlobalState::in_memory();
-        let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
-        account.create(name.to_string(), template_addr, balance, counter);
+        let account = AccountStorage::create(
+            gs,
+            &address,
+            name.to_string(),
+            template_addr,
+            balance,
+            counter,
+        )
+        .unwrap();
 
         assert_eq!(account.name().unwrap().unwrap(), name);
         assert_eq!(account.template_addr().unwrap().unwrap(), template_addr);
@@ -413,7 +438,6 @@ mod test {
 
     #[test]
     fn mutable_metadata() {
-        let layout = fixed_layout();
         let address = Address::repeat(0xff);
         let template_addr = TemplateAddr::repeat(0x80);
         let name = "@name";
@@ -421,8 +445,15 @@ mod test {
         let counter = 0;
 
         let gs = GlobalState::in_memory();
-        let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
-        account.create(name.to_string(), template_addr, balance, counter);
+        let mut account = AccountStorage::create(
+            gs,
+            &address,
+            name.to_string(),
+            template_addr,
+            balance,
+            counter,
+        )
+        .unwrap();
 
         assert_eq!(account.balance().unwrap().unwrap(), balance);
         assert_eq!(account.counter().unwrap().unwrap(), counter);
@@ -443,7 +474,6 @@ mod test {
 
     #[test]
     fn account_byte_vars() {
-        let layout = fixed_layout();
         let address = Address::repeat(0xff);
         let template_addr = TemplateAddr::repeat(0x80);
         let name = "@name";
@@ -451,8 +481,15 @@ mod test {
         let counter = 0;
 
         let gs = GlobalState::in_memory();
-        let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
-        account.create(name.to_string(), template_addr, balance, counter);
+        let mut account = AccountStorage::create(
+            gs,
+            &address,
+            name.to_string(),
+            template_addr,
+            balance,
+            counter,
+        )
+        .unwrap();
 
         account.set_var_bytes(0, &[1; 10]).unwrap();
         account.set_var_bytes(1, &[2; 20]).unwrap();
@@ -473,7 +510,6 @@ mod test {
 
     #[test]
     fn account_numeric_vars() {
-        let layout = fixed_layout();
         let address = Address::repeat(0xff);
         let template_addr = TemplateAddr::repeat(0x80);
         let name = "@name";
@@ -481,8 +517,15 @@ mod test {
         let counter = 0;
 
         let gs = GlobalState::in_memory();
-        let mut account = AccountStorage::new(gs, &address, &template_addr, &layout);
-        account.create(name.to_string(), template_addr, balance, counter);
+        let mut account = AccountStorage::create(
+            gs,
+            &address,
+            name.to_string(),
+            template_addr,
+            balance,
+            counter,
+        )
+        .unwrap();
 
         account.set_var_i32(7, -20414).unwrap();
         account.set_var_i64(8, 1337).unwrap();

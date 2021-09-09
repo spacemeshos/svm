@@ -8,7 +8,8 @@ pub struct TemplateStorage {
     /// The internal [`GlobalState`] instance used to access the database layer.
     pub gs: GlobalState,
 
-    template_addr: TemplateAddr,
+    /// The [`TemplateAddr`] of `self`.
+    pub addr: TemplateAddr,
 }
 
 impl TemplateStorage {
@@ -16,19 +17,17 @@ impl TemplateStorage {
     /// [`GlobalState`] instance.
     pub fn new(template_addr: &TemplateAddr, gs: GlobalState) -> Self {
         Self {
-            template_addr: template_addr.clone(),
+            addr: template_addr.clone(),
             gs,
         }
     }
 
     /// Reads, decodes and finally returns all [`Sections`] of `self`.
     pub fn sections(&self) -> StorageResult<Option<Sections>> {
-        let core = self
-            .gs
-            .read_and_decode::<Sections>(&key_core(&self.template_addr))?;
+        let core = self.gs.read_and_decode::<Sections>(&key_core(&self.addr))?;
         let noncore = self
             .gs
-            .read_and_decode::<Sections>(&key_noncore(&self.template_addr))?;
+            .read_and_decode::<Sections>(&key_noncore(&self.addr))?;
 
         match (core, noncore) {
             (Some(mut sections), Some(noncore)) => {
@@ -44,7 +43,7 @@ impl TemplateStorage {
     /// Overwrites the "core" (mandatory) [`Sections`] associated with
     /// `self`.
     pub fn set_core(&mut self, sections: &Sections) -> StorageResult<()> {
-        let key = key_core(&self.template_addr);
+        let key = key_core(&self.addr);
         self.gs.encode_and_write(sections, &key);
 
         Ok(())
@@ -53,7 +52,7 @@ impl TemplateStorage {
     /// Overwrites the "non-core" (optional) [`Sections`] associated with
     /// `self`.
     pub fn set_noncore(&mut self, sections: &Sections) -> StorageResult<()> {
-        let key = key_noncore(&self.template_addr);
+        let key = key_noncore(&self.addr);
         self.gs.encode_and_write(sections, &key);
 
         Ok(())
