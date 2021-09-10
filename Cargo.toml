@@ -26,7 +26,6 @@ indexmap = "1.6.2"
 parity-wasm = "0.42.2"
 # rocksdb = { version = "0.15.0", features = ["lz4"], default-features = false, optional = true }
 seq-macro = "0.2"
-svm-cli = { path = "crates/cli" }
 svm-hash = { path = "crates/hash" }
 svm-gas = { path = "crates/gas" }
 svm-query = { path = "crates/query" }

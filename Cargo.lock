@@ -1774,7 +1774,6 @@ dependencies = [
  "seq-macro",
  "svm-abi-layout",
  "svm-abi-tests",
- "svm-cli",
  "svm-codec",
  "svm-gas",
  "svm-hash",
