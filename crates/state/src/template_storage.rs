@@ -80,3 +80,56 @@ fn read_sections(gs: &GlobalState, addr: &TemplateAddr) -> StorageResult<Section
     }
     Ok(sections)
 }
+
+#[cfg(test)]
+mod test {
+    use svm_layout::{FixedLayout, Layout};
+    use svm_types::{CodeSection, CtorsSection, DataSection, SectionKind, Sections, Template};
+
+    use super::*;
+
+    fn fixed_layout() -> FixedLayout {
+        FixedLayout::from(vec![10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
+    }
+
+    fn new_template(gs: &GlobalState) -> TemplateAddr {
+        let template_addr = TemplateAddr::repeat(0x80);
+
+        let code_section = CodeSection::new(
+            svm_types::CodeKind::Wasm,
+            vec![],
+            0,
+            svm_types::GasMode::Fixed,
+            0,
+        );
+        let data_section = DataSection::with_layout(Layout::Fixed(fixed_layout()));
+        let ctors_section = CtorsSection::new(vec![]);
+
+        let core_sections = Template::new(code_section, data_section, ctors_section)
+            .sections()
+            .clone();
+        let noncore_sections = Sections::with_capacity(0);
+
+        TemplateStorage::create(gs.clone(), &template_addr, core_sections, noncore_sections)
+            .unwrap();
+
+        template_addr
+    }
+
+    #[test]
+    fn create_then_load() {
+        let gs = GlobalState::in_memory();
+
+        let template_addr = new_template(&gs);
+
+        let template_storage = TemplateStorage::load(gs, &template_addr).unwrap();
+
+        assert!(template_storage
+            .sections()
+            .unwrap()
+            .get(SectionKind::Code)
+            .as_code()
+            .code()
+            .is_empty());
+    }
+}

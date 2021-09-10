@@ -560,4 +560,34 @@ mod test {
         assert_eq!(account.get_var_i64(8).unwrap(), 1337);
         assert_eq!(account.get_var_i64(9).unwrap(), i64::MAX);
     }
+
+    #[test]
+    fn create_then_load() {
+        let gs = GlobalState::in_memory();
+
+        let address = Address::repeat(0xff);
+        let template_addr = new_template(&gs);
+        let name = "@name";
+        let balance = 42;
+        let counter = 0;
+
+        let account = AccountStorage::create(
+            gs.clone(),
+            &address,
+            name.to_string(),
+            template_addr,
+            balance,
+            counter,
+        )
+        .unwrap();
+
+        let new_account = AccountStorage::load(gs, &address).unwrap();
+
+        assert_eq!(account.name().unwrap(), new_account.name().unwrap());
+        assert_eq!(
+            account.template_addr().unwrap(),
+            new_account.template_addr().unwrap()
+        );
+        assert_eq!(account.balance().unwrap(), new_account.balance().unwrap());
+    }
 }

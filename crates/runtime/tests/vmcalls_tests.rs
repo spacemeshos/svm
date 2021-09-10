@@ -6,6 +6,18 @@ use svm_runtime::{vmcalls, FuncEnv, ProtectedMode};
 use svm_state::{AccountStorage, GlobalState};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, ReceiptLog, TemplateAddr};
 
+fn create_account(addr: &Address, template_addr: &TemplateAddr) -> AccountStorage {
+    AccountStorage::create(
+        GlobalState::in_memory(),
+        addr,
+        "NAME".to_string(),
+        template_addr.clone(),
+        0,
+        0,
+    )
+    .unwrap()
+}
+
 /// Creates a new `Wasmer Store`
 pub fn wasmer_store() -> wasmer::Store {
     svm_runtime::new_store()
@@ -259,7 +271,7 @@ fn vmcalls_store160() {
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = AccountStorage::load(GlobalState::in_memory(), &target_addr).unwrap();
+    let storage = create_account(&target_addr, &template_addr);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(

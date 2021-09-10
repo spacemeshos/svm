@@ -174,7 +174,11 @@ impl DefaultRuntime {
         match instance_gas_used(&instance) {
             Ok(gas_used) => {
                 let returns = out.take_returns();
-                let out = Outcome::new(returns, gas_used, logs);
+                let out = Outcome {
+                    returns,
+                    gas_used,
+                    logs,
+                };
 
                 Ok(out)
             }
@@ -205,7 +209,7 @@ impl DefaultRuntime {
         // TODO: return an error instead of `panic`
         assert_no_returndata(env);
 
-        let wasm_ptr = out.returns();
+        let wasm_ptr = out.returns;
         set_calldata(env, calldata, wasm_ptr);
 
         self.wasmer_call(instance, env, func, params)
@@ -233,13 +237,14 @@ impl DefaultRuntime {
         let func = func.unwrap();
         let params: [wasmer::Val; 1] = [(size as i32).into()];
 
-        let out = self.wasmer_call(instance, env, &func, &params)?;
-        let out = out.map(|rets| {
-            let ret = &rets[0];
-            let offset = ret.i32().unwrap() as u32;
+        let out = self
+            .wasmer_call(instance, env, &func, &params)?
+            .map(|rets| {
+                let ret = &rets[0];
+                let offset = ret.i32().unwrap() as u32;
 
-            WasmPtr::new(offset)
-        });
+                WasmPtr::new(offset)
+            });
 
         // Restores the original [`ProtectedMode`].
         env.set_protected_mode(origin_mode);
@@ -558,7 +563,7 @@ impl Runtime for DefaultRuntime {
 
                 AccountStorage::create(
                     self.gs.clone(),
-                    &spawner,
+                    &target,
                     account.name().to_string(),
                     account.template_addr().clone(),
                     0,
