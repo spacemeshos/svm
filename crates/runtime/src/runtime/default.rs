@@ -624,27 +624,16 @@ impl Runtime for DefaultRuntime {
 }
 
 fn compute_template_addr(template: &Template) -> TemplateAddr {
-    let cap = TemplateAddr::N + template.code().len();
-    let mut buf = Vec::with_capacity(cap);
+    let hash = Blake3Hasher::hash(template.code());
 
-    buf.extend_from_slice(template.code());
-
-    let hash = Blake3Hasher::hash(&buf);
-    let addr = TemplateAddr::new(&hash[0..TemplateAddr::N]);
-
-    addr
+    TemplateAddr::new(&hash[..TemplateAddr::N])
 }
 
 fn compute_account_addr(spawn: &ExtSpawn) -> Address {
-    let mut buf = Vec::with_capacity(Address::N * 2);
-
     let template_addr = spawn.template_addr();
-    buf.extend_from_slice(template_addr.as_slice());
+    let hash = Blake3Hasher::hash(template_addr.as_slice());
 
-    let hash = Blake3Hasher::hash(&buf);
-    let addr = Address::new(&hash[0..Address::N]);
-
-    addr
+    Address::new(&hash[..Address::N])
 }
 
 fn read_memory(env: &FuncEnv, offset: usize, length: usize) -> Vec<u8> {
