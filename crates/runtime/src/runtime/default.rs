@@ -29,7 +29,7 @@ pub struct DefaultRuntime {
     /// Provided host functions to be consumed by running transactions.
     imports: (String, wasmer::Exports),
 
-    global_state: GlobalState,
+    gs: GlobalState,
 
     price_registry: PriceResolverRegistry,
 
@@ -59,7 +59,7 @@ impl DefaultRuntime {
         };
         Self {
             imports,
-            global_state,
+            gs: global_state,
             template_prices,
             price_registry,
         }
@@ -132,7 +132,7 @@ impl DefaultRuntime {
         match self.account_template(&call.target) {
             Ok(template) => {
                 let storage = AccountStorage::create(
-                    self.global_state.clone(),
+                    self.gs.clone(),
                     &call.target,
                     "NAME_TODO".to_string(),
                     call.template,
@@ -453,9 +453,10 @@ impl DefaultRuntime {
 
         let accounts = AccountStorage::load(self.gs, account_addr).unwrap();
         let template_addr = accounts.template_addr().unwrap();
-        let templates = TemplateStorage::load(self.gs, &template_addr).unwrap();
-        let template = self.env.account_template(account_addr, Some(interests));
-        template.ok_or_else(|| RuntimeError::AccountNotFound(account_addr.clone()))
+        let template_storage = TemplateStorage::load(self.gs, &template_addr).unwrap();
+        let sections = template_storage.sections().unwrap();
+
+        Ok(Template::from_sections(sections))
     }
 
     fn compile_template(
@@ -606,7 +607,7 @@ impl DefaultRuntime {
 
 impl Runtime for DefaultRuntime {
     fn validate_deploy(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
-        let template = self.env.parse_deploy(message, None)?;
+        let template = svm_codec::template::decode(std::io::Cursor::new(message), None)?;
         let code = template.code();
 
         // Opcode and `svm_alloc` checks should only ever be run when deploying [`Template`]s.
