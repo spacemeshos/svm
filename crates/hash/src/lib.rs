@@ -9,8 +9,8 @@
 
 /// A low-level trait for defining a hasher.
 pub trait Hasher: Default {
-    /// `KeyHasher` produces hashes of type `Self::Hash`
-    type Hash: AsRef<[u8]> + Copy + std::fmt::Debug + Sized;
+    /// The digest type produced by this [`Hasher`].
+    type Hash: AsRef<[u8]> + Clone;
 
     /// Receives an input `key` and returns its hash as `Self::Hash`.
     fn hash(key: &[u8]) -> Self::Hash {
