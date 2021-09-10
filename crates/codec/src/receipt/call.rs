@@ -28,9 +28,8 @@
 
 use std::convert::TryFrom;
 
-use svm_types::{CallReceipt, Gas, ReceiptLog, State};
+use svm_types::{CallReceipt, Gas, ReceiptLog, RuntimeFailure, State};
 
-use super::error::RuntimeErrorWithLogs;
 use crate::{codec::ReturnData, Codec, ParseError, ReadExt, WriteExt};
 
 impl Codec for CallReceipt {
@@ -48,7 +47,7 @@ impl Codec for CallReceipt {
             self.logs.encode(w);
         } else {
             let logs = self.logs();
-            RuntimeErrorWithLogs::new(self.error().clone(), logs).encode(w);
+            RuntimeFailure::new(self.error().clone(), logs).encode(w);
         };
     }
 
@@ -77,7 +76,7 @@ impl Codec for CallReceipt {
                 logs,
             })
         } else {
-            let x = RuntimeErrorWithLogs::decode(reader)?;
+            let x = RuntimeFailure::decode(reader)?;
             Ok(CallReceipt::from_err(x.err, x.logs))
         }
     }

@@ -26,7 +26,7 @@ use std::{convert::TryInto, fmt};
 
 pub use account::Account;
 pub use address::{Address, TemplateAddr};
-pub use error::RuntimeError;
+pub use error::{RuntimeError, RuntimeFailure};
 pub use gas::{Gas, GasMode, OOGError};
 pub use receipt::{
     into_spawn_receipt, CallReceipt, DeployReceipt, Receipt, ReceiptLog, ReceiptRef, SpawnReceipt,

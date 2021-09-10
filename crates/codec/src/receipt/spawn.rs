@@ -26,9 +26,8 @@
 //!  On Error (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_types::{Address, Gas, ReceiptLog, SpawnReceipt, State};
+use svm_types::{Address, Gas, ReceiptLog, RuntimeFailure, SpawnReceipt, State};
 
-use super::error::RuntimeErrorWithLogs;
 use super::TY_SPAWN;
 use crate::{codec::ReturnData, Codec, ParseError, ReadExt, WriteExt};
 
@@ -47,7 +46,7 @@ impl Codec for SpawnReceipt {
             self.gas_used().encode(w);
             self.logs.encode(w);
         } else {
-            RuntimeErrorWithLogs::new(self.error().clone(), self.logs().clone()).encode(w);
+            RuntimeFailure::new(self.error().clone(), self.logs().clone()).encode(w);
         };
     }
 
@@ -78,7 +77,7 @@ impl Codec for SpawnReceipt {
                 logs,
             })
         } else {
-            let x = RuntimeErrorWithLogs::decode(reader).unwrap();
+            let x = RuntimeFailure::decode(reader).unwrap();
             Ok(SpawnReceipt::from_err(x.err, x.logs))
         }
     }

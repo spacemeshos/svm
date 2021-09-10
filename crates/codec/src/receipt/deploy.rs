@@ -16,9 +16,9 @@
 
 use std::convert::TryFrom;
 
-use svm_types::{DeployReceipt, Gas, ReceiptLog, TemplateAddr};
+use svm_types::{DeployReceipt, Gas, ReceiptLog, RuntimeFailure, TemplateAddr};
 
-use super::{error::RuntimeErrorWithLogs, TY_DEPLOY};
+use super::TY_DEPLOY;
 use crate::{Codec, ReadExt, WriteExt};
 
 impl Codec for DeployReceipt {
@@ -34,7 +34,7 @@ impl Codec for DeployReceipt {
             self.gas_used.encode(w);
             self.logs.encode(w);
         } else {
-            RuntimeErrorWithLogs::new(self.error().clone(), vec![]).encode(w);
+            RuntimeFailure::new(self.error().clone(), vec![]).encode(w);
         };
     }
 
@@ -61,7 +61,7 @@ impl Codec for DeployReceipt {
                 logs,
             })
         } else {
-            let x = RuntimeErrorWithLogs::decode(reader).unwrap();
+            let x = RuntimeFailure::decode(reader).unwrap();
             Ok(DeployReceipt::from_err(x.err, x.logs))
         }
     }
