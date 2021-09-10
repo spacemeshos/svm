@@ -1,4 +1,5 @@
-//! Managing a `Runtime`'s environment (see [`Env`]).
+//! A collection of [`PriceRegistry`](svm_gas::PriceResolver) implementors for
+//! use within a [`Runtime`](crate::Runtime).
 
 use std::collections::HashMap;
 use std::rc::Rc;
