@@ -1,4 +1,6 @@
-use wasmer::{imports, NativeFunc};
+use std::ops::AddAssign;
+
+use wasmer::{imports, FromToNativeWasmType, NativeFunc};
 
 use svm_layout::FixedLayout;
 use svm_runtime::testing::WasmFile;
@@ -6,16 +8,35 @@ use svm_runtime::{vmcalls, FuncEnv, ProtectedMode};
 use svm_state::{AccountStorage, GlobalState};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, ReceiptLog, TemplateAddr};
 
-fn create_account(addr: &Address, template_addr: &TemplateAddr) -> AccountStorage {
-    AccountStorage::create(
-        GlobalState::in_memory(),
-        addr,
-        "NAME".to_string(),
-        template_addr.clone(),
+fn create_account(
+    addr: &Address,
+    template_addr: &TemplateAddr,
+    layout: FixedLayout,
+) -> AccountStorage {
+    use svm_layout::Layout;
+    use svm_state::TemplateStorage;
+    use svm_types::*;
+
+    let gs = GlobalState::in_memory();
+
+    let code_section = CodeSection::new(
+        svm_types::CodeKind::Wasm,
+        vec![],
         0,
+        svm_types::GasMode::Fixed,
         0,
-    )
-    .unwrap()
+    );
+    let data_section = DataSection::with_layout(Layout::Fixed(layout));
+    let ctors_section = CtorsSection::new(vec![]);
+
+    let core_sections = Template::new(code_section, data_section, ctors_section)
+        .sections()
+        .clone();
+    let noncore_sections = Sections::with_capacity(0);
+
+    TemplateStorage::create(gs.clone(), &template_addr, core_sections, noncore_sections).unwrap();
+
+    AccountStorage::create(gs, addr, "NAME".to_string(), template_addr.clone(), 0, 0).unwrap()
 }
 
 /// Creates a new `Wasmer Store`
@@ -52,59 +73,30 @@ fn wasmer_memory(store: &wasmer::Store) -> wasmer::Memory {
     wasmer::Memory::new(store, ty).expect("Memory allocation has failed.")
 }
 
-macro_rules! assert_vars32 {
-    ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{
-        __assert_vars_impl!(u32, $instance, $( $var_id => $expected), *)
-    }};
+fn assert_var_eq<T>(instance: &wasmer::Instance, var_id: u32, expected: T)
+where
+    T: FromToNativeWasmType + PartialEq + std::fmt::Debug,
+{
+    let func: &NativeFunc<u32, T> = &instance.exports.get_native_function("get").unwrap();
+
+    assert_eq!(func.call(var_id).unwrap(), expected);
 }
 
-macro_rules! assert_vars64 {
-    ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{
-        __assert_vars_impl!(u64, $instance, $( $var_id => $expected), *)
-    }};
+fn assert_storage(env: &FuncEnv, var_id: u32, expected: impl Into<Vec<u8>>) {
+    let mut borrow = env.borrow_mut();
+    let storage = borrow.storage_mut();
+
+    assert_eq!(storage.get_var_vec(var_id).unwrap(), expected.into());
 }
 
-macro_rules! __assert_vars_impl {
-    ($ty:ty, $instance:expr, $( $var_id:expr => $expected:expr), *) => {{
-        let func: &NativeFunc<u32, $ty> = &$instance.exports.get_native_function("get").unwrap();
+fn var_add<T>(instance: &wasmer::Instance, var_id: u32, amount: T)
+where
+    T: FromToNativeWasmType + AddAssign,
+{
+    let func: &NativeFunc<(u32, T), ()> = &instance.exports.get_native_function("add").unwrap();
+    let res = func.call(var_id, amount);
 
-        $( assert_eq!(func.call($var_id).unwrap(), $expected); )*
-    }};
-}
-
-macro_rules! assert_storage {
-    ($env:expr, $($var_id:expr => $expected:expr), *) => {{
-        let mut borrow = $env.borrow_mut();
-        let storage = borrow.storage_mut();
-
-        $(
-            let actual = storage.get_var_vec($var_id).unwrap();
-            assert_eq!(actual, $expected);
-         )*
-    }};
-}
-
-macro_rules! var_add32 {
-    ($instance:expr, $var_id:expr, $amount:expr) => {{
-        __var_add_impl!(u32, $instance, $var_id, $amount)
-    }};
-}
-
-macro_rules! var_add64 {
-    ($instance:expr, $var_id:expr, $amount:expr) => {{
-        __var_add_impl!(u64, $instance, $var_id, $amount)
-    }};
-}
-
-macro_rules! __var_add_impl {
-    ($ty:ty, $instance:expr, $var_id:expr, $amount:expr) => {{
-        let func: NativeFunc<(u32, $ty), ()> =
-            $instance.exports.get_native_function("add").unwrap();
-
-        let res = func.call($var_id, $amount);
-
-        assert!(res.is_ok());
-    }};
+    assert!(res.is_ok());
 }
 
 macro_rules! func {
@@ -133,7 +125,7 @@ fn vmcalls_get32_set32() {
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
-    let storage = AccountStorage::load(GlobalState::in_memory(), &target_addr).unwrap();
+    let storage = create_account(&target_addr, &template_addr, layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new(
@@ -158,14 +150,17 @@ fn vmcalls_get32_set32() {
         include_str!("wasm/get32_set32.wast").into(),
     );
 
-    assert_vars32!(instance, 0 => 0, 1 => 0);
+    assert_var_eq(&instance, 0, 0u32);
+    assert_var_eq(&instance, 1, 0u32);
 
-    var_add32!(instance, 0, 5); // adding 5 to var #0
-    var_add32!(instance, 1, 10); // adding 10 to var #1
+    var_add(&instance, 0, 5u32);
+    var_add(&instance, 1, 10u32);
 
-    assert_vars32!(instance, 0 => 5, 1 => 10);
+    assert_var_eq(&instance, 0, 5u32);
+    assert_var_eq(&instance, 1, 10u32);
 
-    assert_storage!(func_env, 0 => [5, 0, 0, 0], 1 => [10, 0]);
+    assert_storage(&func_env, 0, [5, 0, 0, 0]);
+    assert_storage(&func_env, 1, [10, 0]);
 }
 
 #[test]
@@ -175,7 +170,7 @@ fn vmcalls_get64_set64() {
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
-    let storage = AccountStorage::load(GlobalState::in_memory(), &target_addr).unwrap();
+    let storage = create_account(&target_addr, &template_addr, layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new(
@@ -200,14 +195,17 @@ fn vmcalls_get64_set64() {
         include_str!("wasm/get64_set64.wast").into(),
     );
 
-    assert_vars64!(instance, 0 => 0, 1 => 0);
+    assert_var_eq(&instance, 0, 0u64);
+    assert_var_eq(&instance, 1, 0u64);
 
-    var_add64!(instance, 0, 5); // adding 5 to var #0
-    var_add64!(instance, 1, 10); // adding 10 to var #1
+    var_add(&instance, 0, 5u64);
+    var_add(&instance, 1, 10u64);
 
-    assert_vars64!(instance, 0 => 5, 1 => 10);
+    assert_var_eq(&instance, 0, 5u64);
+    assert_var_eq(&instance, 1, 10u64);
 
-    assert_storage!(func_env, 0 => [5, 0, 0, 0], 1 => [10, 0]);
+    assert_storage(&func_env, 0, [5, 0, 0, 0]);
+    assert_storage(&func_env, 1, [10, 0]);
 }
 
 #[test]
@@ -218,7 +216,7 @@ fn vmcalls_load160() {
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = AccountStorage::load(GlobalState::in_memory(), &target_addr).unwrap();
+    let storage = create_account(&target_addr, &template_addr, layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -271,7 +269,7 @@ fn vmcalls_store160() {
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = create_account(&target_addr, &template_addr);
+    let storage = create_account(&target_addr, &template_addr, layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -308,7 +306,7 @@ fn vmcalls_store160() {
 
     func.call(var_id, ptr).expect("function has failed");
 
-    assert_storage!(func_env, 0 => target_addr.as_slice());
+    assert_storage(&func_env, 0, target_addr.as_slice());
 }
 
 #[test]
@@ -319,7 +317,7 @@ fn vmcalls_log() {
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = AccountStorage::load(GlobalState::in_memory(), &target_addr).unwrap();
+    let storage = create_account(&target_addr, &template_addr, layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
