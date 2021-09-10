@@ -22,8 +22,8 @@ impl TemplateStorage {
         })
     }
 
-    /// Loads a [`TemplateStorage`] from the given address and
-    /// [`GlobalState`] instance.
+    /// Saves a [`TemplateStorage`] at the given address and
+    /// on the given [`GlobalState`] instance.
     pub fn create(
         mut gs: GlobalState,
         template_addr: &TemplateAddr,

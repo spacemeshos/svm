@@ -3,7 +3,7 @@ use svm_codec::Codec;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use svm_gas::{FuncPrice, ProgramPricing};
@@ -12,8 +12,8 @@ use svm_program::{Program, ProgramVisitor};
 use svm_state::{AccountStorage, GlobalState, TemplateStorage};
 use svm_types::{
     Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError,
-    ReceiptLog, RuntimeError, SectionKind, Sections, SpawnAccount, SpawnReceipt, State, Template,
-    TemplateAddr, Transaction,
+    ReceiptLog, RuntimeError, Sections, SpawnAccount, SpawnReceipt, State, Template, TemplateAddr,
+    Transaction,
 };
 
 use super::{Call, Failure, Function, Outcome};
@@ -56,11 +56,8 @@ impl DefaultRuntime {
         price_registry: PriceResolverRegistry,
         template_prices: Option<Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>>,
     ) -> Self {
-        let template_prices = if let Some(tp) = template_prices {
-            tp
-        } else {
-            Rc::new(RefCell::new(HashMap::default()))
-        };
+        let template_prices = template_prices.unwrap_or_default();
+
         Self {
             imports,
             gs: global_state,
@@ -117,35 +114,32 @@ impl DefaultRuntime {
         Rets: WasmTypeList,
         F: Fn(&FuncEnv, Outcome<Box<[wasmer::Val]>>) -> R,
     {
-        match self.account_template(&call.target) {
-            Ok(template) => {
-                let storage = AccountStorage::create(
-                    self.gs.clone(),
-                    &call.target,
-                    "NAME_TODO".to_string(),
-                    call.template,
-                    0,
-                    0,
-                )
-                .unwrap();
+        let template = self.account_template(&call.target)?;
 
-                let mut env = FuncEnv::new(
-                    storage,
-                    call.envelope,
-                    call.context,
-                    call.template.clone(),
-                    call.target.clone(),
-                    call.protected_mode,
-                );
+        let storage = AccountStorage::create(
+            self.gs.clone(),
+            &call.target,
+            "NAME_TODO".to_string(),
+            call.template,
+            0,
+            0,
+        )
+        .unwrap();
 
-                let store = crate::wasm_store::new_store();
-                let import_object = self.create_import_object(&store, &mut env);
+        let mut env = FuncEnv::new(
+            storage,
+            call.envelope,
+            call.context,
+            call.template.clone(),
+            call.target.clone(),
+            call.protected_mode,
+        );
 
-                let res = self.run::<Args, Rets>(&call, &store, &env, &template, &import_object);
-                res.map(|rets| f(&env, rets))
-            }
-            Err(err) => Err(err.into()),
-        }
+        let store = crate::wasm_store::new_store();
+        let import_object = self.create_import_object(&store, &mut env);
+
+        let res = self.run::<Args, Rets>(&call, &store, &env, &template, &import_object);
+        res.map(|rets| f(&env, rets))
     }
 
     fn run<Args, Rets>(
@@ -350,16 +344,12 @@ impl DefaultRuntime {
         &self,
         account_addr: &Address,
     ) -> std::result::Result<Template, RuntimeError> {
-        let mut interests = HashSet::new();
-        interests.insert(SectionKind::Code);
-        interests.insert(SectionKind::Data);
-        interests.insert(SectionKind::Ctors);
-
         let accounts = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
         let template_addr = accounts.template_addr().unwrap();
         let template_storage = TemplateStorage::load(self.gs.clone(), &template_addr).unwrap();
         let sections = template_storage.sections().unwrap();
 
+        // TODO: Only fetch core sections.
         Ok(Template::from_sections(sections))
     }
 
@@ -443,8 +433,8 @@ impl Runtime for DefaultRuntime {
         // Opcode and `svm_alloc` checks should only ever be run when deploying [`Template`]s.
         // There's no reason to also do it when spawning new `Account`
         // over already-validated [`Template`]s
-        let program = Program::new(code, true).map_err(ValidateError::from)?;
-        svm_gas::validate_wasm(&program, false).map_err(ValidateError::from)?;
+        let program = Program::new(code, true)?;
+        svm_gas::validate_wasm(&program, false)?;
 
         Ok(())
     }
@@ -468,22 +458,22 @@ impl Runtime for DefaultRuntime {
         let gas_limit = envelope.gas_limit();
         let install_price = svm_gas::transaction::deploy(message);
 
-        if gas_limit >= install_price {
-            let gas_used = Gas::with(install_price);
-            let addr = compute_template_addr(&template);
-
-            TemplateStorage::create(
-                self.gs.clone(),
-                &addr,
-                template.sections().clone(),
-                template.sections().clone(),
-            )
-            .unwrap();
-
-            DeployReceipt::new(addr, gas_used)
-        } else {
-            DeployReceipt::new_oog()
+        if gas_limit < install_price {
+            return DeployReceipt::new_oog();
         }
+
+        let gas_used = Gas::with(install_price);
+        let addr = compute_template_addr(&template);
+
+        TemplateStorage::create(
+            self.gs.clone(),
+            &addr,
+            template.sections().clone(),
+            template.sections().clone(),
+        )
+        .unwrap();
+
+        DeployReceipt::new(addr, gas_used)
     }
 
     fn spawn(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> SpawnReceipt {
@@ -511,20 +501,18 @@ impl Runtime for DefaultRuntime {
         // easily afford to do this because the number of templates that exist
         // at genesis is fixed and won't grow.
         let mut template_prices = self.template_prices.borrow_mut();
-        let func_price = {
-            if let Some(prices) = template_prices.get(&template_addr) {
-                prices
-            } else {
-                let pricer = self
-                    .price_registry
-                    .get(0)
-                    .expect("Missing pricing utility.");
-                let program_pricing = ProgramPricing::new(pricer);
-                let prices = program_pricing.visit(&program).unwrap();
+        let func_price = if let Some(prices) = template_prices.get(&template_addr) {
+            prices
+        } else {
+            let pricer = self
+                .price_registry
+                .get(0)
+                .expect("Missing pricing utility.");
+            let program_pricing = ProgramPricing::new(pricer);
+            let prices = program_pricing.visit(&program).unwrap();
 
-                template_prices.insert(template_addr.clone(), prices);
-                template_prices.get(template_addr).unwrap()
-            }
+            template_prices.insert(template_addr.clone(), prices);
+            template_prices.get(template_addr).unwrap()
         };
 
         let spawner = envelope.principal();

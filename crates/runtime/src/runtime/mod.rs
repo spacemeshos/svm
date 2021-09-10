@@ -1,29 +1,26 @@
 //! Implements the most high-level API of `SVM`.
 
 mod call;
-mod config;
 mod default;
 mod failure;
 mod function;
 mod outcome;
 
+#[cfg(feature = "default-rocksdb")]
+mod rocksdb;
+
+use svm_types::{CallReceipt, Context, DeployReceipt, Envelope, SpawnReceipt};
+
+use crate::error::ValidateError;
+
 pub use call::Call;
+pub use default::DefaultRuntime;
 pub use failure::Failure;
 pub use function::Function;
 pub use outcome::Outcome;
 
 #[cfg(feature = "default-rocksdb")]
-mod rocksdb;
-
-#[cfg(feature = "default-rocksdb")]
 pub use rocksdb::create_rocksdb_runtime;
-
-pub use config::Config;
-pub use default::DefaultRuntime;
-
-use svm_types::{CallReceipt, Context, DeployReceipt, Envelope, SpawnReceipt};
-
-use crate::error::ValidateError;
 
 /// Specifies the interface of a SVM [`Runtime`].
 ///

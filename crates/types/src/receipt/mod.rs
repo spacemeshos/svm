@@ -1,3 +1,4 @@
+/// `Receipt`-related types
 mod call;
 mod deploy;
 mod log;

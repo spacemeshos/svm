@@ -1,5 +1,6 @@
 use crate::{Address, TemplateAddr};
 
+/// Type for failed running transactions
 #[doc(hidden)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum RuntimeError {

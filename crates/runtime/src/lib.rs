@@ -22,7 +22,7 @@ pub mod vmcalls;
 
 pub use error::ValidateError;
 pub use func_env::{FuncEnv, ProtectedMode};
-pub use runtime::{Config, DefaultRuntime, Runtime};
+pub use runtime::{DefaultRuntime, Runtime};
 pub use wasm_store::new_store;
 
 #[cfg(feature = "default-rocksdb")]

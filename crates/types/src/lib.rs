@@ -13,6 +13,8 @@
 mod account;
 mod address;
 mod error;
+mod gas;
+mod receipt;
 mod spawn_account;
 mod state;
 mod template;
@@ -20,22 +22,24 @@ mod transaction;
 mod wasm_type;
 mod wasm_value;
 
-/// Type for failed running transactions
+use std::{convert::TryInto, fmt};
+
+pub use account::Account;
+pub use address::{Address, TemplateAddr};
 pub use error::RuntimeError;
-
-/// Gas-related types
-mod gas;
 pub use gas::{Gas, GasMode, OOGError};
-
-/// `Receipt`-related types
-mod receipt;
-
 pub use receipt::{
     into_spawn_receipt, CallReceipt, DeployReceipt, Receipt, ReceiptLog, ReceiptRef, SpawnReceipt,
 };
-
-/// `Addressable` types
-pub use address::{Address, TemplateAddr};
+pub use spawn_account::SpawnAccount;
+pub use state::State;
+pub use template::{
+    ApiSection, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
+    SchemaSection, Section, SectionKind, SectionLike, Sections, SectionsIter, Template,
+};
+pub use transaction::{Context, Envelope, Layer, Transaction, TransactionId};
+pub use wasm_type::{WasmType, WasmTypeError};
+pub use wasm_value::WasmValue;
 
 /// Operations on fixed-size byte array entities.
 pub trait BytesPrimitive<const N: usize>:
@@ -139,17 +143,6 @@ pub trait BytesPrimitive<const N: usize>:
     }
 }
 
-pub use account::Account;
-pub use spawn_account::SpawnAccount;
-pub use state::State;
-pub use template::{
-    ApiSection, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
-    SchemaSection, Section, SectionKind, SectionLike, Sections, SectionsIter, Template,
-};
-pub use transaction::{Context, Envelope, Layer, Transaction, TransactionId};
-pub use wasm_type::{WasmType, WasmTypeError};
-pub use wasm_value::WasmValue;
-
 /// Represents a type in one of two ways:
 /// * `(std::any::TypeId, &'static str str)`
 ///
@@ -168,8 +161,6 @@ pub enum Type {
     /// leaking resources since we can pinpoint each resource.
     Str(&'static str),
 }
-
-use std::{convert::TryInto, fmt};
 
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

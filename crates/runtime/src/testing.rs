@@ -46,10 +46,9 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
 pub fn create_memory_runtime() -> DefaultRuntime {
     let imports = ("sm".to_string(), wasmer::Exports::new());
 
-    let global_state = GlobalState::in_memory();
     DefaultRuntime::new(
         imports,
-        global_state,
+        GlobalState::in_memory(),
         PriceResolverRegistry::default(),
         None,
     )
