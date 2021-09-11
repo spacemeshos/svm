@@ -18,7 +18,6 @@ use svm_types::{
 
 use super::{Call, Function, Outcome};
 use crate::error::ValidateError;
-use crate::ext::{ExtAccount, ExtSpawn};
 use crate::price_registry::PriceResolverRegistry;
 use crate::{vmcalls, FuncEnv, ProtectedMode, Runtime};
 
@@ -73,7 +72,7 @@ impl DefaultRuntime {
 
     fn call_ctor(
         &mut self,
-        spawn: &ExtSpawn,
+        spawn: &SpawnAccount,
         target: Address,
         gas_left: Gas,
         envelope: &Envelope,
@@ -520,12 +519,11 @@ impl Runtime for DefaultRuntime {
             template_prices.get(template_addr).unwrap()
         };
 
-        let spawner = envelope.principal();
-        let spawn = ExtSpawn::new(base, &spawner);
+        let spawn = base;
 
         if !template.is_ctor(spawn.ctor_name()) {
             // The [`Template`] is faulty.
-            let account = ExtAccount::new(spawn.account(), &spawner);
+            let account = spawn.account();
             let account_addr = compute_account_addr(&spawn);
 
             return SpawnReceipt::from_err(
@@ -558,7 +556,7 @@ impl Runtime for DefaultRuntime {
 
         match gas_left {
             Ok(gas_left) => {
-                let account = ExtAccount::new(spawn.account(), &spawner);
+                let account = spawn.account();
                 let target = compute_account_addr(&spawn);
 
                 AccountStorage::create(
@@ -622,7 +620,7 @@ fn compute_template_addr(template: &Template) -> TemplateAddr {
     TemplateAddr::new(&hash[..TemplateAddr::N])
 }
 
-fn compute_account_addr(spawn: &ExtSpawn) -> Address {
+fn compute_account_addr(spawn: &SpawnAccount) -> Address {
     let template_addr = spawn.template_addr();
     let hash = Blake3Hasher::hash(template_addr.as_slice());
 

@@ -11,7 +11,6 @@
 #![feature(vec_into_raw_parts)]
 
 mod error;
-mod ext;
 mod func_env;
 mod price_registry;
 mod runtime;
