@@ -1,0 +1,47 @@
+[package]
+name = "svm"
+version = "0.0.0"
+authors = ["Spacemesh SVM Team"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+svm-types = { path = "../types" }
+svm-sdk-alloc = { path = "../sdk/alloc", default-features = false }
+svm-sdk-std = { path = "../sdk/std", default-features = false }
+svm-sdk-types = { path = "../sdk/types", default-features = false }
+svm-sdk-storage = { path = "../sdk/storage", default-features = false }
+svm-sdk-host = { path = "../sdk/host", default-features = false }
+svm-sdk-macros = { path = "../sdk/macros", default-features = false }
+svm-sdk = { path = "../sdk", default-features = false }
+svm-sdk-tests = { path = "../sdk-tests" }
+svm-codec = { path = "../codec" }
+svm-runtime = { path = "../runtime", default-features = false }
+svm-runtime-ffi = { path = "../runtime-ffi", default-features = false }
+
+[features]
+default = ["default-memory", "default-singlepass"]
+default-singlepass = [
+  "svm-runtime/default-singlepass", 
+  "svm-runtime-ffi/default-singlepass",
+]
+default-cranelift = [
+  "svm-runtime/default-cranelift",
+  "svm-runtime-ffi/default-cranelift",
+]
+default-memory = [
+  "svm-runtime-ffi/default-memory",
+  "svm-runtime/default-memory",
+]
+default-rocksdb = [
+  "svm-runtime-ffi/default-rocksdb",
+  "svm-runtime/default-rocksdb",
+]

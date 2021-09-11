@@ -11,12 +11,3 @@
 //! `svm` Rust crate. Spacemesh smart contracts must be written in smWasm,
 //! which is a strict subset of WebAssembly; it is possible to write Rust code
 //! and compile it down to smWasm thanks to the Rust SDK that SVM ships with.
-
-extern crate svm_codec;
-extern crate svm_gas;
-extern crate svm_layout;
-extern crate svm_query;
-extern crate svm_runtime;
-extern crate svm_runtime_ffi;
-extern crate svm_sdk;
-extern crate svm_types;
