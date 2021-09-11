@@ -61,8 +61,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(runtime: *mut *mut c_void) ->
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
 /// // Destroys the Runtime
@@ -157,13 +156,12 @@ pub unsafe extern "C" fn svm_validate_spawn(
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
-/// let message = svm_byte_array::default();
-/// let _res = unsafe { svm_validate_call(runtime, message, &mut error) };
+/// let message = b"message data...";
+/// let _res = unsafe { svm_validate_call(runtime, message.as_ptr(), message.len() as u32) };
 /// ```
 ///
 #[must_use]

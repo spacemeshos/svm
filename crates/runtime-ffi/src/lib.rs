@@ -14,12 +14,6 @@
 mod api;
 mod result;
 
-#[cfg(feature = "default-rocksdb")]
-pub(crate) use error::raw_utf8_error;
-
-#[cfg(feature = "default-rocksdb")]
-pub use api::svm_runtime_create;
-
 #[cfg(feature = "default-memory")]
 pub use api::svm_memory_runtime_create;
 
