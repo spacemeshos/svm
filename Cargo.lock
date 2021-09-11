@@ -1711,7 +1711,6 @@ dependencies = [
  "svm-sdk-macros",
  "svm-sdk-std",
  "svm-sdk-storage",
- "svm-sdk-tests",
  "svm-sdk-types",
  "svm-types",
 ]
