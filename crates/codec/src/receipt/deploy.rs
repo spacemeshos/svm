@@ -19,10 +19,10 @@ use std::convert::TryFrom;
 use svm_types::{DeployReceipt, Gas, ReceiptLog, RuntimeFailure, TemplateAddr};
 
 use super::TY_DEPLOY;
-use crate::{Codec, ReadExt, WriteExt};
+use crate::{Codec, ParseError, ReadExt, WriteExt};
 
 impl Codec for DeployReceipt {
-    type Error = std::convert::Infallible;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
         w.write_byte(TY_DEPLOY);
@@ -39,18 +39,18 @@ impl Codec for DeployReceipt {
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let ty = reader.read_byte().unwrap();
+        let ty = reader.read_byte()?;
         debug_assert_eq!(ty, TY_DEPLOY);
 
-        let version = u16::decode(reader).unwrap();
+        let version = u16::decode(reader)?;
         debug_assert_eq!(version, 0);
 
-        let is_success = bool::decode(reader).unwrap();
+        let is_success = bool::decode(reader)?;
 
         if is_success {
-            let addr = TemplateAddr::decode(reader).expect("expected a Template Address");
-            let gas_used = Gas::decode(reader).unwrap();
-            let logs = <Vec<ReceiptLog>>::decode(reader).unwrap();
+            let addr = TemplateAddr::decode(reader)?;
+            let gas_used = Gas::decode(reader)?;
+            let logs = <Vec<ReceiptLog>>::decode(reader)?;
 
             Ok(DeployReceipt {
                 version,
@@ -61,7 +61,7 @@ impl Codec for DeployReceipt {
                 logs,
             })
         } else {
-            let x = RuntimeFailure::decode(reader).unwrap();
+            let x = RuntimeFailure::decode(reader)?;
             Ok(DeployReceipt::from_err(x.err, x.logs))
         }
     }

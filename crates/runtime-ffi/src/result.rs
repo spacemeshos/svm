@@ -1,79 +1,115 @@
-/// FFI representation for function result type
+use std::alloc::System as SystemAlloc;
+use std::convert::{Infallible, TryInto};
+use std::ops::FromResidual;
+
+/// FFI representation for function result type.
+///
+/// [`svm_result_t`] effectively has three variants:
+///
+/// - Error variant.
+/// - Receipt variant.
+/// - No data, just okay state.
 #[allow(non_camel_case_types)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(C)]
-pub enum svm_result_t {
-    #[doc(hidden)]
-    SVM_SUCCESS = 0,
-
-    #[doc(hidden)]
-    SVM_FAILURE = 1,
-}
-
-///
-/// # Examples
-///
-/// ```rust
-/// use svm_runtime_ffi::svm_result_t;
-///
-/// let truthy = svm_result_t::SVM_SUCCESS;
-/// let falsey = svm_result_t::SVM_FAILURE;
-///
-/// assert_eq!(true, bool::from(truthy));
-/// assert_eq!(false, bool::from(falsey));
-/// ```
-///
-impl From<svm_result_t> for bool {
-    #[inline]
-    fn from(value: svm_result_t) -> bool {
-        match value {
-            svm_result_t::SVM_SUCCESS => true,
-            svm_result_t::SVM_FAILURE => false,
-        }
-    }
+pub struct svm_result_t {
+    receipt: *const u8,
+    error: *const u8,
+    buf_size: u32,
 }
 
 impl svm_result_t {
-    /// Returns whether equals to `svm_result::SVM_SUCCESS`
+    /// A successful [`svm_result_t`], with neither a receipt nor error information.
+    pub const OK: Self = Self {
+        receipt: std::ptr::null(),
+        error: std::ptr::null(),
+        buf_size: 0,
+    };
+
+    /// Creates a new [`svm_result_t`] which contains an error.
+    pub fn new_error(data: &[u8]) -> Self {
+        let mut new_data = Vec::new_in(SystemAlloc);
+        new_data.extend_from_slice(data);
+
+        Self {
+            receipt: std::ptr::null(),
+            error: new_data.leak().as_ptr(),
+            buf_size: data.len().try_into().unwrap(),
+        }
+    }
+
+    /// Creates a new [`svm_result_t`] which contains a receipt.
+    pub fn new_receipt(data: &[u8]) -> Self {
+        let mut new_data = Vec::new_in(SystemAlloc);
+        new_data.extend_from_slice(data);
+
+        Self {
+            receipt: new_data.leak().as_ptr(),
+            error: std::ptr::null(),
+            buf_size: data.len().try_into().unwrap(),
+        }
+    }
+
+    /// Returns [`Some(bytes)`] if and only if `self` is a transaction receipt.
+    pub fn receipt(&self) -> Option<&[u8]> {
+        if !self.receipt.is_null() {
+            unsafe {
+                Some(std::slice::from_raw_parts(
+                    self.receipt,
+                    self.buf_size as usize,
+                ))
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Returns whether `self` equals to [`svm_result::OK`].
     ///
     /// # Examples
     ///
     /// ```rust
     /// use svm_runtime_ffi::svm_result_t;
     ///
-    /// let truthy = svm_result_t::SVM_SUCCESS;
-    /// let falsey = svm_result_t::SVM_FAILURE;
-    ///
-    /// assert!(truthy.is_ok());
-    /// assert!(!falsey.is_ok());
+    /// assert!(svm_result_t::OK.is_ok());
     /// ```
-    ///
-    #[inline]
-    pub fn is_ok(self) -> bool {
-        self.as_bool() == true
+    pub fn is_ok(&self) -> bool {
+        self.error.is_null()
     }
 
-    /// Returns whether equals to `svm_result::SVM_FAILURE`
+    /// Returns whether `self` is not equal to [`svm_result::OK`].
     ///
     /// # Examples
     ///
     /// ```rust
     /// use svm_runtime_ffi::svm_result_t;
     ///
-    /// let truthy = svm_result_t::SVM_SUCCESS;
-    /// let falsey = svm_result_t::SVM_FAILURE;
-    ///
-    /// assert!(!truthy.is_err());
-    /// assert!(falsey.is_err());
+    /// assert!(!svm_result_t::OK.is_err());
+    /// assert!(svm_result_t::new_error(b"err foobar").is_err());
     /// ```
-    #[inline]
-    pub fn is_err(self) -> bool {
-        self.as_bool() == false
+    pub fn is_err(&self) -> bool {
+        !self.is_ok()
     }
+}
 
-    /// Convert to a boolean
-    #[inline]
-    fn as_bool(self) -> bool {
-        self.into()
+impl<E> FromResidual<Result<Infallible, E>> for svm_result_t
+where
+    E: std::error::Error,
+{
+    fn from_residual(residual: Result<Infallible, E>) -> Self {
+        svm_result_t::new_error(residual.unwrap_err().to_string().as_bytes())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn receipt() {
+        assert_eq!(
+            svm_result_t::new_receipt(b"foobar").receipt().unwrap(),
+            b"foobar"
+        );
     }
 }

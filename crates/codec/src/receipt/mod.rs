@@ -9,23 +9,20 @@ pub(crate) mod logs;
 
 use svm_types::{CallReceipt, DeployReceipt, Receipt, SpawnReceipt};
 
-use crate::{Codec, ReadExt};
+use crate::{Codec, ParseError, ReadExt};
 
 impl Codec for Receipt {
-    type Error = std::convert::Infallible;
+    type Error = ParseError;
 
     fn encode(&self, w: &mut impl crate::WriteExt) {
         match self {
             Self::Deploy(deploy) => {
-                w.write_byte(TY_DEPLOY);
                 deploy.encode(w);
             }
             Self::Spawn(spawn) => {
-                w.write_byte(TY_SPAWN);
                 spawn.encode(w);
             }
             Self::Call(call) => {
-                w.write_byte(TY_CALL);
                 call.encode(w);
             }
         }
@@ -34,18 +31,18 @@ impl Codec for Receipt {
     fn decode(cursor: &mut impl ReadExt) -> Result<Self, Self::Error> {
         Ok(match cursor.peek_byte().unwrap() {
             TY_DEPLOY => {
-                let receipt = DeployReceipt::decode(cursor).unwrap();
+                let receipt = DeployReceipt::decode(cursor)?;
                 Receipt::Deploy(receipt)
             }
             TY_SPAWN => {
-                let receipt = SpawnReceipt::decode(cursor).unwrap();
+                let receipt = SpawnReceipt::decode(cursor)?;
                 Receipt::Spawn(receipt)
             }
             TY_CALL => {
-                let receipt = CallReceipt::decode(cursor).unwrap();
+                let receipt = CallReceipt::decode(cursor)?;
                 Receipt::Call(receipt)
             }
-            _ => unreachable!(),
+            byte => return Err(ParseError::BadByte(byte)),
         })
     }
 }
