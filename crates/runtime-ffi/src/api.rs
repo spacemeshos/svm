@@ -318,7 +318,7 @@ pub unsafe extern "C" fn svm_verify(
         message_size,
         context,
         |r, e, m, c| r.verify(e, m, c),
-        "svm_call",
+        "svm_verify",
     )
 }
 
