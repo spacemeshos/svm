@@ -64,7 +64,7 @@ impl svm_result_t {
         }
     }
 
-    /// Returns whether `self` equals to [`svm_result::OK`].
+    /// Returns whether `self` equals to [`svm_result_t::OK`].
     ///
     /// # Examples
     ///
@@ -77,7 +77,7 @@ impl svm_result_t {
         self.error.is_null()
     }
 
-    /// Returns whether `self` is not equal to [`svm_result::OK`].
+    /// Returns whether `self` is not equal to [`svm_result_t::OK`].
     ///
     /// # Examples
     ///
