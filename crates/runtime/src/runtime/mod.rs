@@ -8,8 +8,9 @@ mod outcome;
 #[cfg(feature = "default-rocksdb")]
 mod rocksdb;
 
-use svm_types::{CallReceipt, Context, DeployReceipt, Envelope, Layer, SpawnReceipt};
-use wasmer::RuntimeError;
+use svm_types::{
+    CallReceipt, Context, DeployReceipt, Envelope, Layer, RuntimeFailure, SpawnReceipt,
+};
 
 use crate::error::ValidateError;
 
@@ -54,5 +55,8 @@ pub trait Runtime {
 
     /// Moves the internal state of this [`Runtime`] back to the time of
     /// `layer_id`.
-    fn rewind(&mut self, layer_id: Layer) -> Result<(), RuntimeError>;
+    fn rewind(&mut self, layer_id: Layer) -> Result<(), RuntimeFailure>;
+
+    /// Creates a new layer with the given changes.
+    fn commit(&mut self) -> Result<(), RuntimeFailure>;
 }

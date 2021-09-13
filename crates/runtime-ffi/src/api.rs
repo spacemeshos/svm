@@ -5,7 +5,7 @@ use std::{ffi::c_void, panic::UnwindSafe};
 
 use svm_codec::Codec;
 use svm_runtime::{Runtime, ValidateError};
-use svm_types::{Context, Envelope};
+use svm_types::{Context, Envelope, Layer};
 
 use crate::svm_result_t;
 
@@ -374,7 +374,18 @@ pub unsafe extern "C" fn svm_call(
 pub unsafe extern "C" fn svm_rewind(runtime: *mut c_void, layer_id: u64) -> svm_result_t {
     catch_unwind_or_fail(|| {
         let runtime = runtime.cast::<Box<dyn Runtime>>().as_mut().unwrap();
-        runtime.gs.rewind()
+        runtime.rewind(Layer(layer_id))?;
+        svm_result_t::OK
+    })
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_commit(runtime: *mut c_void) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = runtime.cast::<Box<dyn Runtime>>().as_mut().unwrap();
+        runtime.commit()?;
+        svm_result_t::OK
     })
 }
 

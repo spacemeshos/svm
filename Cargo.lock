@@ -1989,6 +1989,7 @@ dependencies = [
  "hex",
  "indexmap",
  "svm-layout",
+ "thiserror",
 ]
 
 [[package]]

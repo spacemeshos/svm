@@ -15,3 +15,4 @@ derive_more = "0.99"
 hex = "0.4"
 indexmap = "1.6.2"
 svm-layout = { path = "../layout" }
+thiserror = "1"

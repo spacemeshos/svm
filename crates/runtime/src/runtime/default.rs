@@ -614,7 +614,16 @@ impl Runtime for DefaultRuntime {
     }
 
     fn rewind(&mut self, layer_id: Layer) -> Result<()> {
-        self.gs.rewind(layer_id)
+        self.gs
+            .rewind(layer_id)
+            .map_err(|_e| RuntimeFailure::new(RuntimeError::OOG, vec![]))
+    }
+
+    fn commit(&mut self) -> Result<()> {
+        self.gs
+            .commit()
+            .map_err(|_e| RuntimeFailure::new(RuntimeError::OOG, vec![]))?;
+        Ok(())
     }
 }
 
