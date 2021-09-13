@@ -5,7 +5,7 @@ use std::{ffi::c_void, panic::UnwindSafe};
 
 use svm_codec::Codec;
 use svm_runtime::{Runtime, ValidateError};
-use svm_types::{Context, Envelope, Layer};
+use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, TemplateAddr};
 
 use crate::svm_result_t;
 
@@ -385,6 +385,29 @@ pub unsafe extern "C" fn svm_commit(runtime: *mut c_void) -> svm_result_t {
     catch_unwind_or_fail(|| {
         let runtime = runtime.cast::<Box<dyn Runtime>>().as_mut().unwrap();
         runtime.commit()?;
+        svm_result_t::OK
+    })
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_get_account(
+    runtime: *mut c_void,
+    account_addr: *const u8,
+    balance: *mut u64,
+    counter: *mut u128,
+    template_addr: *mut u8,
+) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = runtime.cast::<Box<dyn Runtime>>().as_mut().unwrap();
+        let account_addr = Address::new(std::slice::from_raw_parts(account_addr, Address::N));
+        let account_data = runtime.get_account(&account_addr).unwrap();
+
+        *balance = account_data.0;
+        *counter = account_data.1;
+        std::slice::from_raw_parts_mut(template_addr, TemplateAddr::N)
+            .clone_from_slice(account_data.2.as_slice());
+
         svm_result_t::OK
     })
 }

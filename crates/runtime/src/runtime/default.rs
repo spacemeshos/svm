@@ -625,6 +625,14 @@ impl Runtime for DefaultRuntime {
             .map_err(|_e| RuntimeFailure::new(RuntimeError::OOG, vec![]))?;
         Ok(())
     }
+
+    fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)> {
+        let account_storage = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
+        let balance = account_storage.balance().unwrap();
+        let counter = account_storage.counter().unwrap();
+        let template_addr = account_storage.template_addr().unwrap();
+        Some((balance, counter, template_addr))
+    }
 }
 
 fn compute_template_addr(template: &Template) -> TemplateAddr {

@@ -9,7 +9,8 @@ mod outcome;
 mod rocksdb;
 
 use svm_types::{
-    CallReceipt, Context, DeployReceipt, Envelope, Layer, RuntimeFailure, SpawnReceipt,
+    Address, CallReceipt, Context, DeployReceipt, Envelope, Layer, RuntimeFailure, SpawnReceipt,
+    TemplateAddr,
 };
 
 use crate::error::ValidateError;
@@ -59,4 +60,13 @@ pub trait Runtime {
 
     /// Creates a new layer with the given changes.
     fn commit(&mut self) -> Result<(), RuntimeFailure>;
+
+    /// Given the address of an account, it attempts to read:
+    ///
+    /// - balance;
+    /// - counter;
+    /// - template's address;
+    ///
+    /// from the database layer.
+    fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)>;
 }
