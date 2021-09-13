@@ -1,46 +1,41 @@
-use futures::executor::block_on;
 use log::info;
+use svm_codec::Codec;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::rc::Rc;
 
-use svm_gas::FuncPrice;
-use svm_program::Program;
-use svm_state::{AccountStorage, GlobalState};
+use svm_gas::{FuncPrice, ProgramPricing};
+use svm_hash::{Blake3Hasher, Hasher};
+use svm_program::{Program, ProgramVisitor};
+use svm_state::{AccountStorage, GlobalState, TemplateStorage};
 use svm_types::{
     Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError,
-    ReceiptLog, RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr,
+    ReceiptLog, RuntimeError, Sections, SpawnAccount, SpawnReceipt, State, Template, TemplateAddr,
     Transaction,
 };
 
 use super::{Call, Failure, Function, Outcome};
-use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
 use crate::error::ValidateError;
-use crate::Env;
-use crate::{vmcalls, ProtectedMode};
-use crate::{Config, FuncEnv, Runtime};
+use crate::ext::{ExtAccount, ExtSpawn};
+use crate::price_registry::PriceResolverRegistry;
+use crate::{vmcalls, FuncEnv, ProtectedMode, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
-/// Default [`Runtime`] implementation based on [`Wasmer`](https://wasmer.io).
-pub struct DefaultRuntime<T>
-where
-    T: EnvTypes,
-{
-    /// Runtime Environment.
-    ///
-    /// Used mainly for managing an Account's persistence.
-    env: Env<T>,
+const ERR_VALIDATE_SPAWN: &str = "Should have called `validate_spawn` first";
+const ERR_VALIDATE_CALL: &str = "Should have called `validate_call` first";
+const ERR_VALIDATE_DEPLOY: &str = "Should have called `validate_deploy` first";
 
+/// Default [`Runtime`] implementation based on [`Wasmer`](https://wasmer.io).
+pub struct DefaultRuntime {
     /// Provided host functions to be consumed by running transactions.
     imports: (String, wasmer::Exports),
 
-    global_state: GlobalState,
+    gs: GlobalState,
 
-    /// Runtime configuration.
-    config: Config,
+    price_registry: PriceResolverRegistry,
 
     /// A naive cache for [`Template`]s' [`FuncPrice`]s. The cache key will, in
     /// the future, also include an identifier for which
@@ -49,49 +44,25 @@ where
     template_prices: Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>,
 }
 
-impl<T> DefaultRuntime<T>
-where
-    T: EnvTypes,
-{
+impl DefaultRuntime {
     /// Initializes a new [`DefaultRuntime`].
     ///
     /// `template_prices` offers an easy way to inject an append-only, naive caching mechanism to
     /// the [`Template`] pricing logic; using a `None` will result in a new
     /// empty cache and on-the-fly calculation for all [`Template`]s.
     pub fn new(
-        env: Env<T>,
         imports: (String, wasmer::Exports),
         global_state: GlobalState,
-        config: Config,
+        price_registry: PriceResolverRegistry,
         template_prices: Option<Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>>,
     ) -> Self {
-        let template_prices = if let Some(tp) = template_prices {
-            tp
-        } else {
-            Rc::new(RefCell::new(HashMap::default()))
-        };
-        Self {
-            env,
-            imports,
-            global_state,
-            config,
-            template_prices,
-        }
-    }
+        let template_prices = template_prices.unwrap_or_default();
 
-    fn outcome_to_receipt(
-        &self,
-        env: &FuncEnv,
-        mut out: Outcome<Box<[wasmer::Val]>>,
-    ) -> CallReceipt {
-        CallReceipt {
-            version: 0,
-            success: true,
-            error: None,
-            returndata: Some(self.take_returndata(env)),
-            new_state: Some(block_on(self.commit_changes(&env))),
-            gas_used: out.gas_used(),
-            logs: out.take_logs(),
+        Self {
+            imports,
+            gs: global_state,
+            template_prices,
+            price_registry,
         }
     }
 
@@ -132,7 +103,7 @@ where
     }
 
     fn exec_call<'a, Args, Rets>(&'a mut self, call: &Call<'a>) -> CallReceipt {
-        let result = self.exec::<(), (), _, _>(&call, |env, out| self.outcome_to_receipt(env, out));
+        let result = self.exec::<(), (), _, _>(&call, |env, out| outcome_to_receipt(env, out));
 
         result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
     }
@@ -143,32 +114,32 @@ where
         Rets: WasmTypeList,
         F: Fn(&FuncEnv, Outcome<Box<[wasmer::Val]>>) -> R,
     {
-        match self.account_template(&call.target) {
-            Ok(template) => {
-                let storage = AccountStorage::new(
-                    self.global_state.clone(),
-                    &call.target,
-                    &call.template,
-                    template.fixed_layout(),
-                );
+        let template = self.account_template(&call.target)?;
 
-                let mut env = FuncEnv::new(
-                    storage,
-                    call.envelope,
-                    call.context,
-                    call.template.clone(),
-                    call.target.clone(),
-                    call.protected_mode,
-                );
+        let storage = AccountStorage::create(
+            self.gs.clone(),
+            &call.target,
+            "NAME_TODO".to_string(),
+            call.template,
+            0,
+            0,
+        )
+        .unwrap();
 
-                let store = crate::wasm_store::new_store();
-                let import_object = self.create_import_object(&store, &mut env);
+        let mut env = FuncEnv::new(
+            storage,
+            call.envelope,
+            call.context,
+            call.template.clone(),
+            call.target.clone(),
+            call.protected_mode,
+        );
 
-                let res = self.run::<Args, Rets>(&call, &store, &env, &template, &import_object);
-                res.map(|rets| f(&env, rets))
-            }
-            Err(err) => Err(err.into()),
-        }
+        let store = crate::wasm_store::new_store();
+        let import_object = self.create_import_object(&store, &mut env);
+
+        let res = self.run::<Args, Rets>(&call, &store, &env, &template, &import_object);
+        res.map(|rets| f(&env, rets))
     }
 
     fn run<Args, Rets>(
@@ -188,7 +159,7 @@ where
         let module = self.compile_template(store, func_env, &template, call.gas_limit)?;
         let instance = self.instantiate(func_env, &module, import_object)?;
 
-        self.set_memory(func_env, &instance);
+        set_memory(func_env, &instance);
 
         let func = self.func::<Args, Rets>(&instance, func_env, call.func_name)?;
 
@@ -200,10 +171,14 @@ where
 
         let logs = out.take_logs();
 
-        match self.instance_gas_used(&instance) {
+        match instance_gas_used(&instance) {
             Ok(gas_used) => {
                 let returns = out.take_returns();
-                let out = Outcome::new(returns, gas_used, logs);
+                let out = Outcome {
+                    returns,
+                    gas_used,
+                    logs,
+                };
 
                 Ok(out)
             }
@@ -232,10 +207,10 @@ where
 
         // we assert that `svm_alloc` didn't touch the `returndata`
         // TODO: return an error instead of `panic`
-        self.assert_no_returndata(env);
+        assert_no_returndata(env);
 
-        let wasm_ptr = out.returns();
-        self.set_calldata(env, calldata, wasm_ptr);
+        let wasm_ptr = out.returns;
+        set_calldata(env, calldata, wasm_ptr);
 
         self.wasmer_call(instance, env, func, params)
     }
@@ -255,20 +230,21 @@ where
             //
             // We don't restore the original [`ProtectedMode`]
             // since `svm_alloc` has failed and the transaction will halt.
-            let err = self.func_not_found(env, func_name);
+            let err = err::func_not_found(env, func_name);
             return Err(err);
         }
 
         let func = func.unwrap();
         let params: [wasmer::Val; 1] = [(size as i32).into()];
 
-        let out = self.wasmer_call(instance, env, &func, &params)?;
-        let out = out.map(|rets| {
-            let ret = &rets[0];
-            let offset = ret.i32().unwrap() as u32;
+        let out = self
+            .wasmer_call(instance, env, &func, &params)?
+            .map(|rets| {
+                let ret = &rets[0];
+                let offset = ret.i32().unwrap() as u32;
 
-            WasmPtr::new(offset)
-        });
+                WasmPtr::new(offset)
+            });
 
         // Restores the original [`ProtectedMode`].
         env.set_protected_mode(origin_mode);
@@ -292,11 +268,11 @@ where
         let logs = env.borrow_mut().take_logs();
 
         if returns.is_err() {
-            let err = self.func_failed(env, func.name(), returns.unwrap_err(), logs);
+            let err = err::func_failed(env, func.name(), returns.unwrap_err(), logs);
             return Err(err);
         }
 
-        match self.instance_gas_used(&instance) {
+        match instance_gas_used(&instance) {
             Ok(gas_used) => {
                 let out = Outcome::new(returns.unwrap(), gas_used, logs);
                 Ok(out)
@@ -308,90 +284,6 @@ where
         }
     }
 
-    #[inline]
-    async fn commit_changes(&self, env: &FuncEnv) -> State {
-        let mut borrow = env.borrow_mut();
-        let storage = borrow.storage_mut();
-        storage.gs.checkpoint().unwrap();
-        storage.gs.commit().unwrap().1.into()
-    }
-
-    #[inline]
-    fn assert_no_returndata(&self, env: &FuncEnv) {
-        assert!(env.borrow().returndata().is_none())
-    }
-
-    fn take_returndata(&self, env: &FuncEnv) -> Vec<u8> {
-        let data = env.borrow().returndata();
-
-        match data {
-            Some((offset, length)) => self.read_memory(env, offset, length),
-            None => Vec::new(),
-        }
-    }
-
-    fn read_memory(&self, env: &FuncEnv, offset: usize, length: usize) -> Vec<u8> {
-        assert!(length > 0);
-
-        let borrow = env.borrow();
-        let memory = borrow.memory();
-
-        let view = memory.view::<u8>();
-        assert!(view.len() > offset + length - 1);
-
-        let cells = &view[offset..(offset + length)];
-        cells.iter().map(|c| c.get()).collect()
-    }
-
-    fn set_memory(&self, env: &FuncEnv, instance: &Instance) {
-        // TODO: raise when no exported memory exists
-        let memory = instance.exports.get_memory("memory").unwrap();
-
-        env.borrow_mut().set_memory(memory.clone());
-    }
-
-    fn set_calldata(&self, env: &FuncEnv, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
-        debug_assert!(calldata.is_empty() == false);
-
-        let (offset, len) = {
-            let borrow = env.borrow();
-            let memory = borrow.memory();
-
-            // Each WASM instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
-            // The `len(calldata)` will be less than the `WASM Page` size.
-            //
-            // In any case, the `alloc_memory` is in charge of allocating enough memory
-            // for the program to run (so we don't need to have any bounds-checking here).
-            //
-            // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
-            // (we'll need to decide on a `calldata` limit).
-            //
-            // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
-            let offset = wasm_ptr.offset() as usize;
-            let length = calldata.len();
-            let view = memory.view::<u8>();
-
-            // TODO: fail safely, instead of using `assert!`
-            assert!(view.len() > offset + length - 1);
-
-            let cells = &view[offset..(offset + length)];
-            for (cell, &byte) in cells.iter().zip(calldata.iter()) {
-                cell.set(byte);
-            }
-
-            (offset, length)
-        };
-
-        env.borrow_mut().set_calldata(offset, len);
-    }
-
-    /// Calculates the amount of gas used by `instance`.
-    #[inline]
-    fn instance_gas_used(&self, _instance: &Instance) -> std::result::Result<Gas, OOGError> {
-        // TODO: read `gas_used` out of `instance`
-        Ok(Gas::new())
-    }
-
     fn instantiate(
         &self,
         env: &FuncEnv,
@@ -401,7 +293,7 @@ where
         info!("Runtime `instantiate` (using Wasmer `Instance#new`)");
 
         let instance = Instance::new(module, import_object);
-        instance.map_err(|err| self.instantiation_failed(env, err))
+        instance.map_err(|err| err::instantiation_failed(env, err))
     }
 
     fn func<'i, Args, Rets>(
@@ -416,7 +308,7 @@ where
     {
         let func = instance.exports.get_function(func_name);
         if func.is_err() {
-            let err = self.func_not_found(env, func_name);
+            let err = err::func_not_found(env, func_name);
             return Err(err);
         }
 
@@ -424,7 +316,7 @@ where
         let native = func.native::<Args, Rets>();
 
         if native.is_err() {
-            let err = self.func_invalid_sig(env, func_name);
+            let err = err::func_invalid_sig(env, func_name);
             return Err(err);
         }
 
@@ -457,13 +349,13 @@ where
         &self,
         account_addr: &Address,
     ) -> std::result::Result<Template, RuntimeError> {
-        let mut interests = HashSet::new();
-        interests.insert(SectionKind::Code);
-        interests.insert(SectionKind::Data);
-        interests.insert(SectionKind::Ctors);
+        let accounts = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
+        let template_addr = accounts.template_addr().unwrap();
+        let template_storage = TemplateStorage::load(self.gs.clone(), &template_addr).unwrap();
+        let sections = template_storage.sections().unwrap();
 
-        let template = self.env.account_template(account_addr, Some(interests));
-        template.ok_or_else(|| RuntimeError::AccountNotFound(account_addr.clone()))
+        // TODO: Only fetch core sections.
+        Ok(Template::from_sections(sections))
     }
 
     fn compile_template(
@@ -476,7 +368,7 @@ where
         let module_res = Module::from_binary(store, template.code());
         let _gas_left = gas_left.unwrap_or(0);
 
-        module_res.map_err(|err| self.compilation_failed(env, err))
+        module_res.map_err(|err| err::compilation_failed(env, err))
     }
 
     fn validate_call(
@@ -495,14 +387,14 @@ where
 
         if spawning && !ctor {
             let msg = "expected function to be a constructor";
-            let err = self.func_not_allowed(env, call.func_name, msg);
+            let err = err::func_not_allowed(env, call.func_name, msg);
 
             return Err(err);
         }
 
         if !spawning && ctor {
             let msg = "expected function to be a non-constructor";
-            let err = self.func_not_allowed(env, call.func_name, msg);
+            let err = err::func_not_allowed(env, call.func_name, msg);
 
             return Err(err);
         }
@@ -520,172 +412,89 @@ where
         func_input: &'a [u8],
     ) -> Call<'a> {
         let target = tx.target();
-        let template = self.env.resolve_template_addr(target);
+        let account_storage = AccountStorage::load(self.gs.clone(), target).unwrap();
+        let template = account_storage.template_addr().unwrap();
 
-        if let Some(template) = template {
-            Call {
-                func_name,
-                func_input,
-                target: target.clone(),
-                template,
-                state: context.state(),
-                gas_limit: envelope.gas_limit(),
-                protected_mode,
-                within_spawn: false,
-                envelope,
-                context,
-            }
-        } else {
-            unreachable!("Should have failed earlier when doing `validate_call`");
+        Call {
+            func_name,
+            func_input,
+            target: target.clone(),
+            template,
+            state: context.state(),
+            gas_limit: envelope.gas_limit(),
+            protected_mode,
+            within_spawn: false,
+            envelope,
+            context,
         }
-    }
-
-    /// Errors
-
-    #[inline]
-    fn func_not_found(&self, env: &FuncEnv, func_name: &str) -> Failure {
-        RuntimeError::FuncNotFound {
-            target: env.target_addr().clone(),
-            template: env.template_addr().clone(),
-            func: func_name.to_string(),
-        }
-        .into()
-    }
-
-    #[inline]
-    fn instantiation_failed(&self, env: &FuncEnv, err: wasmer::InstantiationError) -> Failure {
-        RuntimeError::InstantiationFailed {
-            target: env.target_addr().clone(),
-            template: env.template_addr().clone(),
-            msg: err.to_string(),
-        }
-        .into()
-    }
-
-    #[inline]
-    fn func_not_allowed(&self, env: &FuncEnv, func_name: &str, msg: &str) -> Failure {
-        RuntimeError::FuncNotAllowed {
-            target: env.target_addr().clone(),
-            template: env.template_addr().clone(),
-            func: func_name.to_string(),
-            msg: msg.to_string(),
-        }
-        .into()
-    }
-
-    #[inline]
-    fn func_invalid_sig(&self, env: &FuncEnv, func_name: &str) -> Failure {
-        RuntimeError::FuncInvalidSignature {
-            target: env.target_addr().clone(),
-            template: env.template_addr().clone(),
-            func: func_name.to_string(),
-        }
-        .into()
-    }
-
-    #[inline]
-    fn func_failed(
-        &self,
-        env: &FuncEnv,
-        func_name: &str,
-        err: wasmer::RuntimeError,
-        logs: Vec<ReceiptLog>,
-    ) -> Failure {
-        let err = RuntimeError::FuncFailed {
-            target: env.target_addr().clone(),
-            template: env.template_addr().clone(),
-            func: func_name.to_string(),
-            msg: err.to_string(),
-        };
-
-        Failure::new(err, logs)
-    }
-
-    #[inline]
-    fn compilation_failed(&self, env: &FuncEnv, err: wasmer::CompileError) -> Failure {
-        RuntimeError::CompilationFailed {
-            target: env.target_addr().clone(),
-            template: env.template_addr().clone(),
-            msg: err.to_string(),
-        }
-        .into()
     }
 }
 
-impl<T> Runtime for DefaultRuntime<T>
-where
-    T: EnvTypes,
-{
+impl Runtime for DefaultRuntime {
     fn validate_deploy(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
-        let template = self.env.parse_deploy(message, None)?;
+        let template = svm_codec::template::decode(std::io::Cursor::new(message), None)?;
         let code = template.code();
 
         // Opcode and `svm_alloc` checks should only ever be run when deploying [`Template`]s.
         // There's no reason to also do it when spawning new `Account`
         // over already-validated [`Template`]s
-        let program = Program::new(code, true).map_err(ValidateError::from)?;
-        svm_gas::validate_wasm(&program, false).map_err(ValidateError::from)?;
+        let program = Program::new(code, true)?;
+        svm_gas::validate_wasm(&program, false)?;
 
         Ok(())
     }
 
     fn validate_spawn(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
-        self.env
-            .parse_spawn(message)
-            .map(|_| ())
-            .map_err(Into::into)
+        SpawnAccount::decode_bytes(message)?;
+        Ok(())
     }
 
     fn validate_call(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
-        self.env
-            .parse_call(message)
-            .map(|_| ())
-            .map_err(|e| e.into())
+        Transaction::decode_bytes(message)?;
+        Ok(())
     }
 
     fn deploy(&mut self, envelope: &Envelope, message: &[u8], _context: &Context) -> DeployReceipt {
         info!("Runtime `deploy`");
 
-        let template = self
-            .env
-            .parse_deploy(message, None)
-            .expect("Should have called `validate_deploy` first");
+        let sections = Sections::decode_bytes(message).expect(ERR_VALIDATE_DEPLOY);
+        let template = Template::from_sections(sections);
 
         let gas_limit = envelope.gas_limit();
         let install_price = svm_gas::transaction::deploy(message);
 
-        if gas_limit >= install_price {
-            let gas_used = Gas::with(install_price);
-            let addr = self.env.compute_template_addr(&template);
-            self.env.store_template(&template, &addr);
-
-            DeployReceipt::new(addr, gas_used)
-        } else {
-            DeployReceipt::new_oog()
+        if gas_limit < install_price {
+            return DeployReceipt::new_oog();
         }
+
+        let gas_used = Gas::with(install_price);
+        let addr = compute_template_addr(&template);
+
+        TemplateStorage::create(
+            self.gs.clone(),
+            &addr,
+            template.sections().clone(),
+            template.sections().clone(),
+        )
+        .unwrap();
+
+        DeployReceipt::new(addr, gas_used)
     }
 
     fn spawn(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> SpawnReceipt {
         // TODO: refactor this function (it has got a bit lengthy...)
 
-        use svm_gas::ProgramPricing;
-        use svm_program::ProgramVisitor;
-
         info!("Runtime `spawn`");
 
         let gas_limit = envelope.gas_limit();
-        let base = self
-            .env
-            .parse_spawn(message)
-            .expect("Should have called `validate_spawn` first");
+        let base = SpawnAccount::decode_bytes(message).expect(ERR_VALIDATE_SPAWN);
 
         let template_addr = base.account.template_addr();
 
         // TODO: load only the `Sections` relevant for spawning
-        let template = self
-            .env
-            .template(template_addr, None)
-            .expect("Should have failed earlier when doing `validate_spawn`");
+        let template_storage = TemplateStorage::load(self.gs.clone(), template_addr).unwrap();
+        let sections = template_storage.sections().unwrap();
+        let template = Template::from_sections(sections);
 
         let code_section = template.code_section();
         let code = code_section.code();
@@ -697,17 +506,18 @@ where
         // easily afford to do this because the number of templates that exist
         // at genesis is fixed and won't grow.
         let mut template_prices = self.template_prices.borrow_mut();
-        let func_price = {
-            if let Some(prices) = template_prices.get(&template_addr) {
-                prices
-            } else {
-                let pricer = self.env.price_resolver();
-                let program_pricing = ProgramPricing::new(pricer);
-                let prices = program_pricing.visit(&program).unwrap();
+        let func_price = if let Some(prices) = template_prices.get(&template_addr) {
+            prices
+        } else {
+            let pricer = self
+                .price_registry
+                .get(0)
+                .expect("Missing pricing utility.");
+            let program_pricing = ProgramPricing::new(pricer);
+            let prices = program_pricing.visit(&program).unwrap();
 
-                template_prices.insert(template_addr.clone(), prices);
-                template_prices.get(template_addr).unwrap()
-            }
+            template_prices.insert(template_addr.clone(), prices);
+            template_prices.get(template_addr).unwrap()
         };
 
         let spawner = envelope.principal();
@@ -716,7 +526,7 @@ where
         if !template.is_ctor(spawn.ctor_name()) {
             // The [`Template`] is faulty.
             let account = ExtAccount::new(spawn.account(), &spawner);
-            let account_addr = self.env.compute_account_addr(&spawn);
+            let account_addr = compute_account_addr(&spawn);
 
             return SpawnReceipt::from_err(
                 RuntimeError::FuncNotAllowed {
@@ -749,9 +559,18 @@ where
         match gas_left {
             Ok(gas_left) => {
                 let account = ExtAccount::new(spawn.account(), &spawner);
-                let target = self.env.compute_account_addr(&spawn);
+                let target = compute_account_addr(&spawn);
 
-                self.env.store_account(&account, &target);
+                AccountStorage::create(
+                    self.gs.clone(),
+                    &target,
+                    account.name().to_string(),
+                    account.template_addr().clone(),
+                    0,
+                    0,
+                )
+                .unwrap();
+
                 self.call_ctor(&spawn, target, gas_left, envelope, context)
             }
             Err(..) => SpawnReceipt::new_oog(Vec::new()),
@@ -759,10 +578,7 @@ where
     }
 
     fn verify(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
-        let tx = self
-            .env
-            .parse_call(message)
-            .expect("Should have called `validate_call` first");
+        let tx = Transaction::decode_bytes(message).expect(ERR_VALIDATE_CALL);
 
         // ### Important:
         //
@@ -785,10 +601,7 @@ where
     }
 
     fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
-        let tx = self
-            .env
-            .parse_call(message)
-            .expect("Should have called `validate_call` first");
+        let tx = Transaction::decode_bytes(message).expect(ERR_VALIDATE_CALL);
 
         let call = self.build_call(
             &tx,
@@ -800,5 +613,177 @@ where
         );
 
         self.exec_call::<(), ()>(&call)
+    }
+}
+
+fn compute_template_addr(template: &Template) -> TemplateAddr {
+    let hash = Blake3Hasher::hash(template.code());
+
+    TemplateAddr::new(&hash[..TemplateAddr::N])
+}
+
+fn compute_account_addr(spawn: &ExtSpawn) -> Address {
+    let template_addr = spawn.template_addr();
+    let hash = Blake3Hasher::hash(template_addr.as_slice());
+
+    Address::new(&hash[..Address::N])
+}
+
+fn read_memory(env: &FuncEnv, offset: usize, length: usize) -> Vec<u8> {
+    assert!(length > 0);
+
+    let borrow = env.borrow();
+    let memory = borrow.memory();
+
+    let view = memory.view::<u8>();
+    assert!(view.len() > offset + length - 1);
+
+    let cells = &view[offset..(offset + length)];
+    cells.iter().map(|c| c.get()).collect()
+}
+
+fn set_memory(env: &FuncEnv, instance: &Instance) {
+    // TODO: raise when no exported memory exists
+    let memory = instance.exports.get_memory("memory").unwrap();
+
+    env.borrow_mut().set_memory(memory.clone());
+}
+
+fn set_calldata(env: &FuncEnv, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
+    debug_assert!(calldata.is_empty() == false);
+
+    let (offset, len) = {
+        let borrow = env.borrow();
+        let memory = borrow.memory();
+
+        // Each WASM instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
+        // The `len(calldata)` will be less than the `WASM Page` size.
+        //
+        // In any case, the `alloc_memory` is in charge of allocating enough memory
+        // for the program to run (so we don't need to have any bounds-checking here).
+        //
+        // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
+        // (we'll need to decide on a `calldata` limit).
+        //
+        // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
+        let offset = wasm_ptr.offset() as usize;
+        let length = calldata.len();
+        let view = memory.view::<u8>();
+
+        // TODO: fail safely, instead of using `assert!`
+        assert!(view.len() > offset + length - 1);
+
+        let cells = &view[offset..(offset + length)];
+        for (cell, &byte) in cells.iter().zip(calldata.iter()) {
+            cell.set(byte);
+        }
+
+        (offset, length)
+    };
+
+    env.borrow_mut().set_calldata(offset, len);
+}
+
+fn commit_changes(env: &FuncEnv) -> State {
+    let mut borrow = env.borrow_mut();
+    let storage = borrow.storage_mut();
+    storage.gs.checkpoint().unwrap();
+    storage.gs.commit().unwrap().1.into()
+}
+
+fn outcome_to_receipt(env: &FuncEnv, mut out: Outcome<Box<[wasmer::Val]>>) -> CallReceipt {
+    CallReceipt {
+        version: 0,
+        success: true,
+        error: None,
+        returndata: Some(take_returndata(env)),
+        new_state: Some(commit_changes(&env)),
+        gas_used: out.gas_used(),
+        logs: out.take_logs(),
+    }
+}
+
+fn assert_no_returndata(env: &FuncEnv) {
+    assert!(env.borrow().returndata().is_none())
+}
+
+fn take_returndata(env: &FuncEnv) -> Vec<u8> {
+    let data = env.borrow().returndata();
+
+    match data {
+        Some((offset, length)) => read_memory(env, offset, length),
+        None => Vec::new(),
+    }
+}
+
+/// Calculates the amount of gas used by `instance`.
+fn instance_gas_used(_instance: &Instance) -> std::result::Result<Gas, OOGError> {
+    // TODO: read `gas_used` out of `instance`
+    Ok(Gas::new())
+}
+
+mod err {
+    use super::*;
+
+    pub fn func_not_found(env: &FuncEnv, func_name: &str) -> Failure {
+        RuntimeError::FuncNotFound {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            func: func_name.to_string(),
+        }
+        .into()
+    }
+
+    pub fn instantiation_failed(env: &FuncEnv, err: wasmer::InstantiationError) -> Failure {
+        RuntimeError::InstantiationFailed {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            msg: err.to_string(),
+        }
+        .into()
+    }
+
+    pub fn func_not_allowed(env: &FuncEnv, func_name: &str, msg: &str) -> Failure {
+        RuntimeError::FuncNotAllowed {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            func: func_name.to_string(),
+            msg: msg.to_string(),
+        }
+        .into()
+    }
+
+    pub fn func_invalid_sig(env: &FuncEnv, func_name: &str) -> Failure {
+        RuntimeError::FuncInvalidSignature {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            func: func_name.to_string(),
+        }
+        .into()
+    }
+
+    pub fn func_failed(
+        env: &FuncEnv,
+        func_name: &str,
+        err: wasmer::RuntimeError,
+        logs: Vec<ReceiptLog>,
+    ) -> Failure {
+        let err = RuntimeError::FuncFailed {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            func: func_name.to_string(),
+            msg: err.to_string(),
+        };
+
+        Failure::new(err, logs)
+    }
+
+    pub fn compilation_failed(env: &FuncEnv, err: wasmer::CompileError) -> Failure {
+        RuntimeError::CompilationFailed {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            msg: err.to_string(),
+        }
+        .into()
     }
 }

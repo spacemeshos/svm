@@ -11,9 +11,9 @@ use svm_types::{Gas, ReceiptLog};
 /// This `struct` is generic over `T`, which has no restrictions and denotes the
 /// return value of the transaction.
 pub struct Outcome<T> {
-    returns: T,
-    gas_used: Gas,
-    logs: Vec<ReceiptLog>,
+    pub returns: T,
+    pub gas_used: Gas,
+    pub logs: Vec<ReceiptLog>,
 }
 
 impl<T> Outcome<T> {
@@ -44,11 +44,5 @@ impl<T> Outcome<T> {
 impl<T: Default> Outcome<T> {
     pub fn take_returns(&mut self) -> T {
         std::mem::take(&mut self.returns)
-    }
-}
-
-impl<T: Copy> Outcome<T> {
-    pub fn returns(&self) -> T {
-        self.returns
     }
 }

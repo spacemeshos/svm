@@ -8,8 +8,8 @@ use svm_types::{
     TemplateAddr, Transaction,
 };
 
-use crate::env::{DefaultMemAccountStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
-use crate::{Config, DefaultRuntime, Env};
+use crate::price_registry::PriceResolverRegistry;
+use crate::DefaultRuntime;
 
 /// Hold a Wasm file in textual or binary form
 pub enum WasmFile<'a> {
@@ -43,16 +43,15 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
 }
 
 /// Creates an in-memory `Runtime` backed by a `state_kv`.
-pub fn create_memory_runtime() -> DefaultRuntime<DefaultMemEnvTypes> {
-    let template_store = DefaultMemTemplateStore::new();
-    let account_store = DefaultMemAccountStore::new();
-    let env = Env::<DefaultMemEnvTypes>::new(account_store, template_store);
-
-    let config = Config::default();
+pub fn create_memory_runtime() -> DefaultRuntime {
     let imports = ("sm".to_string(), wasmer::Exports::new());
 
-    let global_state = GlobalState::in_memory();
-    DefaultRuntime::new(env, imports, global_state, config, None)
+    DefaultRuntime::new(
+        imports,
+        GlobalState::in_memory(),
+        PriceResolverRegistry::default(),
+        None,
+    )
 }
 
 /// Builds a binary `Deploy Template` transaction.

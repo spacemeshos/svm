@@ -10,19 +10,19 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![feature(vec_into_raw_parts)]
 
-mod env;
 mod error;
+mod ext;
 mod func_env;
+mod price_registry;
 mod runtime;
 mod wasm_store;
 
 pub mod testing;
 pub mod vmcalls;
 
-pub use env::{Env, EnvTypes};
 pub use error::ValidateError;
 pub use func_env::{FuncEnv, ProtectedMode};
-pub use runtime::{Config, DefaultRuntime, Runtime};
+pub use runtime::{DefaultRuntime, Runtime};
 pub use wasm_store::new_store;
 
 #[cfg(feature = "default-rocksdb")]

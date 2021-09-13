@@ -1,3 +1,5 @@
+//! Extensions
+
 use svm_types::{Account, Address, SpawnAccount, TemplateAddr};
 
 #[doc(hidden)]

@@ -1,3 +1,4 @@
+/// `Addressable` types
 use derive_more::{AsRef, From};
 
 use crate::BytesPrimitive;

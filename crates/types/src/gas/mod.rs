@@ -1,3 +1,4 @@
+/// Gas-related types
 use std::cmp::{Ordering, PartialEq, PartialOrd};
 use std::ops::{Add, AddAssign, Sub};
 
