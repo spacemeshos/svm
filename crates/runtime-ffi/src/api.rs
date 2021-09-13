@@ -395,18 +395,20 @@ pub unsafe extern "C" fn svm_get_account(
     runtime: *mut c_void,
     account_addr: *const u8,
     balance: *mut u64,
-    counter: *mut u128,
+    counter_upper_bits: *mut u64,
+    counter_lower_bits: *mut u64,
     template_addr: *mut u8,
 ) -> svm_result_t {
     catch_unwind_or_fail(|| {
         let runtime = runtime.cast::<Box<dyn Runtime>>().as_mut().unwrap();
         let account_addr = Address::new(std::slice::from_raw_parts(account_addr, Address::N));
+        let template_addr = std::slice::from_raw_parts_mut(template_addr, TemplateAddr::N);
         let account_data = runtime.get_account(&account_addr).unwrap();
 
         *balance = account_data.0;
-        *counter = account_data.1;
-        std::slice::from_raw_parts_mut(template_addr, TemplateAddr::N)
-            .clone_from_slice(account_data.2.as_slice());
+        *counter_upper_bits = (account_data.1 >> 64) as u64;
+        *counter_lower_bits = account_data.1 as u64;
+        template_addr.clone_from_slice(account_data.2.as_slice());
 
         svm_result_t::OK
     })
