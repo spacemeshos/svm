@@ -369,6 +369,15 @@ pub unsafe extern "C" fn svm_call(
     )
 }
 
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_rewind(runtime: *mut c_void, layer_id: u64) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = runtime.cast::<Box<dyn Runtime>>().as_mut().unwrap();
+        runtime.gs.rewind()
+    })
+}
+
 unsafe fn svm_runtime_action<F, C>(
     runtime: *mut c_void,
     envelope: *const u8,
@@ -430,12 +439,19 @@ fn catch_unwind_or_fail<F>(f: F) -> svm_result_t
 where
     F: FnOnce() -> svm_result_t + std::panic::UnwindSafe,
 {
-    std::panic::catch_unwind(f).unwrap_or_else(|_| {
+    std::panic::catch_unwind(f).unwrap_or_else(|e| {
         svm_result_t::new_error(
-            br#"
+            format!(
+                "
 Internal SVM failure.
 This is a bug and we'd appreciate a bug report.
-Please provide any information that was printed to stderr."#,
+Please provide any information that was printed to stderr.
+
+Panic information: {:?}
+            ",
+                e
+            )
+            .as_bytes(),
         )
     })
 }

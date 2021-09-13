@@ -11,9 +11,9 @@ use svm_hash::{Blake3Hasher, Hasher};
 use svm_program::{Program, ProgramVisitor};
 use svm_state::{AccountStorage, GlobalState, TemplateStorage};
 use svm_types::{
-    Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError,
-    ReceiptLog, RuntimeError, RuntimeFailure, Sections, SpawnAccount, SpawnReceipt, State,
-    Template, TemplateAddr, Transaction,
+    Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, Layer,
+    OOGError, ReceiptLog, RuntimeError, RuntimeFailure, Sections, SpawnAccount, SpawnReceipt,
+    State, Template, TemplateAddr, Transaction,
 };
 
 use super::{Call, Function, Outcome};
@@ -611,6 +611,10 @@ impl Runtime for DefaultRuntime {
         );
 
         self.exec_call::<(), ()>(&call)
+    }
+
+    fn rewind(&mut self, layer_id: Layer) -> Result<()> {
+        self.gs.rewind(layer_id)
     }
 }
 

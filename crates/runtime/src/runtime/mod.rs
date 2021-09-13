@@ -8,7 +8,8 @@ mod outcome;
 #[cfg(feature = "default-rocksdb")]
 mod rocksdb;
 
-use svm_types::{CallReceipt, Context, DeployReceipt, Envelope, SpawnReceipt};
+use svm_types::{CallReceipt, Context, DeployReceipt, Envelope, Layer, SpawnReceipt};
+use wasmer::RuntimeError;
 
 use crate::error::ValidateError;
 
@@ -50,4 +51,8 @@ pub trait Runtime {
     ///
     /// This function should be called only if the `verify` stage has passed.
     fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt;
+
+    /// Moves the internal state of this [`Runtime`] back to the time of
+    /// `layer_id`.
+    fn rewind(&mut self, layer_id: Layer) -> Result<(), RuntimeError>;
 }
