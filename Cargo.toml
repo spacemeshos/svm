@@ -1,10 +1,5 @@
 [workspace]
 members = [
   "crates/*",
-  "crates/sdk-alloc",
-  "crates/sdk-types",
-  "crates/sdk-storage",
-  "crates/sdk-host",
-  "crates/sdk-macros",
   "tests/*",
 ]
