@@ -78,29 +78,11 @@
 //!   +-------------------+-------------------+------------+
 //!
 
-use svm_types::{Address, ReceiptLog, RuntimeError, TemplateAddr};
+use svm_types::{Address, ReceiptLog, RuntimeError, RuntimeFailure, TemplateAddr};
 
 use crate::{Codec, ParseError, ReadExt, WriteExt};
 
-#[derive(Debug, PartialEq)]
-pub struct RuntimeErrorWithLogs {
-    pub err: RuntimeError,
-    pub logs: Vec<ReceiptLog>,
-}
-
-impl RuntimeErrorWithLogs {
-    pub fn new<T>(err: RuntimeError, logs: T) -> Self
-    where
-        T: Into<Vec<ReceiptLog>>,
-    {
-        Self {
-            err,
-            logs: logs.into(),
-        }
-    }
-}
-
-impl Codec for RuntimeErrorWithLogs {
+impl Codec for RuntimeFailure {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
@@ -329,17 +311,17 @@ mod tests {
         let err = RuntimeError::OOG;
 
         let mut buf = Vec::new();
-        RuntimeErrorWithLogs::new(err, test_logs()).encode(&mut buf);
+        RuntimeFailure::new(err, test_logs()).encode(&mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let _decoded = RuntimeErrorWithLogs::decode(&mut cursor);
+        let _decoded = RuntimeFailure::decode(&mut cursor);
     }
 
     #[test]
     fn decode_receipt_template_not_found() {
         let template_addr = TemplateAddr::of("@Template");
 
-        test_codec(RuntimeErrorWithLogs::new(
+        test_codec(RuntimeFailure::new(
             RuntimeError::TemplateNotFound(template_addr),
             test_logs(),
         ));
@@ -349,7 +331,7 @@ mod tests {
     fn decode_receipt_account_not_found() {
         let account_addr = Address::of("@Account");
 
-        test_codec(RuntimeErrorWithLogs::new(
+        test_codec(RuntimeFailure::new(
             RuntimeError::AccountNotFound(account_addr),
             test_logs(),
         ));
@@ -360,7 +342,7 @@ mod tests {
         let template_addr = TemplateAddr::of("@Template");
         let account_addr = Address::of("@Account");
 
-        test_codec(RuntimeErrorWithLogs::new(
+        test_codec(RuntimeFailure::new(
             RuntimeError::CompilationFailed {
                 target: account_addr,
                 template: template_addr,
@@ -375,7 +357,7 @@ mod tests {
         let template_addr = TemplateAddr::of("@Template");
         let account_addr = Address::of("@Account");
 
-        test_codec(RuntimeErrorWithLogs::new(
+        test_codec(RuntimeFailure::new(
             RuntimeError::InstantiationFailed {
                 target: account_addr,
                 template: template_addr,
@@ -391,7 +373,7 @@ mod tests {
         let account_addr = Address::of("@Account");
         let func = "do_something".to_string();
 
-        test_codec(RuntimeErrorWithLogs::new(
+        test_codec(RuntimeFailure::new(
             RuntimeError::FuncNotFound {
                 target: account_addr,
                 template: template_addr,
@@ -408,7 +390,7 @@ mod tests {
         let func = "do_something".to_string();
         let msg = "Invalid input".to_string();
 
-        test_codec(RuntimeErrorWithLogs::new(
+        test_codec(RuntimeFailure::new(
             RuntimeError::FuncFailed {
                 target: account_addr,
                 template: template_addr,
@@ -426,7 +408,7 @@ mod tests {
         let func = "init".to_string();
         let msg = "expected a ctor".to_string();
 
-        test_codec(RuntimeErrorWithLogs::new(
+        test_codec(RuntimeFailure::new(
             RuntimeError::FuncNotAllowed {
                 target: account_addr,
                 template: template_addr,

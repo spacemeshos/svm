@@ -2,7 +2,6 @@
 
 mod call;
 mod default;
-mod failure;
 mod function;
 mod outcome;
 
@@ -15,7 +14,6 @@ use crate::error::ValidateError;
 
 pub use call::Call;
 pub use default::DefaultRuntime;
-pub use failure::Failure;
 pub use function::Function;
 pub use outcome::Outcome;
 

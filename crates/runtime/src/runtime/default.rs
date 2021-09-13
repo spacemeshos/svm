@@ -12,17 +12,17 @@ use svm_program::{Program, ProgramVisitor};
 use svm_state::{AccountStorage, GlobalState, TemplateStorage};
 use svm_types::{
     Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError,
-    ReceiptLog, RuntimeError, Sections, SpawnAccount, SpawnReceipt, State, Template, TemplateAddr,
-    Transaction,
+    ReceiptLog, RuntimeError, RuntimeFailure, Sections, SpawnAccount, SpawnReceipt, State,
+    Template, TemplateAddr, Transaction,
 };
 
-use super::{Call, Failure, Function, Outcome};
+use super::{Call, Function, Outcome};
 use crate::error::ValidateError;
-use crate::ext::{ExtAccount, ExtSpawn};
 use crate::price_registry::PriceResolverRegistry;
 use crate::{vmcalls, FuncEnv, ProtectedMode, Runtime};
 
-type Result<T> = std::result::Result<Outcome<T>, Failure>;
+type OutcomeResult<T> = std::result::Result<Outcome<T>, RuntimeFailure>;
+type Result<T> = std::result::Result<T, RuntimeFailure>;
 
 const ERR_VALIDATE_SPAWN: &str = "Should have called `validate_spawn` first";
 const ERR_VALIDATE_CALL: &str = "Should have called `validate_call` first";
@@ -66,16 +66,13 @@ impl DefaultRuntime {
         }
     }
 
-    fn failure_to_receipt(&self, mut fail: Failure) -> CallReceipt {
-        let logs = fail.take_logs();
-        let err = fail.take_error();
-
-        CallReceipt::from_err(err, logs)
+    fn failure_to_receipt(&self, fail: RuntimeFailure) -> CallReceipt {
+        CallReceipt::from_err(fail.err, fail.logs)
     }
 
     fn call_ctor(
         &mut self,
-        spawn: &ExtSpawn,
+        spawn: &SpawnAccount,
         target: Address,
         gas_left: Gas,
         envelope: &Envelope,
@@ -108,7 +105,7 @@ impl DefaultRuntime {
         result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
     }
 
-    fn exec<Args, Rets, F, R>(&self, call: &Call, f: F) -> std::result::Result<R, Failure>
+    fn exec<Args, Rets, F, R>(&self, call: &Call, f: F) -> Result<R>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
@@ -149,7 +146,7 @@ impl DefaultRuntime {
         func_env: &FuncEnv,
         template: &Template,
         import_object: &wasmer::ImportObject,
-    ) -> Result<Box<[wasmer::Val]>>
+    ) -> OutcomeResult<Box<[wasmer::Val]>>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
@@ -182,10 +179,7 @@ impl DefaultRuntime {
 
                 Ok(out)
             }
-            Err(..) => {
-                let err = Failure::new(RuntimeError::OOG, out.take_logs());
-                Err(err)
-            }
+            Err(..) => Err(RuntimeFailure::new(RuntimeError::OOG, out.logs)),
         }
     }
 
@@ -196,7 +190,7 @@ impl DefaultRuntime {
         calldata: &[u8],
         func: &Function<Args, Rets>,
         params: &[wasmer::Val],
-    ) -> Result<Box<[wasmer::Val]>>
+    ) -> OutcomeResult<Box<[wasmer::Val]>>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
@@ -215,7 +209,12 @@ impl DefaultRuntime {
         self.wasmer_call(instance, env, func, params)
     }
 
-    fn call_alloc(&self, instance: &Instance, env: &FuncEnv, size: usize) -> Result<WasmPtr<u8>> {
+    fn call_alloc(
+        &self,
+        instance: &Instance,
+        env: &FuncEnv,
+        size: usize,
+    ) -> OutcomeResult<WasmPtr<u8>> {
         // Backups the current [`ProtectedMode`].
         let origin_mode = env.protected_mode();
 
@@ -258,7 +257,7 @@ impl DefaultRuntime {
         env: &FuncEnv,
         func: &Function<Args, Rets>,
         params: &[wasmer::Val],
-    ) -> Result<Box<[wasmer::Val]>>
+    ) -> OutcomeResult<Box<[wasmer::Val]>>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
@@ -278,7 +277,7 @@ impl DefaultRuntime {
                 Ok(out)
             }
             Err(..) => {
-                let err = Failure::new(RuntimeError::OOG, logs);
+                let err = RuntimeFailure::new(RuntimeError::OOG, logs);
                 Err(err)
             }
         }
@@ -289,7 +288,7 @@ impl DefaultRuntime {
         env: &FuncEnv,
         module: &Module,
         import_object: &wasmer::ImportObject,
-    ) -> std::result::Result<Instance, Failure> {
+    ) -> Result<Instance> {
         info!("Runtime `instantiate` (using Wasmer `Instance#new`)");
 
         let instance = Instance::new(module, import_object);
@@ -301,7 +300,7 @@ impl DefaultRuntime {
         instance: &'i Instance,
         env: &FuncEnv,
         func_name: &'i str,
-    ) -> std::result::Result<Function<'i, Args, Rets>, Failure>
+    ) -> Result<Function<'i, Args, Rets>>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
@@ -364,7 +363,7 @@ impl DefaultRuntime {
         env: &FuncEnv,
         template: &Template,
         gas_left: Gas,
-    ) -> std::result::Result<Module, Failure> {
+    ) -> std::result::Result<Module, RuntimeFailure> {
         let module_res = Module::from_binary(store, template.code());
         let _gas_left = gas_left.unwrap_or(0);
 
@@ -376,7 +375,7 @@ impl DefaultRuntime {
         call: &Call,
         template: &Template,
         env: &FuncEnv,
-    ) -> std::result::Result<(), Failure> {
+    ) -> std::result::Result<(), RuntimeFailure> {
         // TODO: validate there is enough gas for running the `Transaction`.
         // * verify
         // * call
@@ -520,12 +519,11 @@ impl Runtime for DefaultRuntime {
             template_prices.get(template_addr).unwrap()
         };
 
-        let spawner = envelope.principal();
-        let spawn = ExtSpawn::new(base, &spawner);
+        let spawn = base;
 
         if !template.is_ctor(spawn.ctor_name()) {
             // The [`Template`] is faulty.
-            let account = ExtAccount::new(spawn.account(), &spawner);
+            let account = spawn.account();
             let account_addr = compute_account_addr(&spawn);
 
             return SpawnReceipt::from_err(
@@ -558,7 +556,7 @@ impl Runtime for DefaultRuntime {
 
         match gas_left {
             Ok(gas_left) => {
-                let account = ExtAccount::new(spawn.account(), &spawner);
+                let account = spawn.account();
                 let target = compute_account_addr(&spawn);
 
                 AccountStorage::create(
@@ -622,7 +620,7 @@ fn compute_template_addr(template: &Template) -> TemplateAddr {
     TemplateAddr::new(&hash[..TemplateAddr::N])
 }
 
-fn compute_account_addr(spawn: &ExtSpawn) -> Address {
+fn compute_account_addr(spawn: &SpawnAccount) -> Address {
     let template_addr = spawn.template_addr();
     let hash = Blake3Hasher::hash(template_addr.as_slice());
 
@@ -725,7 +723,7 @@ fn instance_gas_used(_instance: &Instance) -> std::result::Result<Gas, OOGError>
 mod err {
     use super::*;
 
-    pub fn func_not_found(env: &FuncEnv, func_name: &str) -> Failure {
+    pub fn func_not_found(env: &FuncEnv, func_name: &str) -> RuntimeFailure {
         RuntimeError::FuncNotFound {
             target: env.target_addr().clone(),
             template: env.template_addr().clone(),
@@ -734,7 +732,7 @@ mod err {
         .into()
     }
 
-    pub fn instantiation_failed(env: &FuncEnv, err: wasmer::InstantiationError) -> Failure {
+    pub fn instantiation_failed(env: &FuncEnv, err: wasmer::InstantiationError) -> RuntimeFailure {
         RuntimeError::InstantiationFailed {
             target: env.target_addr().clone(),
             template: env.template_addr().clone(),
@@ -743,7 +741,7 @@ mod err {
         .into()
     }
 
-    pub fn func_not_allowed(env: &FuncEnv, func_name: &str, msg: &str) -> Failure {
+    pub fn func_not_allowed(env: &FuncEnv, func_name: &str, msg: &str) -> RuntimeFailure {
         RuntimeError::FuncNotAllowed {
             target: env.target_addr().clone(),
             template: env.template_addr().clone(),
@@ -753,7 +751,7 @@ mod err {
         .into()
     }
 
-    pub fn func_invalid_sig(env: &FuncEnv, func_name: &str) -> Failure {
+    pub fn func_invalid_sig(env: &FuncEnv, func_name: &str) -> RuntimeFailure {
         RuntimeError::FuncInvalidSignature {
             target: env.target_addr().clone(),
             template: env.template_addr().clone(),
@@ -767,7 +765,7 @@ mod err {
         func_name: &str,
         err: wasmer::RuntimeError,
         logs: Vec<ReceiptLog>,
-    ) -> Failure {
+    ) -> RuntimeFailure {
         let err = RuntimeError::FuncFailed {
             target: env.target_addr().clone(),
             template: env.template_addr().clone(),
@@ -775,10 +773,10 @@ mod err {
             msg: err.to_string(),
         };
 
-        Failure::new(err, logs)
+        RuntimeFailure::new(err, logs)
     }
 
-    pub fn compilation_failed(env: &FuncEnv, err: wasmer::CompileError) -> Failure {
+    pub fn compilation_failed(env: &FuncEnv, err: wasmer::CompileError) -> RuntimeFailure {
         RuntimeError::CompilationFailed {
             target: env.target_addr().clone(),
             template: env.template_addr().clone(),
