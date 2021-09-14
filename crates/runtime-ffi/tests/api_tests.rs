@@ -130,11 +130,9 @@ fn svm_runtime_success() {
     }
 }
 
-//
 #[test]
 fn svm_runtime_failure() {
     unsafe {
-        // Asserting we start the test with no previous leakage.
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
 
