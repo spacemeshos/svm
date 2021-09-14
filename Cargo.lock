@@ -1870,6 +1870,7 @@ dependencies = [
  "svm-sdk",
  "svm-state",
  "svm-types",
+ "wasmer",
  "wat",
 ]
 

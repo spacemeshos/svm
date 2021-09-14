@@ -1,3 +1,4 @@
+use api::svm_init;
 use svm_runtime_ffi as api;
 
 use svm_codec::Codec;
@@ -36,6 +37,8 @@ fn call_message(target: &Address, func_name: &str, calldata: &[u8]) -> Vec<u8> {
 #[test]
 fn svm_runtime_success() {
     unsafe {
+        svm_init(true, std::ptr::null(), 0);
+
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
 
@@ -133,6 +136,8 @@ fn svm_runtime_success() {
 #[test]
 fn svm_runtime_failure() {
     unsafe {
+        svm_init(true, std::ptr::null(), 0);
+
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
 

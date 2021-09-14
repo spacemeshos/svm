@@ -5,6 +5,10 @@ use std::collections::HashSet;
 use std::ffi::c_void;
 use std::sync::Mutex;
 
+use crate::config::Config;
+use svm_runtime::PriceResolverRegistry;
+use svm_state::GlobalState;
+
 lazy_static! {
     static ref RUNTIMES: Mutex<HashSet<usize>> = Mutex::default();
 }
@@ -27,9 +31,22 @@ impl RuntimeTracker {
     }
 
     pub fn alloc() -> *mut c_void {
-        use svm_runtime::testing::create_memory_runtime;
+        let config = Config::get();
+        let imports = ("sm".to_string(), wasmer::Exports::new());
+        let global_state = if let Some(db_path) = config.db_path {
+            GlobalState::new(db_path.as_os_str().to_str().unwrap())
+        } else {
+            GlobalState::in_memory()
+        };
 
-        let boxed = Box::new(create_memory_runtime());
+        let runtime = DefaultRuntime::new(
+            imports,
+            global_state,
+            PriceResolverRegistry::default(),
+            None,
+        );
+
+        let boxed = Box::new(runtime);
         let ptr = Box::leak(boxed) as *mut _ as *mut c_void;
 
         RUNTIMES.lock().unwrap().insert(ptr as usize);

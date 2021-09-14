@@ -2,14 +2,31 @@ use log::{debug, error};
 
 use std::ffi::c_void;
 use std::panic::UnwindSafe;
+use std::path::PathBuf;
 use std::slice;
 
 use svm_codec::Codec;
 use svm_runtime::{DefaultRuntime, Runtime, ValidateError};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, TemplateAddr};
 
+use crate::config::Config;
 use crate::runtime_tracker::RuntimeTracker;
 use crate::svm_result_t;
+
+/// Initializes the configuration options for all newly allocates SVM runtimes.
+pub unsafe extern "C" fn svm_init(in_memory: bool, path: *const u8, path_len: u32) -> svm_result_t {
+    Config::set(Config {
+        db_path: if in_memory {
+            None
+        } else {
+            let slice = std::slice::from_raw_parts(path, path_len as usize);
+            let s = std::str::from_utf8(slice).expect("Invalid UTF-8");
+            Some(PathBuf::from(s.to_string()))
+        },
+    });
+
+    svm_result_t::OK
+}
 
 ///
 /// Start of the Public C-API
@@ -31,6 +48,7 @@ use crate::svm_result_t;
 ///
 /// let mut runtime = std::ptr::null_mut();
 ///
+/// unsafe { svm_init(true, std::ptr::null(), 0); }
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 /// ```
@@ -40,6 +58,10 @@ use crate::svm_result_t;
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_runtime_create(runtime: *mut *mut c_void) -> svm_result_t {
     catch_unwind_or_fail(|| {
+        if !Config::is_ready() {
+            return svm_result_t::new_error(b"`svm_init` not called beforehand.");
+        }
+
         debug!("`svm_memory_runtime_create` start");
         *runtime = RuntimeTracker::alloc();
         debug!("`svm_memory_runtime_create` end");
@@ -56,6 +78,9 @@ pub unsafe extern "C" fn svm_memory_runtime_create(runtime: *mut *mut c_void) ->
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
+///
+/// unsafe { svm_init(true, std::ptr::null(), 0); }
+///
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
@@ -91,6 +116,8 @@ pub unsafe extern "C" fn svm_runtimes_count(count: *mut u64) {
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
+///
+/// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
@@ -128,6 +155,8 @@ pub unsafe extern "C" fn svm_validate_deploy(
 ///
 /// let mut runtime = std::ptr::null_mut();
 ///
+/// unsafe { svm_init(true, std::ptr::null(), 0); }
+///
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
@@ -160,6 +189,8 @@ pub unsafe extern "C" fn svm_validate_spawn(
 ///
 /// let mut runtime = std::ptr::null_mut();
 ///
+/// unsafe { svm_init(true, std::ptr::null(), 0); }
+///
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
@@ -191,6 +222,8 @@ pub unsafe extern "C" fn svm_validate_call(
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
+///
+/// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
@@ -237,6 +270,8 @@ pub unsafe extern "C" fn svm_deploy(
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
+///
+/// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
@@ -288,6 +323,8 @@ pub unsafe extern "C" fn svm_spawn(
 ///
 /// let mut runtime = std::ptr::null_mut();
 ///
+/// unsafe { svm_init(true, std::ptr::null(), 0); }
+///
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
@@ -334,6 +371,8 @@ pub unsafe extern "C" fn svm_verify(
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
+///
+/// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
