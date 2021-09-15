@@ -3,7 +3,6 @@ members = [
   "crates/abi-layout",
   "crates/abi-encoder",
   "crates/abi-decoder",
-  "crates/abi/tests",
   "crates/cli",
   "crates/codec",
   "crates/gas",
@@ -23,4 +22,5 @@ members = [
   "crates/state",
   "crates/svm",
   "crates/types",
+  "tests/*",
 ]
