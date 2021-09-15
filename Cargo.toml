@@ -18,7 +18,6 @@ members = [
   "crates/sdk/host",
   "crates/sdk/macros",
   "crates/sdk",
-  "crates/sdk-tests",
   "crates/state",
   "crates/svm",
   "crates/types",
