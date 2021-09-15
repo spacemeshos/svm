@@ -18,7 +18,7 @@ svm-types = { path = "../types" }
 svm-sdk-alloc = { path = "../sdk-alloc", default-features = false }
 svm-sdk-std = { path = "../sdk-std", default-features = false }
 svm-sdk-types = { path = "../sdk-types", default-features = false }
-svm-sdk-storage = { path = "../sdk/storage", default-features = false }
+svm-sdk-storage = { path = "../sdk-storage", default-features = false }
 svm-sdk-host = { path = "../sdk-host", default-features = false }
 svm-sdk-macros = { path = "../sdk/macros", default-features = false }
 svm-sdk = { path = "../sdk", default-features = false }
