@@ -14,7 +14,7 @@ publish = false
 seq-macro = "0.2"
 svm-abi-layout = { path="../abi-layout" }
 svm-sdk-types = { path="../sdk-types", default-features=false }
-svm-sdk-std = { path="../sdk/std", default-features=false }
+svm-sdk-std = { path="../sdk-std", default-features=false }
 
 [features]
 default = []
