@@ -22,6 +22,8 @@ svm-sdk-storage = { path = "../sdk-storage", default-features = false }
 svm-sdk-host = { path = "../sdk-host", default-features = false }
 svm-sdk-macros = { path = "../sdk-macros", default-features = false }
 svm-sdk = { path = "../sdk", default-features = false }
+# Keep this. Bad things will happen, you don't want to know.
+svm-sdk-tests = { path = "../../tests/sdk" }
 svm-codec = { path = "../codec" }
 svm-runtime = { path = "../runtime", default-features = false }
 svm-runtime-ffi = { path = "../runtime-ffi", default-features = false }

@@ -806,3 +806,175 @@ mod err {
         .into()
     }
 }
+
+fn compute_template_addr(template: &Template) -> TemplateAddr {
+    let hash = Blake3Hasher::hash(template.code());
+
+    TemplateAddr::new(&hash[..TemplateAddr::N])
+}
+
+fn compute_account_addr(spawn: &SpawnAccount) -> Address {
+    let template_addr = spawn.template_addr();
+    let hash = Blake3Hasher::hash(template_addr.as_slice());
+
+    Address::new(&hash[..Address::N])
+}
+
+fn read_memory(env: &FuncEnv, offset: usize, length: usize) -> Vec<u8> {
+    assert!(length > 0);
+
+    let borrow = env.borrow();
+    let memory = borrow.memory();
+
+    let view = memory.view::<u8>();
+    assert!(view.len() > offset + length - 1);
+
+    let cells = &view[offset..(offset + length)];
+    cells.iter().map(|c| c.get()).collect()
+}
+
+fn set_memory(env: &FuncEnv, instance: &Instance) {
+    // TODO: raise when no exported memory exists
+    let memory = instance.exports.get_memory("memory").unwrap();
+
+    env.borrow_mut().set_memory(memory.clone());
+}
+
+fn set_calldata(env: &FuncEnv, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
+    debug_assert!(calldata.is_empty() == false);
+
+    let (offset, len) = {
+        let borrow = env.borrow();
+        let memory = borrow.memory();
+
+        // Each WASM instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
+        // The `len(calldata)` will be less than the `WASM Page` size.
+        //
+        // In any case, the `alloc_memory` is in charge of allocating enough memory
+        // for the program to run (so we don't need to have any bounds-checking here).
+        //
+        // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
+        // (we'll need to decide on a `calldata` limit).
+        //
+        // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
+        let offset = wasm_ptr.offset() as usize;
+        let length = calldata.len();
+        let view = memory.view::<u8>();
+
+        // TODO: fail safely, instead of using `assert!`
+        assert!(view.len() > offset + length - 1);
+
+        let cells = &view[offset..(offset + length)];
+        for (cell, &byte) in cells.iter().zip(calldata.iter()) {
+            cell.set(byte);
+        }
+
+        (offset, length)
+    };
+
+    env.borrow_mut().set_calldata(offset, len);
+}
+
+fn commit_changes(env: &FuncEnv) -> State {
+    let mut borrow = env.borrow_mut();
+    let storage = borrow.storage_mut();
+    storage.gs.checkpoint().unwrap();
+    storage.gs.commit().unwrap().1.into()
+}
+
+fn outcome_to_receipt(env: &FuncEnv, mut out: Outcome<Box<[wasmer::Val]>>) -> CallReceipt {
+    CallReceipt {
+        version: 0,
+        success: true,
+        error: None,
+        returndata: Some(take_returndata(env)),
+        new_state: Some(commit_changes(&env)),
+        gas_used: out.gas_used(),
+        logs: out.take_logs(),
+    }
+}
+
+fn assert_no_returndata(env: &FuncEnv) {
+    assert!(env.borrow().returndata().is_none())
+}
+
+fn take_returndata(env: &FuncEnv) -> Vec<u8> {
+    let data = env.borrow().returndata();
+
+    match data {
+        Some((offset, length)) => read_memory(env, offset, length),
+        None => Vec::new(),
+    }
+}
+
+/// Calculates the amount of gas used by `instance`.
+fn instance_gas_used(_instance: &Instance) -> std::result::Result<Gas, OOGError> {
+    // TODO: read `gas_used` out of `instance`
+    Ok(Gas::new())
+}
+
+mod err {
+    use super::*;
+
+    pub fn func_not_found(env: &FuncEnv, func_name: &str) -> RuntimeFailure {
+        RuntimeError::FuncNotFound {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            func: func_name.to_string(),
+        }
+        .into()
+    }
+
+    pub fn instantiation_failed(env: &FuncEnv, err: wasmer::InstantiationError) -> RuntimeFailure {
+        RuntimeError::InstantiationFailed {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            msg: err.to_string(),
+        }
+        .into()
+    }
+
+    pub fn func_not_allowed(env: &FuncEnv, func_name: &str, msg: &str) -> RuntimeFailure {
+        RuntimeError::FuncNotAllowed {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            func: func_name.to_string(),
+            msg: msg.to_string(),
+        }
+        .into()
+    }
+
+    pub fn func_invalid_sig(env: &FuncEnv, func_name: &str) -> RuntimeFailure {
+        RuntimeError::FuncInvalidSignature {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            func: func_name.to_string(),
+        }
+        .into()
+    }
+
+    pub fn func_failed(
+        env: &FuncEnv,
+        func_name: &str,
+        err: wasmer::RuntimeError,
+        logs: Vec<ReceiptLog>,
+    ) -> RuntimeFailure {
+        let err = RuntimeError::FuncFailed {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            func: func_name.to_string(),
+            msg: err.to_string(),
+        };
+
+        RuntimeFailure::new(err, logs)
+    }
+
+    pub fn compilation_failed(env: &FuncEnv, err: wasmer::CompileError) -> RuntimeFailure {
+        RuntimeError::CompilationFailed {
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
+            msg: err.to_string(),
+        }
+        .into()
+    }
+}

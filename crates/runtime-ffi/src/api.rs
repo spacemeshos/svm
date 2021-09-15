@@ -62,8 +62,8 @@ pub unsafe extern "C" fn svm_memory_runtime_create(runtime: *mut *mut c_void) ->
             return svm_result_t::new_error(b"`svm_init` not called beforehand.");
         }
 
-        debug!("`svm_memory_runtime_create` start");
         *runtime = RuntimeTracker::alloc();
+
         debug!("`svm_memory_runtime_create` end");
 
         svm_result_t::OK
@@ -458,6 +458,10 @@ pub unsafe extern "C" fn svm_get_account(
 
 unsafe fn svm_runtime_action<F, C>(
     runtime_ptr: *mut c_void,
+}
+
+unsafe fn svm_runtime_action<F, C>(
+    runtime: *mut c_void,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
