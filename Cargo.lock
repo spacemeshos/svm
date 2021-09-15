@@ -1699,23 +1699,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
-name = "svm"
-version = "0.0.0"
-dependencies = [
- "svm-codec",
- "svm-runtime",
- "svm-runtime-ffi",
- "svm-sdk",
- "svm-sdk-alloc",
- "svm-sdk-host",
- "svm-sdk-macros",
- "svm-sdk-std",
- "svm-sdk-storage",
- "svm-sdk-types",
- "svm-types",
-]
-
-[[package]]
 name = "svm-abi-decoder"
 version = "0.0.0"
 dependencies = [

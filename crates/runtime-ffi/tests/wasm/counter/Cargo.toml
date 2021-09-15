@@ -25,7 +25,7 @@ svm-sdk = { path = "../../../../sdk", default-features = false }
 
 [features]
 default = []
-ffi = ["svm-sdk-ffi", "static-alloc"]
+ffi = ["svm-sdk/ffi", "static-alloc"]
 mock = ["svm-sdk/mock"]
 static-alloc = ["svm-sdk/static-alloc"]
 dynamic-alloc = ["svm-sdk/dynamic-alloc"]

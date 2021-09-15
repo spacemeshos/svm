@@ -11,7 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-svm-sdk = { path = "../../crates/sdk", features = ["dynamic-alloc", "mock"], default-features = false }
+svm-sdk = { path = "../../crates/sdk", features = ["dynamic-alloc"], default-features = false }
 svm-sdk-types = { path = "../../crates/sdk-types", features = ["dynamic-alloc", "debug"], default-features = false }
 
 [dev-dependencies]
