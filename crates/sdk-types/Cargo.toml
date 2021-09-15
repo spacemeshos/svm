@@ -1,5 +1,5 @@
 [package]
-name = "svm-sdk-std"
+name = "svm-sdk-types"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
@@ -12,10 +12,10 @@ publish = false
 
 [dependencies]
 seq-macro = "0.2"
-svm-sdk-alloc = { path = "../alloc", default-features = false }
+svm-sdk-std = { path = "../sdk-std", default-features = false }
 
 [features]
 default = []
-debug = []
-static-alloc = ["svm-sdk-alloc/static-alloc"]
-dynamic-alloc = ["svm-sdk-alloc/dynamic-alloc"]
+debug = ["svm-sdk-std/debug"]
+static-alloc = ["svm-sdk-std/static-alloc"]
+dynamic-alloc = ["svm-sdk-std/dynamic-alloc"]
