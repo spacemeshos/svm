@@ -22,7 +22,7 @@ svm-types = { path = "../../types" }
 svm-sdk-types = { path = "../types", default-features = false }
 svm-abi-encoder = { path = "../../abi-encoder", default-features = false }
 svm-abi-decoder = { path = "../../abi-decoder", default-features = false }
-svm-sdk-host = { path = "../host", default-features = false }
+svm-sdk-host = { path = "../../sdk-host", default-features = false }
 svm-sdk-storage = { path = "../storage", default-features = false }
 svm-sdk-std = { path = "../std", default-features = false }
 

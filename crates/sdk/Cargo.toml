@@ -15,7 +15,7 @@ lazy_static = "1.4.0"
 svm-sdk-alloc = { path = "../sdk-alloc", default-features = false }
 svm-sdk-types = { path = "types", default-features = false }
 svm-sdk-std = { path = "std", default-features = false }
-svm-sdk-host = { path = "host", default-features = false }
+svm-sdk-host = { path = "../sdk-host", default-features = false }
 svm-sdk-storage = { path = "storage", default-features = false }
 svm-sdk-macros = { path = "macros", default-features = false }
 svm-abi-encoder = { path = "../abi-encoder", default-features = false }
