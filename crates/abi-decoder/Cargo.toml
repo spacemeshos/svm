@@ -1,5 +1,5 @@
 [package]
-name = "svm-abi-encoder"
+name = "svm-abi-decoder"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
@@ -11,13 +11,13 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-num-traits = { version="0.2.14", default-features=false }
-seq-macro = "0.2.2"
-svm-abi-layout = { path="./../layout" }
-svm-sdk-types = { path="../../sdk/types", default-features=false }
-svm-sdk-std = { path="../../sdk/std", default-features=false }
+seq-macro = "0.2"
+svm-abi-layout = { path="../abi-layout" }
+svm-sdk-types = { path="../sdk/types", default-features=false }
+svm-sdk-std = { path="../sdk/std", default-features=false }
 
 [features]
 default = []
+debug = ["svm-sdk-types/debug"]
 static-alloc = ["svm-sdk-types/static-alloc", "svm-sdk-std/static-alloc"]
 dynamic-alloc = ["svm-sdk-types/dynamic-alloc", "svm-sdk-std/dynamic-alloc"]
