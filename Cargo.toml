@@ -12,7 +12,7 @@ members = [
   "crates/query",
   "crates/runtime",
   "crates/runtime-ffi",
-  "crates/sdk/alloc",
+  "crates/sdk-alloc",
   "crates/sdk/types",
   "crates/sdk/storage",
   "crates/sdk/host",

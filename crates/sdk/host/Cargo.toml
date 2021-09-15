@@ -11,7 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-svm-sdk-alloc = { path = "../alloc", default-features = false }
+svm-sdk-alloc = { path = "../../sdk-alloc", default-features = false }
 svm-sdk-types = { path = "../types", default-features = false }
 svm-sdk-std = { path = "../std", default-features = false }
 svm-abi-encoder = { path = "../../abi-encoder", default-features = false }
