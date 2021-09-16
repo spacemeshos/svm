@@ -13,14 +13,23 @@ pub struct Config {
 }
 
 impl Config {
+    /// Initializes the global [`Config`] instance.
     pub fn set(config: Config) {
         *CONFIG.lock().unwrap() = Some(config);
     }
 
+    /// Returns `true` if and only if the global [`Config`] instance has been
+    /// initialized via [`Config::set`].
     pub fn is_ready() -> bool {
         CONFIG.lock().unwrap().is_some()
     }
 
+    /// Fetches the global [`Config`] instance.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the global [`Config`] hasn't been initialized with
+    /// [`Config::set`].
     pub fn get() -> Config {
         CONFIG.lock().unwrap().as_ref().unwrap().clone()
     }

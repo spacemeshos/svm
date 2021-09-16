@@ -23,14 +23,6 @@ pub use outcome::Outcome;
 #[cfg(feature = "default-rocksdb")]
 pub use rocksdb::create_rocksdb_runtime;
 
-pub use call::Call;
-pub use default::DefaultRuntime;
-pub use function::Function;
-pub use outcome::Outcome;
-
-#[cfg(feature = "default-rocksdb")]
-pub use rocksdb::create_rocksdb_runtime;
-
 /// Specifies the interface of a SVM [`Runtime`].
 ///
 /// Any [`Runtime`] implementation will implement:
