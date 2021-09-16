@@ -9,28 +9,15 @@ use svm_sdk_std::Option;
 ///
 /// This separation was born out of a need to comply to the safe Rust ownership rules
 /// (see the look under the `decode_array` under `Decoder` as an example).
-pub struct Cursor {
-    /// Pointer to the traversed bytes
-    pub bytes: *const u8,
-
-    /// The current pointed-by offset
-    pub offset: usize,
-
-    /// Number of bytes pointed-by `bytes`
-    pub length: usize,
+pub struct Cursor<'a> {
+    bytes: &'a [u8],
+    offset: usize,
 }
 
-impl Cursor {
+impl<'a> Cursor<'a> {
     /// Creates a new `Cursor` for encoded function buffer `bytes`
-    pub fn new(bytes: &[u8]) -> Self {
-        let length = bytes.len();
-        let bytes = bytes.as_ptr();
-
-        Self {
-            bytes,
-            length,
-            offset: 0,
-        }
+    pub fn new(bytes: &'a [u8]) -> Self {
+        Self { bytes, offset: 0 }
     }
 
     /// Returns whether cursor has finished traversal
@@ -42,7 +29,7 @@ impl Cursor {
     /// The length of the underlying buffer
     #[inline]
     pub fn len(&self) -> usize {
-        self.length
+        self.bytes.len()
     }
 
     /// Returns the next looked-at byte without incrementing `offset`
@@ -90,6 +77,6 @@ impl Cursor {
     /// Returns a raw pointer to the current pointed-at address.
     #[inline]
     pub unsafe fn offset_ptr(&self) -> *const u8 {
-        self.bytes.add(self.offset)
+        self.bytes.as_ptr().add(self.offset)
     }
 }

@@ -110,7 +110,7 @@ fn expand_returns_size(func: &Function) -> Result<TokenStream> {
         {
             use svm_sdk::traits::ByteSize;
 
-            < #ty_tokens > :: MAX_BYTE_SIZE
+            < #ty_tokens > :: max_byte_size()
         }
     };
 
