@@ -22,6 +22,7 @@ svm-types = { path="../types" }
 svm-codec = { path="../codec" }
 svm-layout = { path="../layout" }
 svm-state = { path="../state", default-features=false }
+wasmer = "2"
 
 [dev-dependencies]
 wat = "1.0"
