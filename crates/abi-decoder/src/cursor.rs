@@ -37,12 +37,10 @@ impl<'a> Cursor<'a> {
     #[inline]
     pub fn peek(&self) -> Option<u8> {
         if self.is_eof() {
-            return Option::None;
+            Option::None
+        } else {
+            Option::Some(self.bytes[self.offset])
         }
-
-        let byte = unsafe { *self.offset_ptr() };
-
-        Option::Some(byte)
     }
 
     /// Returns the next looked-at byte and increments the `offset`.
@@ -61,17 +59,16 @@ impl<'a> Cursor<'a> {
     /// And then, it increments the `offset` by `nbytes`.
     ///
     /// In case there are less then `nbytes` left bytes - returns `None`.
-    pub fn read_bytes(&mut self, nbytes: usize) -> Option<*const u8> {
+    pub fn read_bytes(&mut self, nbytes: usize) -> Option<&'a [u8]> {
         let last_byte_off = self.offset + nbytes - 1;
 
         if last_byte_off >= self.len() {
-            return Option::None;
+            Option::None
+        } else {
+            let slice = &self.bytes[self.offset..self.offset + nbytes];
+            self.offset += nbytes;
+            Option::Some(slice)
         }
-
-        let ptr = unsafe { self.offset_ptr() };
-        self.offset += nbytes;
-
-        Option::Some(ptr)
     }
 
     /// Returns a raw pointer to the current pointed-at address.

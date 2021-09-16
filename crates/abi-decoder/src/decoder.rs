@@ -51,7 +51,7 @@ macro_rules! assert_no_eof {
 
 macro_rules! decode_fixed_primitive {
     ($self:expr, $ty:ident, $n:expr, $iter:expr) => {{
-        let ptr = safe_try!($self.read_bytes($iter, $n));
+        let ptr = safe_try!($self.read_bytes($iter, $n)).as_ptr();
         let value: $ty = ptr.into();
 
         let prim = Primitive::$ty(value);
@@ -304,9 +304,7 @@ impl Decoder {
     fn read_num(&self, cursor: &mut Cursor, nbytes: usize) -> Result<u64, DecodeError> {
         debug_assert!(nbytes > 0 && nbytes <= 8);
 
-        let slice = unsafe {
-            core::slice::from_raw_parts(safe_try!(self.read_bytes(cursor, nbytes)), nbytes)
-        };
+        let slice = safe_try!(self.read_bytes(cursor, nbytes));
         let mut data = [0u8; 8];
 
         seq_macro::seq!(i in 0..8 {
@@ -323,7 +321,7 @@ impl Decoder {
         &self,
         cursor: &'a mut Cursor,
         nbytes: usize,
-    ) -> Result<*const u8, DecodeError> {
+    ) -> Result<&'a [u8], DecodeError> {
         cursor
             .read_bytes(nbytes)
             .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
