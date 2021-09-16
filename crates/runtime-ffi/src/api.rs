@@ -63,7 +63,7 @@ pub unsafe extern "C" fn svm_runtime_create(runtime: *mut *mut c_void) -> svm_re
 
         *runtime = RuntimeTracker::alloc();
 
-        debug!("`svm_memory_runtime_create` end");
+        debug!("`svm_runtime_create` end");
 
         svm_result_t::OK
     })
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn svm_runtime_create(runtime: *mut *mut c_void) -> svm_re
 ///
 /// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
 /// // Destroys the Runtime
@@ -118,7 +118,7 @@ pub unsafe extern "C" fn svm_runtimes_count(count: *mut u64) {
 ///
 /// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
 /// let message = b"message data...";
@@ -156,7 +156,7 @@ pub unsafe extern "C" fn svm_validate_deploy(
 ///
 /// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
 /// let message = b"message data...";
@@ -190,7 +190,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
 ///
 /// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
 /// let message = b"message data...";
@@ -224,7 +224,7 @@ pub unsafe extern "C" fn svm_validate_call(
 ///
 /// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
 /// let envelope = b"envelope data...";
@@ -272,7 +272,7 @@ pub unsafe extern "C" fn svm_deploy(
 ///
 /// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
 /// let envelope = b"envelope data...";
@@ -324,7 +324,7 @@ pub unsafe extern "C" fn svm_spawn(
 ///
 /// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
 /// let envelope = b"envelope data...";
@@ -373,7 +373,7 @@ pub unsafe extern "C" fn svm_verify(
 ///
 /// unsafe { svm_init(true, std::ptr::null(), 0); }
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 ///
 /// let envelope = b"envelope data...";
