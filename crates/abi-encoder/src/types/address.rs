@@ -1,5 +1,4 @@
 use seq_macro::seq;
-use svm_abi_layout::layout;
 use svm_sdk_types::Address;
 
 use crate::traits::Push;
@@ -10,7 +9,8 @@ where
     W: Push<Item = u8>,
 {
     fn encode(&self, w: &mut W) {
-        w.push(layout::ADDRESS);
+        w.push(svm_abi_layout::ADDRESS);
+
         let bytes = self.as_slice();
         seq!(N in 0..20 {
             w.push(bytes[N]);
