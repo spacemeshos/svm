@@ -1,12 +1,11 @@
 use crate::traits::Push;
-use crate::{ByteSize, Encoder};
+use crate::{ABIEncoder, ByteSize};
 
-impl<T, W> Encoder<W> for &[T]
+impl<T> ABIEncoder for &[T]
 where
-    T: Encoder<W>,
-    W: Push<Item = u8>,
+    T: ABIEncoder,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         assert!(self.len() < 11);
 
         w.push(layout_array(self.len()));
@@ -19,13 +18,12 @@ where
     }
 }
 
-impl<T, W, const N: usize> Encoder<W> for [T; N]
+impl<T, const N: usize> ABIEncoder for [T; N]
 where
-    T: Encoder<W>,
-    W: Push<Item = u8>,
+    T: ABIEncoder,
 {
     #[inline]
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         (&self[..]).encode(w)
     }
 }
@@ -34,6 +32,10 @@ impl<T, const N: usize> ByteSize for [T; N]
 where
     T: ByteSize,
 {
+    fn max_byte_size() -> usize {
+        1 + T::max_byte_size() * N
+    }
+
     fn byte_size(&self) -> usize {
         assert!(N < 11);
 
@@ -47,10 +49,6 @@ where
             }
         });
         1 + payload_size
-    }
-
-    fn max_byte_size() -> usize {
-        1 + T::max_byte_size() * N
     }
 }
 

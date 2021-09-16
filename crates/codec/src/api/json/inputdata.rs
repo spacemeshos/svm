@@ -5,7 +5,7 @@ use serde_json::Value as Json;
 use std::convert::TryFrom;
 
 use svm_abi_decoder::CallData;
-use svm_abi_encoder::{ByteSize, Encoder};
+use svm_abi_encoder::{ABIEncoder, ByteSize};
 use svm_sdk_types::value::{Composite, Primitive, Value as SdkValue};
 use svm_sdk_types::{Address, Amount};
 

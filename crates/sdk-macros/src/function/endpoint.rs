@@ -110,7 +110,7 @@ fn expand_returns_size(func: &Function) -> Result<TokenStream> {
         {
             use svm_sdk::traits::ByteSize;
 
-            < #ty_tokens > :: max_byte_size()
+            < #ty_tokens > :: MAX_BYTE_SIZE
         }
     };
 
@@ -126,7 +126,7 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
             {
                 #includes
 
-                use svm_sdk::traits::Encoder;
+                use svm_sdk::traits::ABIEncoder;
 
                 let returns = __inner__();
 

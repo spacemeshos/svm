@@ -1,14 +1,13 @@
 use num_traits::{AsPrimitive, Bounded};
 
 use crate::traits::{Numeric, Push};
-use crate::{ByteSize, Encoder};
+use crate::{ABIEncoder, ByteSize};
 
-impl<T, W> Encoder<W> for T
+impl<T> ABIEncoder for T
 where
     T: Numeric + ByteSize + num_traits::PrimInt,
-    W: Push<Item = u8>,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         // We need three pieces of information to generate the layout marker
         // bytes on the fly:
         //
@@ -49,6 +48,10 @@ impl<T> ByteSize for T
 where
     T: Numeric + Bounded,
 {
+    fn max_byte_size() -> usize {
+        Self::max_value().byte_size()
+    }
+
     fn byte_size(&self) -> usize {
         let self_unsigned: T::Unsigned = self.as_();
         let self_u64: u64 = self_unsigned.as_();
@@ -63,10 +66,6 @@ where
             0..=0xFF_FF_FF_FF_FF_FF_FF => 8,
             0..=0xFF_FF_FF_FF_FF_FF_FF_FF => 9,
         }
-    }
-
-    fn max_byte_size() -> usize {
-        Self::max_value().byte_size()
     }
 }
 

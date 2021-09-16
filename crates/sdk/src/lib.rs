@@ -367,7 +367,7 @@ pub mod host {
 }
 
 pub mod traits {
-    pub use svm_abi_encoder::{ByteSize, Encoder};
+    pub use svm_abi_encoder::{ABIEncoder, ByteSize};
     pub use svm_sdk_host::traits::Host;
     pub use svm_sdk_storage::Storage;
 }

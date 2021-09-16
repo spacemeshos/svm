@@ -2,20 +2,20 @@
 
 use svm_sdk::host::MockHost;
 use svm_sdk::storage::MockStorage;
-use svm_sdk::traits::{ByteSize, Encoder};
+use svm_sdk::traits::{ABIEncoder, ByteSize};
 use svm_sdk::{Amount, ReturnData, Vec};
 use svm_sdk_types::value::Value;
 
 pub fn call<T>(func: extern "C" fn(), args: std::vec::Vec<T>) -> ReturnData
 where
-    T: Encoder<Vec<u8>> + ByteSize,
+    T: ABIEncoder + ByteSize,
 {
     call_and_fund(func, args, Amount(0))
 }
 
 pub fn call_and_fund<T>(func: extern "C" fn(), args: std::vec::Vec<T>, value: Amount) -> ReturnData
 where
-    T: Encoder<Vec<u8>> + ByteSize,
+    T: ABIEncoder + ByteSize,
 {
     let cap: usize = args.iter().map(|arg| arg.byte_size()).sum();
 
@@ -65,7 +65,7 @@ where
 
 pub fn call_1<T, O>(func: extern "C" fn(), args: std::vec::Vec<T>) -> O
 where
-    T: Encoder<Vec<u8>> + ByteSize,
+    T: ABIEncoder + ByteSize,
     O: From<Value>,
 {
     call_and_fund_1(func, args, Amount(0))
@@ -73,7 +73,7 @@ where
 
 pub fn call_and_fund_1<T, O>(func: extern "C" fn(), args: std::vec::Vec<T>, value: Amount) -> O
 where
-    T: Encoder<Vec<u8>> + ByteSize,
+    T: ABIEncoder + ByteSize,
     O: From<Value>,
 {
     let mut returns = call_and_fund(func, args, value);
@@ -83,7 +83,7 @@ where
 
 pub fn call_2<T, O1, O2>(func: extern "C" fn(), args: std::vec::Vec<T>) -> (O1, O2)
 where
-    T: Encoder<Vec<u8>> + ByteSize,
+    T: ABIEncoder + ByteSize,
     O1: From<Value>,
     O2: From<Value>,
 {
@@ -96,7 +96,7 @@ pub fn call_and_fund_2<T, O1, O2>(
     value: Amount,
 ) -> (O1, O2)
 where
-    T: Encoder<Vec<u8>> + ByteSize,
+    T: ABIEncoder + ByteSize,
     O1: From<Value>,
     O2: From<Value>,
 {

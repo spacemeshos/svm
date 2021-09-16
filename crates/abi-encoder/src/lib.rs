@@ -11,5 +11,5 @@
 mod traits;
 mod types;
 
-pub use traits::{ByteSize, Encoder};
+pub use traits::{ABIEncoder, ByteSize};
 pub use types::*;
