@@ -1,76 +1,157 @@
-// use svm_layout::{Primitive, SymbolicVar, Type};
+use svm_layout::{Id, Primitive, SymbolicVar, Type};
 use svm_types::SchemaSection;
 
-// use crate::r#type;
 use crate::{Codec, ParseError, ReadExt, WriteExt};
-// use crate::{Field, ParseError, ReadExt, WriteExt};
 
 impl Codec for SchemaSection {
     type Error = ParseError;
 
-    fn encode(&self, _w: &mut impl WriteExt) {
-        todo!("will be implemented in a future PR...");
-        // let mut raw_section = Vec::new();
+    fn encode(&self, w: &mut impl WriteExt) {
+        (self.vars().len() as u16).encode(w);
 
-        // encode_var_count(self, &mut raw_section);
-
-        // for var in self.vars() {
-        //     encode_var(var, &mut raw_section);
-        // }
-
-        // let section = SectionHeader {
-        //     kind: SectionKind::Schema,
-        //     byte_size: raw_section.len() as u32,
-        // };
-
-        // section::encode(&section, w);
-
-        // w.write_bytes(&raw_section);
+        for var in self.vars() {
+            var.id().0.encode(w);
+            var.ty().encode(w);
+            var.name().to_string().encode(w);
+        }
     }
 
-    fn decode(_reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        todo!("will be implemented in a future PR...");
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        let var_count = u16::decode(reader)?;
+        let mut section = Self::with_capacity(var_count as usize);
+
+        for _ in 0..var_count {
+            let id = Id(u32::decode(reader)?);
+            let ty = Type::decode(reader)?;
+            let name = String::decode(reader)?;
+
+            section.push_var(SymbolicVar::new(id, name, ty));
+        }
+
+        Ok(section)
     }
 }
 
-// fn encode_var(var: &SymbolicVar, w: &mut Vec<u8>) {
-//     encode_var_name(var, w);
+fn primitive_to_nibble(prim: Primitive) -> u8 {
+    match prim {
+        Primitive::Address => 0,
+        Primitive::Amount => 1,
+        Primitive::Bool => 2,
+        Primitive::I16 => 3,
+        Primitive::I32 => 4,
+        Primitive::I64 => 5,
+        Primitive::I8 => 6,
+        Primitive::U16 => 7,
+        Primitive::U32 => 8,
+        Primitive::U64 => 9,
+        Primitive::U8 => 10,
+    }
+}
 
-//     r#type::encode_type(var.ty(), w);
-// }
+fn nibble_to_primitive(nibble: u8) -> Option<Primitive> {
+    Some(match nibble {
+        0 => Primitive::Address,
+        1 => Primitive::Amount,
+        2 => Primitive::Bool,
+        3 => Primitive::I16,
+        4 => Primitive::I32,
+        5 => Primitive::I64,
+        6 => Primitive::I8,
+        7 => Primitive::U16,
+        8 => Primitive::U32,
+        9 => Primitive::U64,
+        10 => Primitive::U8,
+        _ => return None,
+    })
+}
 
-// fn encode_var_count(schema: &SchemaSection, w: &mut Vec<u8>) {
-//     w.write_u16_be(schema.vars().len() as u16);
-// }
+impl Codec for svm_layout::Type {
+    type Error = ParseError;
 
-// fn decode_var_count(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
-//     cursor
-//         .read_u16_be()
-//         .map_err(|_| ParseError::NotEnoughBytes(Field::SymbolicVarCount))
-// }
+    fn encode(&self, w: &mut impl WriteExt) {
+        let byte: u8 = match self {
+            Type::Primitive(prim) => (0xf << 4) | primitive_to_nibble(*prim),
+            Type::Array { primitive, length } => {
+                assert!(*length < 0xf);
+                ((*length as u8) << 4) | primitive_to_nibble(*primitive)
+            }
+        };
 
-// fn decode_var(cursor: &mut Cursor<&[u8]>) -> Result<SymbolicVar, ParseError> {
-//     todo!("encode var id...");
+        byte.encode(w);
+    }
 
-//     let id = Id(0);
-//     let name = decode_var_name(cursor)?;
-//     let ty = r#type::decode_type(cursor)?;
+    fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
+        let byte = u8::decode(reader)?;
 
-//     let var = SymbolicVar::new(id, name, ty);
+        match byte >> 4 {
+            0xf => {
+                let nibble = byte & 0xf;
+                nibble_to_primitive(nibble)
+                    .ok_or(ParseError::BadByte(nibble))
+                    .map(|prim| Type::Primitive(prim))
+            }
+            length => {
+                let nibble = byte & 0xf;
+                nibble_to_primitive(nibble)
+                    .ok_or(ParseError::BadByte(nibble))
+                    .map(|primitive| Type::Array {
+                        primitive,
+                        length: length as usize,
+                    })
+            }
+        }
+    }
 
-//     Ok(var)
-// }
+    fn fixed_size() -> Option<usize> {
+        Some(1)
+    }
+}
 
-// fn encode_var_name(var: &SymbolicVar, w: &mut Vec<u8>) {
-//     let name = var.name();
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::codec::test_codec_bool;
+    use quickcheck::Arbitrary;
+    use quickcheck_macros::quickcheck;
 
-//     w.write_string(name);
-// }
+    const MAX_LENGTH: usize = 0xf - 1;
 
-// fn decode_var_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-//     match cursor.read_string() {
-//         Ok(Ok(name)) => Ok(name),
-//         Ok(Err(..)) => Err(ParseError::InvalidUTF8String(Field::SymbolicVarName)),
-//         Err(..) => Err(ParseError::NotEnoughBytes(Field::SymbolicVarName)),
-//     }
-// }
+    #[derive(Debug, Clone)]
+    struct PrimitiveWrapper(Primitive);
+
+    impl Arbitrary for PrimitiveWrapper {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            let alternatives: Vec<u8> = (0..=10).collect();
+            let nibble: u8 = *g.choose(&alternatives).unwrap();
+            Self(nibble_to_primitive(nibble).unwrap())
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    struct TypeWrapper(Type);
+
+    impl Arbitrary for TypeWrapper {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            let array_length = <Option<usize>>::arbitrary(g);
+            match array_length {
+                None => Self(Type::Primitive(PrimitiveWrapper::arbitrary(g).0)),
+                Some(len) => Self(Type::Array {
+                    length: len.min(MAX_LENGTH),
+                    primitive: PrimitiveWrapper::arbitrary(g).0,
+                }),
+            }
+        }
+    }
+
+    #[quickcheck]
+    fn schema_section(mut vars: Vec<(u32, String, TypeWrapper)>) -> bool {
+        vars.truncate(0xf);
+        let mut section = SchemaSection::new();
+
+        for var in vars.into_iter() {
+            section.push_var(SymbolicVar::new(Id(var.0), var.1, var.2 .0));
+        }
+
+        test_codec_bool(section)
+    }
+}
