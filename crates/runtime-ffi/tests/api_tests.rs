@@ -42,7 +42,7 @@ fn svm_runtime_success() {
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
 
-        let res = api::svm_memory_runtime_create(&mut runtime);
+        let res = api::svm_runtime_create(&mut runtime);
         assert!(res.is_ok());
 
         // 2) `Deploy Template`
@@ -141,7 +141,7 @@ fn svm_runtime_failure() {
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
 
-        let res = api::svm_memory_runtime_create(&mut runtime);
+        let res = api::svm_runtime_create(&mut runtime);
         assert!(res.is_ok());
 
         // 2) `Deploy Template`

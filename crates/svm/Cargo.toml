@@ -29,7 +29,7 @@ svm-runtime = { path = "../runtime", default-features = false }
 svm-runtime-ffi = { path = "../runtime-ffi", default-features = false }
 
 [features]
-default = ["default-memory", "default-singlepass"]
+default = ["default-singlepass"]
 default-singlepass = [
   "svm-runtime/default-singlepass", 
   "svm-runtime-ffi/default-singlepass",
@@ -37,12 +37,4 @@ default-singlepass = [
 default-cranelift = [
   "svm-runtime/default-cranelift",
   "svm-runtime-ffi/default-cranelift",
-]
-default-memory = [
-  "svm-runtime-ffi/default-memory",
-  "svm-runtime/default-memory",
-]
-default-rocksdb = [
-  "svm-runtime-ffi/default-rocksdb",
-  "svm-runtime/default-rocksdb",
 ]

@@ -49,14 +49,13 @@ pub unsafe extern "C" fn svm_init(in_memory: bool, path: *const u8, path_len: u3
 /// let mut runtime = std::ptr::null_mut();
 ///
 /// unsafe { svm_init(true, std::ptr::null(), 0); }
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime) };
 /// assert!(res.is_ok());
 /// ```
 ///
-#[cfg(feature = "default-memory")]
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_memory_runtime_create(runtime: *mut *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_runtime_create(runtime: *mut *mut c_void) -> svm_result_t {
     catch_unwind_or_fail(|| {
         if !Config::is_ready() {
             return svm_result_t::new_error(b"`svm_init` not called beforehand.");

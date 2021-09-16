@@ -36,6 +36,7 @@ pub use api::{
     // Destroy
     svm_runtime_destroy,
 
+    svm_runtime_create,
     svm_init,
     svm_runtimes_count,
 };
