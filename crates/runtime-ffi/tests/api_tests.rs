@@ -30,12 +30,6 @@ fn spawn_message(template_addr: &TemplateAddr, name: &str, ctor: &str, calldata:
     testing::build_spawn(template_addr, name, ctor, calldata)
 }
 
-}
-
-fn spawn_message(template_addr: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
-    testing::build_spawn(template_addr, name, ctor, calldata)
-}
-
 fn call_message(target: &Address, func_name: &str, calldata: &[u8]) -> Vec<u8> {
     testing::build_call(&target, func_name, calldata)
 }
