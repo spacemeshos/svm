@@ -45,9 +45,9 @@ pub use option::*;
 pub use small_array::*;
 pub use tuples::*;
 
-use crate::traits::{ABIEncoder, Push};
+use crate::traits::{Encoder, Push};
 
-impl ABIEncoder for Value {
+impl Encoder for Value {
     #[inline]
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         match self {

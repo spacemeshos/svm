@@ -1,9 +1,9 @@
 use seq_macro::seq;
 use svm_sdk_types::Amount;
 
-use crate::{traits::Push, ABIEncoder, ByteSize};
+use crate::{traits::Push, ByteSize, Encoder};
 
-impl ABIEncoder for Amount {
+impl Encoder for Amount {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         let size = self.byte_size();
 

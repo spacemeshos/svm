@@ -2,7 +2,7 @@ use svm_runtime_ffi as api;
 
 use svm_codec::Codec;
 use svm_runtime::testing;
-use svm_sdk::traits::ABIEncoder;
+use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Receipt, TemplateAddr};
 
@@ -70,7 +70,7 @@ fn svm_runtime_success() {
 
         // 3) `Spawn Account`
         let mut calldata = svm_sdk::Vec::with_capacity(1000);
-        ABIEncoder::encode(&10u32, &mut calldata);
+        Encoder::encode(&10u32, &mut calldata);
 
         let spawn_msg = spawn_message(&template_addr, "My Account", "initialize", &calldata);
         let spawner = Address::repeat(0xCD);
@@ -97,7 +97,7 @@ fn svm_runtime_success() {
 
         // 4) `Call Account`
         let mut calldata = svm_sdk::Vec::with_capacity(1000);
-        ABIEncoder::encode(&5u32, &mut calldata);
+        Encoder::encode(&5u32, &mut calldata);
 
         let call_msg = call_message(&target, "add", &calldata);
         let principal = Address::repeat(0xEF);

@@ -126,7 +126,7 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
             {
                 #includes
 
-                use svm_sdk::traits::ABIEncoder;
+                use svm_sdk::traits::Encoder;
 
                 let returns = __inner__();
 

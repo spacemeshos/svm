@@ -3,9 +3,9 @@ use svm_abi_layout::layout;
 use svm_sdk_types::Address;
 
 use crate::traits::Push;
-use crate::{ABIEncoder, ByteSize};
+use crate::{ByteSize, Encoder};
 
-impl ABIEncoder for Address {
+impl Encoder for Address {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         w.push(layout::ADDRESS);
 

@@ -1,8 +1,8 @@
 use svm_abi_layout::layout;
 
-use crate::{traits::Push, ABIEncoder, ByteSize};
+use crate::{traits::Push, ByteSize, Encoder};
 
-impl ABIEncoder for () {
+impl Encoder for () {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         w.push(layout::UNIT);
     }

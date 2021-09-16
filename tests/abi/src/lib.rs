@@ -9,7 +9,7 @@
 #[cfg(test)]
 mod tests {
     use svm_abi_decoder::CallData;
-    use svm_abi_encoder::ABIEncoder;
+    use svm_abi_encoder::Encoder;
 
     use svm_sdk_std::{Option, Vec};
 

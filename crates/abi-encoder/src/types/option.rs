@@ -1,10 +1,10 @@
 use svm_sdk_std::Option;
 
-use crate::traits::{ABIEncoder, ByteSize, Push};
+use crate::traits::{ByteSize, Encoder, Push};
 
-impl<T> ABIEncoder for svm_sdk_std::Option<T>
+impl<T> Encoder for svm_sdk_std::Option<T>
 where
-    T: ABIEncoder,
+    T: Encoder,
 {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         match self {

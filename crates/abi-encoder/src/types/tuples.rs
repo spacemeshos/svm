@@ -1,9 +1,9 @@
 use crate::traits::Push;
-use crate::{ABIEncoder, ByteSize};
+use crate::{ByteSize, Encoder};
 
-impl<T> ABIEncoder for (T,)
+impl<T> Encoder for (T,)
 where
-    T: ABIEncoder,
+    T: Encoder,
 {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
@@ -23,10 +23,10 @@ where
     }
 }
 
-impl<T0, T1> ABIEncoder for (T0, T1)
+impl<T0, T1> Encoder for (T0, T1)
 where
-    T0: ABIEncoder,
-    T1: ABIEncoder,
+    T0: Encoder,
+    T1: Encoder,
 {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
@@ -48,11 +48,11 @@ where
     }
 }
 
-impl<T0, T1, T2> ABIEncoder for (T0, T1, T2)
+impl<T0, T1, T2> Encoder for (T0, T1, T2)
 where
-    T0: ABIEncoder,
-    T1: ABIEncoder,
-    T2: ABIEncoder,
+    T0: Encoder,
+    T1: Encoder,
+    T2: Encoder,
 {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
@@ -76,12 +76,12 @@ where
     }
 }
 
-impl<T0, T1, T2, T3> ABIEncoder for (T0, T1, T2, T3)
+impl<T0, T1, T2, T3> Encoder for (T0, T1, T2, T3)
 where
-    T0: ABIEncoder,
-    T1: ABIEncoder,
-    T2: ABIEncoder,
-    T3: ABIEncoder,
+    T0: Encoder,
+    T1: Encoder,
+    T2: Encoder,
+    T3: Encoder,
 {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
@@ -107,13 +107,13 @@ where
     }
 }
 
-impl<T0, T1, T2, T3, T4> ABIEncoder for (T0, T1, T2, T3, T4)
+impl<T0, T1, T2, T3, T4> Encoder for (T0, T1, T2, T3, T4)
 where
-    T0: ABIEncoder,
-    T1: ABIEncoder,
-    T2: ABIEncoder,
-    T3: ABIEncoder,
-    T4: ABIEncoder,
+    T0: Encoder,
+    T1: Encoder,
+    T2: Encoder,
+    T3: Encoder,
+    T4: Encoder,
 {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
@@ -149,14 +149,14 @@ where
     }
 }
 
-impl<T0, T1, T2, T3, T4, T5> ABIEncoder for (T0, T1, T2, T3, T4, T5)
+impl<T0, T1, T2, T3, T4, T5> Encoder for (T0, T1, T2, T3, T4, T5)
 where
-    T0: ABIEncoder,
-    T1: ABIEncoder,
-    T2: ABIEncoder,
-    T3: ABIEncoder,
-    T4: ABIEncoder,
-    T5: ABIEncoder,
+    T0: Encoder,
+    T1: Encoder,
+    T2: Encoder,
+    T3: Encoder,
+    T4: Encoder,
+    T5: Encoder,
 {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);

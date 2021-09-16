@@ -1,9 +1,9 @@
 use crate::traits::Push;
-use crate::{ABIEncoder, ByteSize};
+use crate::{ByteSize, Encoder};
 
-impl<T> ABIEncoder for &[T]
+impl<T> Encoder for &[T]
 where
-    T: ABIEncoder,
+    T: Encoder,
 {
     fn encode(&self, w: &mut impl Push<Item = u8>) {
         assert!(self.len() < 11);
@@ -18,9 +18,9 @@ where
     }
 }
 
-impl<T, const N: usize> ABIEncoder for [T; N]
+impl<T, const N: usize> Encoder for [T; N]
 where
-    T: ABIEncoder,
+    T: Encoder,
 {
     #[inline]
     fn encode(&self, w: &mut impl Push<Item = u8>) {

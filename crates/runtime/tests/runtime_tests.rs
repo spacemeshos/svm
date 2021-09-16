@@ -1,6 +1,6 @@
 use svm_sdk as sdk;
 
-use svm_sdk::traits::ABIEncoder;
+use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 
 use svm_codec::ParseError;

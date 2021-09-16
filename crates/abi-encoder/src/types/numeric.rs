@@ -1,9 +1,9 @@
 use num_traits::{AsPrimitive, Bounded};
 
 use crate::traits::{Numeric, Push};
-use crate::{ABIEncoder, ByteSize};
+use crate::{ByteSize, Encoder};
 
-impl<T> ABIEncoder for T
+impl<T> Encoder for T
 where
     T: Numeric + ByteSize + num_traits::PrimInt,
 {
