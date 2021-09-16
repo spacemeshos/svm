@@ -12,9 +12,9 @@
 #![feature(allocator_api)]
 
 mod api;
+mod config;
 mod result;
 mod runtime_tracker;
-mod config;
 
 #[cfg(feature = "default-memory")]
 pub use api::svm_memory_runtime_create;
