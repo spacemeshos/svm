@@ -39,7 +39,7 @@ pub use result::Result;
 
 /// A replacement for the `alloc::vec::Vec` (exposed also as `std::vec::Vec`)
 mod vec;
-pub use vec::Vec;
+pub use vec::{Vec, VecIntoIter};
 
 /// A replacement for the `panic!` macro
 mod panic;

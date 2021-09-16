@@ -481,7 +481,7 @@ where
         let context = Context::decode_bytes(context)?;
         let receipt = f(runtime, &envelope, &message, &context);
 
-        debug!("`{}` returns `SVM_SUCCESS`", f_name);
+        debug!("`{}` returns `svm_result_t::OK`", f_name);
         svm_result_t::new_receipt(&receipt.encode_to_vec())
     })
 }
@@ -502,7 +502,7 @@ where
 
         match validate_f(runtime, message) {
             Ok(()) => {
-                debug!("`{}` returns `SVM_SUCCESS`", f_name);
+                debug!("`{}` returns `svm_result_t::OK`", f_name);
                 svm_result_t::OK
             }
             Err(e) => {
