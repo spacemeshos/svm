@@ -70,10 +70,4 @@ impl<'a> Cursor<'a> {
             Option::Some(slice)
         }
     }
-
-    /// Returns a raw pointer to the current pointed-at address.
-    #[inline]
-    pub unsafe fn offset_ptr(&self) -> *const u8 {
-        self.bytes.as_ptr().add(self.offset)
-    }
 }
