@@ -22,14 +22,14 @@ impl<T> ByteSize for Option<T>
 where
     T: ByteSize,
 {
-    fn max_byte_size() -> usize {
-        T::max_byte_size()
-    }
-
     fn byte_size(&self) -> usize {
         match self {
             Option::None => 1,
             Option::Some(val) => val.byte_size(),
         }
+    }
+
+    fn max_byte_size() -> usize {
+        T::max_byte_size()
     }
 }

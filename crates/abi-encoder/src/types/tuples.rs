@@ -14,12 +14,12 @@ impl<T> ByteSize for (T,)
 where
     T: ByteSize,
 {
-    fn max_byte_size() -> usize {
-        T::max_byte_size()
-    }
-
     fn byte_size(&self) -> usize {
         self.0.byte_size()
+    }
+
+    fn max_byte_size() -> usize {
+        T::max_byte_size()
     }
 }
 
@@ -39,12 +39,12 @@ where
     T0: ByteSize,
     T1: ByteSize,
 {
-    fn max_byte_size() -> usize {
-        T0::max_byte_size() + T1::max_byte_size()
-    }
-
     fn byte_size(&self) -> usize {
         self.0.byte_size() + self.1.byte_size()
+    }
+
+    fn max_byte_size() -> usize {
+        T0::max_byte_size() + T1::max_byte_size()
     }
 }
 
@@ -67,12 +67,12 @@ where
     T1: ByteSize,
     T2: ByteSize,
 {
-    fn max_byte_size() -> usize {
-        T0::max_byte_size() + T1::max_byte_size() + T2::max_byte_size()
-    }
-
     fn byte_size(&self) -> usize {
         self.0.byte_size() + self.1.byte_size() + self.2.byte_size()
+    }
+
+    fn max_byte_size() -> usize {
+        T0::max_byte_size() + T1::max_byte_size() + T2::max_byte_size()
     }
 }
 
@@ -98,12 +98,12 @@ where
     T2: ByteSize,
     T3: ByteSize,
 {
-    fn max_byte_size() -> usize {
-        T0::max_byte_size() + T1::max_byte_size() + T2::max_byte_size() + T3::max_byte_size()
-    }
-
     fn byte_size(&self) -> usize {
         self.0.byte_size() + self.1.byte_size() + self.2.byte_size() + self.3.byte_size()
+    }
+
+    fn max_byte_size() -> usize {
+        T0::max_byte_size() + T1::max_byte_size() + T2::max_byte_size() + T3::max_byte_size()
     }
 }
 
@@ -132,20 +132,20 @@ where
     T3: ByteSize,
     T4: ByteSize,
 {
-    fn max_byte_size() -> usize {
-        T0::max_byte_size()
-            + T1::max_byte_size()
-            + T2::max_byte_size()
-            + T3::max_byte_size()
-            + T4::max_byte_size()
-    }
-
     fn byte_size(&self) -> usize {
         self.0.byte_size()
             + self.1.byte_size()
             + self.2.byte_size()
             + self.3.byte_size()
             + self.4.byte_size()
+    }
+
+    fn max_byte_size() -> usize {
+        T0::max_byte_size()
+            + T1::max_byte_size()
+            + T2::max_byte_size()
+            + T3::max_byte_size()
+            + T4::max_byte_size()
     }
 }
 
@@ -177,15 +177,6 @@ where
     T4: ByteSize,
     T5: ByteSize,
 {
-    fn max_byte_size() -> usize {
-        T0::max_byte_size()
-            + T1::max_byte_size()
-            + T2::max_byte_size()
-            + T3::max_byte_size()
-            + T4::max_byte_size()
-            + T5::max_byte_size()
-    }
-
     fn byte_size(&self) -> usize {
         self.0.byte_size()
             + self.1.byte_size()
@@ -193,5 +184,14 @@ where
             + self.3.byte_size()
             + self.4.byte_size()
             + self.5.byte_size()
+    }
+
+    fn max_byte_size() -> usize {
+        T0::max_byte_size()
+            + T1::max_byte_size()
+            + T2::max_byte_size()
+            + T3::max_byte_size()
+            + T4::max_byte_size()
+            + T5::max_byte_size()
     }
 }

@@ -48,10 +48,6 @@ impl<T> ByteSize for T
 where
     T: Numeric + Bounded,
 {
-    fn max_byte_size() -> usize {
-        Self::max_value().byte_size()
-    }
-
     fn byte_size(&self) -> usize {
         let self_unsigned: T::Unsigned = self.as_();
         let self_u64: u64 = self_unsigned.as_();
@@ -66,6 +62,10 @@ where
             0..=0xFF_FF_FF_FF_FF_FF_FF => 8,
             0..=0xFF_FF_FF_FF_FF_FF_FF_FF => 9,
         }
+    }
+
+    fn max_byte_size() -> usize {
+        Self::max_value().byte_size()
     }
 }
 

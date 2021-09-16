@@ -9,11 +9,11 @@ impl ABIEncoder for () {
 }
 
 impl ByteSize for () {
-    fn max_byte_size() -> usize {
+    fn byte_size(&self) -> usize {
         1
     }
 
-    fn byte_size(&self) -> usize {
+    fn max_byte_size() -> usize {
         1
     }
 }

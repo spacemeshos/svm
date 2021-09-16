@@ -32,10 +32,6 @@ impl<T, const N: usize> ByteSize for [T; N]
 where
     T: ByteSize,
 {
-    fn max_byte_size() -> usize {
-        1 + T::max_byte_size() * N
-    }
-
     fn byte_size(&self) -> usize {
         assert!(N < 11);
 
@@ -49,6 +45,10 @@ where
             }
         });
         1 + payload_size
+    }
+
+    fn max_byte_size() -> usize {
+        1 + T::max_byte_size() * N
     }
 }
 

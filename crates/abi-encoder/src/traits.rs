@@ -37,13 +37,13 @@ impl<T> Push for svm_sdk_std::Vec<T> {
 /// (as in the `std::vec::Vec`) which would have resulted in `loop` opcodes when
 /// being compiled to Wasm.
 pub trait ByteSize {
-    /// Returns the absolute maximum space in bytes that might be needed to
-    /// store any instance of `Self`.
-    fn max_byte_size() -> usize;
-
     /// Returns the expected size in bytes that will be required to store
     /// `self`. This is *not* an estimate and rather must be exact.
     fn byte_size(&self) -> usize;
+
+    /// Returns the absolute maximum space in bytes that might be needed to
+    /// store any instance of `Self`.
+    fn max_byte_size() -> usize;
 }
 
 /// Integer layout type information. This is needed for encoding numeric types

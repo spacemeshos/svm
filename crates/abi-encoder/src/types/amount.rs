@@ -19,13 +19,13 @@ impl ABIEncoder for Amount {
 }
 
 impl ByteSize for Amount {
-    fn max_byte_size() -> usize {
-        u64::MAX.byte_size()
-    }
-
     #[inline]
     fn byte_size(&self) -> usize {
         self.0.byte_size()
+    }
+
+    fn max_byte_size() -> usize {
+        u64::MAX.byte_size()
     }
 }
 

@@ -17,11 +17,11 @@ impl ABIEncoder for Address {
 }
 
 impl ByteSize for Address {
-    fn max_byte_size() -> usize {
+    fn byte_size(&self) -> usize {
         21
     }
 
-    fn byte_size(&self) -> usize {
+    fn max_byte_size() -> usize {
         21
     }
 }

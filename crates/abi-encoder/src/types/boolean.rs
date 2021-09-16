@@ -13,11 +13,11 @@ impl ABIEncoder for bool {
 }
 
 impl ByteSize for bool {
-    fn max_byte_size() -> usize {
+    fn byte_size(&self) -> usize {
         1
     }
 
-    fn byte_size(&self) -> usize {
+    fn max_byte_size() -> usize {
         1
     }
 }
