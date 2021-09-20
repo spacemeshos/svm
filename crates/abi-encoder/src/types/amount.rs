@@ -3,11 +3,8 @@ use svm_sdk_types::Amount;
 
 use crate::{traits::Push, ByteSize, Encoder};
 
-impl<W> Encoder<W> for Amount
-where
-    W: Push<Item = u8>,
-{
-    fn encode(&self, w: &mut W) {
+impl Encoder for Amount {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         let size = self.byte_size();
 
         w.push(layout_amount_b(size as u8 - 2));

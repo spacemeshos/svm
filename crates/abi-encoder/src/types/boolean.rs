@@ -2,11 +2,8 @@ use svm_abi_layout as layout;
 
 use crate::{traits::Push, ByteSize, Encoder};
 
-impl<W> Encoder<W> for bool
-where
-    W: Push<Item = u8>,
-{
-    fn encode(&self, w: &mut W) {
+impl Encoder for bool {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         w.push(if *self {
             layout::BOOL_TRUE
         } else {

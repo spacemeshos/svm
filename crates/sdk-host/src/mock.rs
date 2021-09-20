@@ -40,7 +40,7 @@ impl MockHost {
 
     pub fn set_calldata<T>(calldata: T)
     where
-        T: Encoder<Vec<u8>> + ByteSize,
+        T: Encoder + ByteSize,
     {
         let host = Self::instance();
         host.set_calldata(calldata)
@@ -213,7 +213,7 @@ impl InnerHost {
 
     pub fn set_calldata<T>(&mut self, calldata: T)
     where
-        T: Encoder<Vec<u8>> + ByteSize,
+        T: Encoder + ByteSize,
     {
         let cap = calldata.byte_size();
 

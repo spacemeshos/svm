@@ -41,9 +41,7 @@ impl JsonVarRenderer {
         let nbytes = bytes.len();
         let mut buf = vec![0; nbytes];
 
-        unsafe {
-            std::ptr::copy(bytes.as_ptr(), buf.as_mut_ptr(), length);
-        }
+        (&mut buf[..length]).clone_from_slice(&bytes[..length]);
 
         let num = if is_signed {
             let num: i64 = BigEndian::read_int(&buf[..], nbytes);

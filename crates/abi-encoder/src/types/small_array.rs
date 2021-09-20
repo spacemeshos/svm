@@ -1,12 +1,11 @@
 use crate::traits::Push;
 use crate::{ByteSize, Encoder};
 
-impl<T, W> Encoder<W> for &[T]
+impl<T> Encoder for &[T]
 where
-    T: Encoder<W>,
-    W: Push<Item = u8>,
+    T: Encoder,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         assert!(self.len() < 11);
 
         w.push(layout_array(self.len()));
@@ -19,13 +18,12 @@ where
     }
 }
 
-impl<T, W, const N: usize> Encoder<W> for [T; N]
+impl<T, const N: usize> Encoder for [T; N]
 where
-    T: Encoder<W>,
-    W: Push<Item = u8>,
+    T: Encoder,
 {
     #[inline]
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         (&self[..]).encode(w)
     }
 }

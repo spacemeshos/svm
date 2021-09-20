@@ -3,12 +3,11 @@ use num_traits::{AsPrimitive, Bounded};
 use crate::traits::{Numeric, Push};
 use crate::{ByteSize, Encoder};
 
-impl<T, W> Encoder<W> for T
+impl<T> Encoder for T
 where
     T: Numeric + ByteSize + num_traits::PrimInt,
-    W: Push<Item = u8>,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         // We need three pieces of information to generate the layout marker
         // bytes on the fly:
         //

@@ -9,28 +9,15 @@ use svm_sdk_std::Option;
 ///
 /// This separation was born out of a need to comply to the safe Rust ownership rules
 /// (see the look under the `decode_array` under `Decoder` as an example).
-pub struct Cursor {
-    /// Pointer to the traversed bytes
-    pub bytes: *const u8,
-
-    /// The current pointed-by offset
-    pub offset: usize,
-
-    /// Number of bytes pointed-by `bytes`
-    pub length: usize,
+pub struct Cursor<'a> {
+    bytes: &'a [u8],
+    offset: usize,
 }
 
-impl Cursor {
+impl<'a> Cursor<'a> {
     /// Creates a new `Cursor` for encoded function buffer `bytes`
-    pub fn new(bytes: &[u8]) -> Self {
-        let length = bytes.len();
-        let bytes = bytes.as_ptr();
-
-        Self {
-            bytes,
-            length,
-            offset: 0,
-        }
+    pub fn new(bytes: &'a [u8]) -> Self {
+        Self { bytes, offset: 0 }
     }
 
     /// Returns whether cursor has finished traversal
@@ -42,7 +29,7 @@ impl Cursor {
     /// The length of the underlying buffer
     #[inline]
     pub fn len(&self) -> usize {
-        self.length
+        self.bytes.len()
     }
 
     /// Returns the next looked-at byte without incrementing `offset`
@@ -50,12 +37,10 @@ impl Cursor {
     #[inline]
     pub fn peek(&self) -> Option<u8> {
         if self.is_eof() {
-            return Option::None;
+            Option::None
+        } else {
+            Option::Some(self.bytes[self.offset])
         }
-
-        let byte = unsafe { *self.offset_ptr() };
-
-        Option::Some(byte)
     }
 
     /// Returns the next looked-at byte and increments the `offset`.
@@ -74,22 +59,15 @@ impl Cursor {
     /// And then, it increments the `offset` by `nbytes`.
     ///
     /// In case there are less then `nbytes` left bytes - returns `None`.
-    pub fn read_bytes(&mut self, nbytes: usize) -> Option<*const u8> {
+    pub fn read_bytes(&mut self, nbytes: usize) -> Option<&'a [u8]> {
         let last_byte_off = self.offset + nbytes - 1;
 
         if last_byte_off >= self.len() {
-            return Option::None;
+            Option::None
+        } else {
+            let slice = &self.bytes[self.offset..self.offset + nbytes];
+            self.offset += nbytes;
+            Option::Some(slice)
         }
-
-        let ptr = unsafe { self.offset_ptr() };
-        self.offset += nbytes;
-
-        Option::Some(ptr)
-    }
-
-    /// Returns a raw pointer to the current pointed-at address.
-    #[inline]
-    pub unsafe fn offset_ptr(&self) -> *const u8 {
-        self.bytes.add(self.offset)
     }
 }

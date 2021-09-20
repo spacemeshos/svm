@@ -1,10 +1,11 @@
+use crate::traits::Push;
 use crate::{ByteSize, Encoder};
 
-impl<T, W> Encoder<W> for (T,)
+impl<T> Encoder for (T,)
 where
-    T: Encoder<W>,
+    T: Encoder,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
     }
 }
@@ -22,12 +23,12 @@ where
     }
 }
 
-impl<T0, T1, W> Encoder<W> for (T0, T1)
+impl<T0, T1> Encoder for (T0, T1)
 where
-    T0: Encoder<W>,
-    T1: Encoder<W>,
+    T0: Encoder,
+    T1: Encoder,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
         self.1.encode(w);
     }
@@ -47,13 +48,13 @@ where
     }
 }
 
-impl<T0, T1, T2, W> Encoder<W> for (T0, T1, T2)
+impl<T0, T1, T2> Encoder for (T0, T1, T2)
 where
-    T0: Encoder<W>,
-    T1: Encoder<W>,
-    T2: Encoder<W>,
+    T0: Encoder,
+    T1: Encoder,
+    T2: Encoder,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
         self.1.encode(w);
         self.2.encode(w);
@@ -75,14 +76,14 @@ where
     }
 }
 
-impl<T0, T1, T2, T3, W> Encoder<W> for (T0, T1, T2, T3)
+impl<T0, T1, T2, T3> Encoder for (T0, T1, T2, T3)
 where
-    T0: Encoder<W>,
-    T1: Encoder<W>,
-    T2: Encoder<W>,
-    T3: Encoder<W>,
+    T0: Encoder,
+    T1: Encoder,
+    T2: Encoder,
+    T3: Encoder,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
         self.1.encode(w);
         self.2.encode(w);
@@ -106,15 +107,15 @@ where
     }
 }
 
-impl<T0, T1, T2, T3, T4, W> Encoder<W> for (T0, T1, T2, T3, T4)
+impl<T0, T1, T2, T3, T4> Encoder for (T0, T1, T2, T3, T4)
 where
-    T0: Encoder<W>,
-    T1: Encoder<W>,
-    T2: Encoder<W>,
-    T3: Encoder<W>,
-    T4: Encoder<W>,
+    T0: Encoder,
+    T1: Encoder,
+    T2: Encoder,
+    T3: Encoder,
+    T4: Encoder,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
         self.1.encode(w);
         self.2.encode(w);
@@ -148,16 +149,16 @@ where
     }
 }
 
-impl<T0, T1, T2, T3, T4, T5, W> Encoder<W> for (T0, T1, T2, T3, T4, T5)
+impl<T0, T1, T2, T3, T4, T5> Encoder for (T0, T1, T2, T3, T4, T5)
 where
-    T0: Encoder<W>,
-    T1: Encoder<W>,
-    T2: Encoder<W>,
-    T3: Encoder<W>,
-    T4: Encoder<W>,
-    T5: Encoder<W>,
+    T0: Encoder,
+    T1: Encoder,
+    T2: Encoder,
+    T3: Encoder,
+    T4: Encoder,
+    T5: Encoder,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         self.0.encode(w);
         self.1.encode(w);
         self.2.encode(w);

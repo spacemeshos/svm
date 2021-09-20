@@ -4,11 +4,8 @@ use svm_sdk_types::Address;
 use crate::traits::Push;
 use crate::{ByteSize, Encoder};
 
-impl<W> Encoder<W> for Address
-where
-    W: Push<Item = u8>,
-{
-    fn encode(&self, w: &mut W) {
+impl Encoder for Address {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         w.push(svm_abi_layout::ADDRESS);
 
         let bytes = self.as_slice();

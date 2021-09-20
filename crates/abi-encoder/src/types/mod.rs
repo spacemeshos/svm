@@ -47,12 +47,9 @@ pub use tuples::*;
 
 use crate::traits::{Encoder, Push};
 
-impl<W> Encoder<W> for Value
-where
-    W: Push<Item = u8>,
-{
+impl Encoder for Value {
     #[inline]
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         match self {
             Value::Primitive(p) => encode_primitive(p, w),
             Value::Composite(c) => encode_composite(c, w),

@@ -1,9 +1,9 @@
 use num_traits::AsPrimitive;
 
 /// A trait used to encoding a value (of `Primitive` or `Composite` type)
-pub trait Encoder<W> {
+pub trait Encoder {
     /// Encodes `self` and outputs the data into `w`
-    fn encode(&self, w: &mut W);
+    fn encode(&self, w: &mut impl Push<Item = u8>);
 }
 
 pub trait Push {

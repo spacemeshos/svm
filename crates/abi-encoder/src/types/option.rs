@@ -2,12 +2,11 @@ use svm_sdk_std::Option;
 
 use crate::traits::{ByteSize, Encoder, Push};
 
-impl<T, W> Encoder<W> for svm_sdk_std::Option<T>
+impl<T> Encoder for svm_sdk_std::Option<T>
 where
-    T: Encoder<W>,
-    W: Push<Item = u8>,
+    T: Encoder,
 {
-    fn encode(&self, w: &mut W) {
+    fn encode(&self, w: &mut impl Push<Item = u8>) {
         match self {
             svm_sdk_std::Option::None => {
                 w.push(svm_abi_layout::NONE);
