@@ -1,5 +1,3 @@
-use svm_abi_layout::layout;
-
 use crate::{traits::Push, ByteSize, Encoder};
 
 impl<W> Encoder<W> for ()
@@ -7,7 +5,7 @@ where
     W: Push<Item = u8>,
 {
     fn encode(&self, w: &mut W) {
-        w.push(layout::UNIT);
+        w.push(svm_abi_layout::UNIT);
     }
 }
 

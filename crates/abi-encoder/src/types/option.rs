@@ -10,9 +10,7 @@ where
     fn encode(&self, w: &mut W) {
         match self {
             svm_sdk_std::Option::None => {
-                use svm_abi_layout::layout;
-
-                w.push(layout::NONE);
+                w.push(svm_abi_layout::NONE);
             }
             svm_sdk_std::Option::Some(val) => val.encode(w),
         }

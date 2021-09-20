@@ -105,9 +105,11 @@ impl Numeric for u64 {
 /// Integer layout marker bytes generator. It looks scary, but all it does is it
 /// dynamically encodes the layout formula specificied by the ABI.
 pub fn layout_integer(max_width_in_bytes: u32, width_in_bytes: u32, signed: bool) -> u8 {
-    use svm_abi_layout::layout::*;
+    use svm_abi_layout::*;
+
     debug_assert!(width_in_bytes <= max_width_in_bytes);
     debug_assert!(max_width_in_bytes <= 8);
+
     match (max_width_in_bytes, (width_in_bytes - 1) as u8, signed) {
         (1, 0, true) => I8,
         (1, 0, false) => U8,
@@ -124,7 +126,7 @@ pub fn layout_integer(max_width_in_bytes: u32, width_in_bytes: u32, signed: bool
 #[cfg(test)]
 mod test {
     use super::*;
-    use svm_abi_layout::layout;
+    use svm_abi_layout as layout;
 
     #[test]
     fn integer_layouts() {

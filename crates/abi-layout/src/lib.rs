@@ -76,89 +76,70 @@
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 #![deny(rustdoc::broken_intra_doc_links)]
+#![allow(clippy::unusual_byte_groupings)]
+#![allow(missing_docs)]
 
-#[allow(clippy::unusual_byte_groupings)]
-#[doc(hidden)]
-pub mod layout {
-    // Boolean
-    pub const BOOL_FALSE: u8 = 0b_0_000_0000;
-    pub const BOOL_TRUE: u8 = 0b_0_001_0000;
+pub const BOOL_FALSE: u8 = 0b_0_000_0000;
+pub const BOOL_TRUE: u8 = 0b_0_001_0000;
 
-    // None
-    pub const NONE: u8 = 0b_0_010_0000;
+pub const NONE: u8 = 0b_0_010_0000;
 
-    // Unit
-    pub const UNIT: u8 = 0b_0_011_0000;
+pub const UNIT: u8 = 0b_0_011_0000;
 
-    // Address
-    pub const ADDRESS: u8 = 0b_0_100_0000;
+pub const ADDRESS: u8 = 0b_0_100_0000;
 
-    /// Amount
-    pub const AMOUNT_1B: u8 = 0b_0_000_0001;
-    pub const AMOUNT_2B: u8 = 0b_0_001_0001;
-    pub const AMOUNT_3B: u8 = 0b_0_010_0001;
-    pub const AMOUNT_4B: u8 = 0b_0_011_0001;
-    pub const AMOUNT_5B: u8 = 0b_0_100_0001;
-    pub const AMOUNT_6B: u8 = 0b_0_101_0001;
-    pub const AMOUNT_7B: u8 = 0b_0_110_0001;
-    pub const AMOUNT_8B: u8 = 0b_0_111_0001;
+pub const AMOUNT_1B: u8 = 0b_0_000_0001;
+pub const AMOUNT_2B: u8 = 0b_0_001_0001;
+pub const AMOUNT_3B: u8 = 0b_0_010_0001;
+pub const AMOUNT_4B: u8 = 0b_0_011_0001;
+pub const AMOUNT_5B: u8 = 0b_0_100_0001;
+pub const AMOUNT_6B: u8 = 0b_0_101_0001;
+pub const AMOUNT_7B: u8 = 0b_0_110_0001;
+pub const AMOUNT_8B: u8 = 0b_0_111_0001;
 
-    // i8
-    //// signed
-    pub const I8: u8 = 0b_0_000_0010;
-    /// unsigned
-    pub const U8: u8 = 0b_0_001_0010;
+pub const I8: u8 = 0b_0_000_0010;
+pub const U8: u8 = 0b_0_001_0010;
 
-    // i16
-    //// signed
-    pub const I16_1B: u8 = 0b_0_010_0010;
-    pub const I16_2B: u8 = 0b_0_011_0010;
-    //// unsigned
-    pub const U16_1B: u8 = 0b_0_100_0010;
-    pub const U16_2B: u8 = 0b_0_101_0010;
+pub const I16_1B: u8 = 0b_0_010_0010;
+pub const I16_2B: u8 = 0b_0_011_0010;
+pub const U16_1B: u8 = 0b_0_100_0010;
+pub const U16_2B: u8 = 0b_0_101_0010;
 
-    // i32
-    //// signed
-    pub const I32_1B: u8 = 0b_0_000_0011;
-    pub const I32_2B: u8 = 0b_0_001_0011;
-    pub const I32_3B: u8 = 0b_0_010_0011;
-    pub const I32_4B: u8 = 0b_0_011_0011;
-    //// unsigned
-    pub const U32_1B: u8 = 0b_0_100_0011;
-    pub const U32_2B: u8 = 0b_0_101_0011;
-    pub const U32_3B: u8 = 0b_0_110_0011;
-    pub const U32_4B: u8 = 0b_0_111_0011;
+pub const I32_1B: u8 = 0b_0_000_0011;
+pub const I32_2B: u8 = 0b_0_001_0011;
+pub const I32_3B: u8 = 0b_0_010_0011;
+pub const I32_4B: u8 = 0b_0_011_0011;
+pub const U32_1B: u8 = 0b_0_100_0011;
+pub const U32_2B: u8 = 0b_0_101_0011;
+pub const U32_3B: u8 = 0b_0_110_0011;
+pub const U32_4B: u8 = 0b_0_111_0011;
 
-    // i64
-    //// signed
-    pub const I64_1B: u8 = 0b_0_000_0100;
-    pub const I64_2B: u8 = 0b_0_001_0100;
-    pub const I64_3B: u8 = 0b_0_010_0100;
-    pub const I64_4B: u8 = 0b_0_011_0100;
-    pub const I64_5B: u8 = 0b_0_100_0100;
-    pub const I64_6B: u8 = 0b_0_101_0100;
-    pub const I64_7B: u8 = 0b_0_110_0100;
-    pub const I64_8B: u8 = 0b_0_111_0100;
-    //// unsigned
-    pub const U64_1B: u8 = 0b_0_000_0101;
-    pub const U64_2B: u8 = 0b_0_001_0101;
-    pub const U64_3B: u8 = 0b_0_010_0101;
-    pub const U64_4B: u8 = 0b_0_011_0101;
-    pub const U64_5B: u8 = 0b_0_100_0101;
-    pub const U64_6B: u8 = 0b_0_101_0101;
-    pub const U64_7B: u8 = 0b_0_110_0101;
-    pub const U64_8B: u8 = 0b_0_111_0101;
+pub const I64_1B: u8 = 0b_0_000_0100;
+pub const I64_2B: u8 = 0b_0_001_0100;
+pub const I64_3B: u8 = 0b_0_010_0100;
+pub const I64_4B: u8 = 0b_0_011_0100;
+pub const I64_5B: u8 = 0b_0_100_0100;
+pub const I64_6B: u8 = 0b_0_101_0100;
+pub const I64_7B: u8 = 0b_0_110_0100;
+pub const I64_8B: u8 = 0b_0_111_0100;
+pub const U64_1B: u8 = 0b_0_000_0101;
+pub const U64_2B: u8 = 0b_0_001_0101;
+pub const U64_3B: u8 = 0b_0_010_0101;
+pub const U64_4B: u8 = 0b_0_011_0101;
+pub const U64_5B: u8 = 0b_0_100_0101;
+pub const U64_6B: u8 = 0b_0_101_0101;
+pub const U64_7B: u8 = 0b_0_110_0101;
+pub const U64_8B: u8 = 0b_0_111_0101;
 
-    // Small-Array
-    pub const ARR_0: u8 = 0b_0_000_0110;
-    pub const ARR_1: u8 = 0b_0_001_0110;
-    pub const ARR_2: u8 = 0b_0_010_0110;
-    pub const ARR_3: u8 = 0b_0_011_0110;
-    pub const ARR_4: u8 = 0b_0_100_0110;
-    pub const ARR_5: u8 = 0b_0_101_0110;
-    pub const ARR_6: u8 = 0b_0_110_0110;
-    pub const ARR_7: u8 = 0b_0_111_0110;
-    pub const ARR_8: u8 = 0b_0_000_0111;
-    pub const ARR_9: u8 = 0b_0_001_0111;
-    pub const ARR_10: u8 = 0b_0_010_0111;
-}
+// Small arrays.
+pub const ARR_0: u8 = 0b_0_000_0110;
+pub const ARR_1: u8 = 0b_0_001_0110;
+pub const ARR_2: u8 = 0b_0_010_0110;
+pub const ARR_3: u8 = 0b_0_011_0110;
+pub const ARR_4: u8 = 0b_0_100_0110;
+pub const ARR_5: u8 = 0b_0_101_0110;
+pub const ARR_6: u8 = 0b_0_110_0110;
+pub const ARR_7: u8 = 0b_0_111_0110;
+pub const ARR_8: u8 = 0b_0_000_0111;
+pub const ARR_9: u8 = 0b_0_001_0111;
+pub const ARR_10: u8 = 0b_0_010_0111;

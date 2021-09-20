@@ -174,7 +174,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
         runtime,
         message,
         message_size,
-        |r, m| r.validate_spawn(m),
+        |r, m| Runtime::validate_spawn(r, m),
         "svm_validate_spawn",
     )
 }
@@ -208,7 +208,7 @@ pub unsafe extern "C" fn svm_validate_call(
         runtime,
         message,
         message_size,
-        |r, m| r.validate_call(m),
+        |r, m| Runtime::validate_call(r, m),
         "svm_validate_call",
     )
 }
@@ -256,7 +256,7 @@ pub unsafe extern "C" fn svm_deploy(
         message,
         message_size,
         context,
-        |r, e, m, c| r.deploy(e, m, c),
+        |r, e, m, c| Runtime::deploy(r, e, m, c),
         "svm_deploy",
     )
 }
