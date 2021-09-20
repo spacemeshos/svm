@@ -1,4 +1,4 @@
-use svm_abi_layout::layout;
+use svm_abi_layout as layout;
 
 use crate::{traits::Push, ByteSize, Encoder};
 

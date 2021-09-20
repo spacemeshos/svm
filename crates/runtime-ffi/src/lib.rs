@@ -12,7 +12,9 @@
 #![feature(allocator_api)]
 
 mod api;
+mod config;
 mod result;
+mod runtime_tracker;
 
 #[cfg(feature = "default-memory")]
 pub use api::svm_memory_runtime_create;
@@ -33,6 +35,9 @@ pub use api::{
 
     // Destroy
     svm_runtime_destroy,
+
+    svm_init,
+    svm_runtimes_count,
 };
 
 pub use result::svm_result_t;

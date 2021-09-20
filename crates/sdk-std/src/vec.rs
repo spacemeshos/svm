@@ -117,18 +117,18 @@ impl<T> Vec<T> {
     }
 
     /// Returns an iterator over the contained items.
-    pub fn iter(&self) -> Iter<T> {
-        Iter::new(self)
+    pub fn iter(&self) -> VecIter<T> {
+        VecIter { pos: 0, vec: self }
     }
 
     /// Returns a mutable iterator over the contained items.
-    pub fn iter_mut(&mut self) -> Iter<T> {
-        Iter::new(self)
+    pub fn iter_mut(&mut self) -> VecIter<T> {
+        VecIter { pos: 0, vec: self }
     }
 
-    /// Transfers ownership of self and returns [`IntoIter`].
-    pub fn into_iter(self) -> IntoIter<T> {
-        IntoIter::new(self)
+    /// Transfers ownership of self and returns a new [`VecIntoIter`].
+    pub fn into_iter(self) -> VecIntoIter<T> {
+        VecIntoIter { vec: self, pos: 0 }
     }
 
     unsafe fn take(&mut self, offset: usize) -> T {
@@ -200,18 +200,12 @@ impl<T> DerefMut for Vec<T> {
     }
 }
 
-pub struct Iter<'a, T> {
+pub struct VecIter<'a, T> {
     pos: usize,
     vec: &'a Vec<T>,
 }
 
-impl<'a, T> Iter<'a, T> {
-    pub fn new(vec: &'a Vec<T>) -> Self {
-        Self { vec, pos: 0 }
-    }
-}
-
-impl<'a, T> core::iter::Iterator for Iter<'a, T> {
+impl<'a, T> core::iter::Iterator for VecIter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -226,18 +220,13 @@ impl<'a, T> core::iter::Iterator for Iter<'a, T> {
     }
 }
 
-pub struct IntoIter<T> {
+/// An iterator for [`Vec<T>`].
+pub struct VecIntoIter<T> {
     pos: usize,
     vec: Vec<T>,
 }
 
-impl<T> IntoIter<T> {
-    pub fn new(vec: Vec<T>) -> Self {
-        Self { vec, pos: 0 }
-    }
-}
-
-impl<T> core::iter::Iterator for IntoIter<T> {
+impl<T> core::iter::Iterator for VecIntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {

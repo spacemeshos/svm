@@ -11,9 +11,9 @@ use svm_hash::{Blake3Hasher, Hasher};
 use svm_program::{Program, ProgramVisitor};
 use svm_state::{AccountStorage, GlobalState, TemplateStorage};
 use svm_types::{
-    Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError,
-    ReceiptLog, RuntimeError, RuntimeFailure, Sections, SpawnAccount, SpawnReceipt, State,
-    Template, TemplateAddr, Transaction,
+    Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, Layer,
+    OOGError, ReceiptLog, RuntimeError, RuntimeFailure, Sections, SpawnAccount, SpawnReceipt,
+    State, Template, TemplateAddr, Transaction,
 };
 
 use super::{Call, Function, Outcome};
@@ -611,6 +611,27 @@ impl Runtime for DefaultRuntime {
         );
 
         self.exec_call::<(), ()>(&call)
+    }
+
+    fn rewind(&mut self, layer_id: Layer) -> Result<()> {
+        self.gs
+            .rewind(layer_id)
+            .map_err(|_e| RuntimeFailure::new(RuntimeError::OOG, vec![]))
+    }
+
+    fn commit(&mut self) -> Result<()> {
+        self.gs
+            .commit()
+            .map_err(|_e| RuntimeFailure::new(RuntimeError::OOG, vec![]))?;
+        Ok(())
+    }
+
+    fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)> {
+        let account_storage = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
+        let balance = account_storage.balance().unwrap();
+        let counter = account_storage.counter().unwrap();
+        let template_addr = account_storage.template_addr().unwrap();
+        Some((balance, counter, template_addr))
     }
 }
 
