@@ -1851,6 +1851,7 @@ dependencies = [
  "svm-sdk",
  "svm-state",
  "svm-types",
+ "wasmer",
  "wat",
 ]
 
@@ -1970,6 +1971,7 @@ dependencies = [
  "hex",
  "indexmap",
  "svm-layout",
+ "thiserror",
 ]
 
 [[package]]

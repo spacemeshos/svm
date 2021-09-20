@@ -2,7 +2,8 @@ use crate::{Address, ReceiptLog, TemplateAddr};
 
 /// Type for failed running transactions
 #[doc(hidden)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, thiserror::Error)]
+#[error("A runtime error happened.")]
 pub enum RuntimeError {
     OOG,
     TemplateNotFound(TemplateAddr),
@@ -42,7 +43,8 @@ pub enum RuntimeError {
 }
 
 /// A [`RuntimeError`] with some associated logs.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, thiserror::Error)]
+#[error("Runtime error {:?} with the following logs: {:?}.", err, logs)]
 pub struct RuntimeFailure {
     /// The [`RuntimeError`] with some logs.
     pub err: RuntimeError,

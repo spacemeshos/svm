@@ -8,7 +8,10 @@ mod outcome;
 #[cfg(feature = "default-rocksdb")]
 mod rocksdb;
 
-use svm_types::{CallReceipt, Context, DeployReceipt, Envelope, SpawnReceipt};
+use svm_types::{
+    Address, CallReceipt, Context, DeployReceipt, Envelope, Layer, RuntimeFailure, SpawnReceipt,
+    TemplateAddr,
+};
 
 use crate::error::ValidateError;
 
@@ -50,4 +53,20 @@ pub trait Runtime {
     ///
     /// This function should be called only if the `verify` stage has passed.
     fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt;
+
+    /// Moves the internal state of this [`Runtime`] back to the time of
+    /// `layer_id`.
+    fn rewind(&mut self, layer_id: Layer) -> Result<(), RuntimeFailure>;
+
+    /// Creates a new layer with the given changes.
+    fn commit(&mut self) -> Result<(), RuntimeFailure>;
+
+    /// Given the address of an account, it attempts to read:
+    ///
+    /// - balance;
+    /// - counter;
+    /// - template's address;
+    ///
+    /// from the database layer.
+    fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)>;
 }

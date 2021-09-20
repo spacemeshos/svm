@@ -9,6 +9,20 @@ use std::ops::FromResidual;
 /// - Error variant.
 /// - Receipt variant.
 /// - No data, just okay state.
+///
+/// Please note that [`svm_result_t`] implements [`std::ops::Try`], so you can
+/// effectively use `?` everywhere and it will automatically return an
+/// [`svm_result_t::new_error()`] if necessary.
+///
+/// # Memory management
+///
+/// All [`svm_result_t`] instances allocate memory using the system allocator,
+/// so it's very easy to free contents from C and other languages.
+///
+/// ```c, no_run
+/// free(result->receipt);
+/// free(result->error);
+/// ```
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(C)]
@@ -64,7 +78,8 @@ impl svm_result_t {
         }
     }
 
-    /// Returns whether `self` equals to [`svm_result_t::OK`].
+    /// Returns whether `self` is either a receipt or simply equal to
+    /// [`svm_result_t::OK`].
     ///
     /// # Examples
     ///
