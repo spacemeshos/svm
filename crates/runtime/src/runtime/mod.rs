@@ -5,9 +5,6 @@ mod default;
 mod function;
 mod outcome;
 
-#[cfg(feature = "default-rocksdb")]
-mod rocksdb;
-
 use svm_types::{
     Address, CallReceipt, Context, DeployReceipt, Envelope, Layer, RuntimeFailure, SpawnReceipt,
     TemplateAddr,
@@ -19,9 +16,6 @@ pub use call::Call;
 pub use default::DefaultRuntime;
 pub use function::Function;
 pub use outcome::Outcome;
-
-#[cfg(feature = "default-rocksdb")]
-pub use rocksdb::create_rocksdb_runtime;
 
 /// Specifies the interface of a SVM [`Runtime`].
 ///

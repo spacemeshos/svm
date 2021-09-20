@@ -26,15 +26,15 @@ The root crate is called `SVM` and it's a workspace crate.
 In order to build the `SVM` project crates at once and run their tests:
 
 ```rust
-cargo +nightly build
-cargo +nightly test --all
+cargo build
+cargo test
 ```
 
 If you want to build & test in release mode execute:
 
 ```rust
-cargo +nightly build --release --features=default-rocksdb,default-memory
-cargo +nightly test --all --release --features=default-rocksdb,default-memory
+cargo build --release --no-default-features
+cargo test --all --release --no-default-features
 ```
 
 ### Docker

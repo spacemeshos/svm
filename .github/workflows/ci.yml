@@ -72,7 +72,7 @@ jobs:
         with:
           toolchain: nightly
           command: build
-          args: --${{ matrix.profile }} --package svm-runtime-ffi --features=default-cranelift,default-memory --no-default-features
+          args: --${{ matrix.profile }} --package svm-runtime-ffi --features=default-cranelift --no-default-features
       - name: Cargo Build CLI
         uses: actions-rs/cargo@v1
         with:
@@ -146,7 +146,7 @@ jobs:
         with:
           toolchain: nightly
           command: test
-          args: --all --features=default-cranelift,default-memory --no-default-features -- --nocapture
+          args: --all --features=default-cranelift --no-default-features -- --nocapture
           components: rustdoc
       - name: Run `cargo doc`
         uses: actions-rs/cargo@v1

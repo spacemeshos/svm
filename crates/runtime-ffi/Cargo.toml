@@ -39,9 +39,3 @@ cbindgen = "0.19.0"
 default = []
 default-singlepass = ["svm-runtime/default-singlepass"]
 default-cranelift = ["svm-runtime/default-cranelift"]
-default-memory = [
-    "svm-runtime/default-memory",
-]
-default-rocksdb = [
-    "svm-runtime/default-rocksdb",
-]

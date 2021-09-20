@@ -16,9 +16,6 @@ mod config;
 mod result;
 mod runtime_tracker;
 
-#[cfg(feature = "default-memory")]
-pub use api::svm_memory_runtime_create;
-
 /// `SVM` FFI Interface
 #[rustfmt::skip]
 pub use api::{
@@ -36,6 +33,7 @@ pub use api::{
     // Destroy
     svm_runtime_destroy,
 
+    svm_runtime_create,
     svm_init,
     svm_runtimes_count,
 };

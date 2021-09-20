@@ -54,6 +54,18 @@ pub fn create_memory_runtime() -> DefaultRuntime {
     )
 }
 
+/// Creates an in-memory `Runtime` backed by a `state_kv`.
+pub fn create_db_runtime(path: &str) -> DefaultRuntime {
+    let imports = ("sm".to_string(), wasmer::Exports::new());
+
+    DefaultRuntime::new(
+        imports,
+        GlobalState::new(path),
+        PriceResolverRegistry::default(),
+        None,
+    )
+}
+
 /// Builds a binary `Deploy Template` transaction.
 pub fn build_deploy(
     code_version: u32,
