@@ -6,11 +6,9 @@
 
 //! This crate is responsible of representing an `Account`'s storage variables `Layout`.
 
-mod builder;
 mod fixed;
 mod var;
 
-pub use builder::FixedLayoutBuilder;
 pub use fixed::FixedLayout;
 pub use var::{Id, Primitive, RawVar, SymbolicVar, Type};
 

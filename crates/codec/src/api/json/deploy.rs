@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use svm_layout::{FixedLayoutBuilder, Id, Layout};
+use svm_layout::{FixedLayout, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection, Template};
 
 use super::{get_field, parse_json, serde_types::HexBlob, JsonError};
@@ -52,13 +52,7 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
         .map(|bytes| u32::from_be_bytes(bytes.try_into().unwrap()))
         .collect();
 
-    // Note: `LayoutBuilder` assume that the `first var id` is zero
-    let mut builder = FixedLayoutBuilder::with_capacity(data.len());
-
-    builder.set_first(Id(0));
-    builder.extend_from_slice(&data);
-
-    let fixed = builder.build();
+    let fixed = FixedLayout::from_byte_sizes(0, &data);
     let layout = Layout::Fixed(fixed);
 
     Ok(layout)
@@ -216,7 +210,7 @@ mod tests {
         let actual = template::decode(cursor, None).unwrap();
 
         let code = CodeSection::new_fixed(vec![0xC0, 0xDE], 1);
-        let fixed = FixedLayout::from(vec![1, 3]);
+        let fixed = FixedLayout::from_byte_sizes(0, &[1, 3]);
         let data = DataSection::with_layout(Layout::Fixed(fixed));
         let ctors = CtorsSection::new(vec!["init".into(), "start".into()]);
         let header = HeaderSection::new(2, "My Template".into(), "A few words".into());

@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::Write;
 
 use svm_codec::SectionsEncoder;
-use svm_layout::{FixedLayout, FixedLayoutBuilder, Id, Layout};
+use svm_layout::{FixedLayout, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, Section, Sections};
 
 use meta::TemplateMeta;
