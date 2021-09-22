@@ -70,7 +70,11 @@ impl FixedLayout {
     /// Returns a iterator over the layout-variables.
     /// The iterators will return each time an entry of `(var_id, var_offset, var_length)`.
     pub fn iter(&self) -> LayoutIter {
-        LayoutIter::new(self)
+        LayoutIter {
+            offset: 0,
+            current: self.try_first(),
+            layout: self,
+        }
     }
 
     #[inline]
@@ -114,20 +118,8 @@ impl FixedLayout {
 
 pub struct LayoutIter<'iter> {
     offset: usize,
-
     current: Option<Id>,
-
     layout: &'iter FixedLayout,
-}
-
-impl<'iter> LayoutIter<'iter> {
-    pub fn new(layout: &'iter FixedLayout) -> Self {
-        Self {
-            offset: 0,
-            current: layout.try_first(),
-            layout,
-        }
-    }
 }
 
 impl<'iter> std::iter::Iterator for LayoutIter<'iter> {
