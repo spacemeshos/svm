@@ -69,12 +69,8 @@ impl FixedLayout {
 
     /// Returns a iterator over the layout-variables.
     /// The iterators will return each time an entry of `(var_id, var_offset, var_length)`.
-    pub fn iter(&self) -> LayoutIter {
-        LayoutIter {
-            offset: 0,
-            current: self.try_first(),
-            layout: self,
-        }
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = RawVar> + 'a {
+        self.vars.iter().copied()
     }
 
     #[inline]
@@ -113,33 +109,6 @@ impl FixedLayout {
         assert!(index < self.vars.len());
 
         index
-    }
-}
-
-pub struct LayoutIter<'iter> {
-    offset: usize,
-    current: Option<Id>,
-    layout: &'iter FixedLayout,
-}
-
-impl<'iter> std::iter::Iterator for LayoutIter<'iter> {
-    type Item = RawVar;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.current.and_then(|current| {
-            if self.offset >= self.layout.len() {
-                self.current = None;
-
-                return None;
-            }
-
-            let var = self.layout.get(current);
-
-            self.offset += 1;
-            self.current = Some(current + 1);
-
-            Some(var.clone())
-        })
     }
 }
 
