@@ -4,7 +4,6 @@ use crate::{Id, RawVar};
 #[derive(Debug, PartialEq, Clone)]
 pub struct FixedLayout {
     first: Option<Id>,
-
     vars: Vec<RawVar>,
 }
 
