@@ -32,7 +32,7 @@ impl Codec for SchemaSection {
     }
 }
 
-fn primitive_to_nibble(prim: Primitive) -> u8 {
+fn primitive_to_u8(prim: Primitive) -> u8 {
     match prim {
         Primitive::Address => 0,
         Primitive::Amount => 1,
@@ -48,8 +48,8 @@ fn primitive_to_nibble(prim: Primitive) -> u8 {
     }
 }
 
-fn nibble_to_primitive(nibble: u8) -> Option<Primitive> {
-    Some(match nibble {
+fn u8_to_primitive(val: u8) -> Option<Primitive> {
+    Some(match val {
         0 => Primitive::Address,
         1 => Primitive::Amount,
         2 => Primitive::Bool,
@@ -69,37 +69,30 @@ impl Codec for svm_layout::Type {
     type Error = ParseError;
 
     fn encode(&self, w: &mut impl WriteExt) {
-        let byte: u8 = match self {
-            Type::Primitive(prim) => (0xf << 4) | primitive_to_nibble(*prim),
+        match self {
+            Type::Primitive(primitive) => {
+                0xfu8.encode(w);
+                primitive_to_u8(*primitive).encode(w);
+            }
             Type::Array { primitive, length } => {
                 assert!(*length < 0xf);
-                ((*length as u8) << 4) | primitive_to_nibble(*primitive)
+                (*length as u8).encode(w);
+                primitive_to_u8(*primitive).encode(w);
             }
-        };
-
-        byte.encode(w);
+        }
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let byte = u8::decode(reader)?;
+        let bytes = <[u8; 2]>::decode(reader)?;
+        let primitive = u8_to_primitive(bytes[1]).ok_or(ParseError::BadByte(bytes[1]))?;
 
-        match byte >> 4 {
-            0xf => {
-                let nibble = byte & 0xf;
-                nibble_to_primitive(nibble)
-                    .ok_or(ParseError::BadByte(nibble))
-                    .map(|prim| Type::Primitive(prim))
-            }
-            length => {
-                let nibble = byte & 0xf;
-                nibble_to_primitive(nibble)
-                    .ok_or(ParseError::BadByte(nibble))
-                    .map(|primitive| Type::Array {
-                        primitive,
-                        length: length as usize,
-                    })
-            }
-        }
+        Ok(match bytes[0] {
+            0xf => Type::Primitive(primitive),
+            length => Type::Array {
+                primitive,
+                length: length as usize,
+            },
+        })
     }
 
     fn fixed_size() -> Option<usize> {
@@ -122,8 +115,8 @@ mod test {
     impl Arbitrary for PrimitiveWrapper {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             let alternatives: Vec<u8> = (0..=10).collect();
-            let nibble: u8 = *g.choose(&alternatives).unwrap();
-            Self(nibble_to_primitive(nibble).unwrap())
+            let byte: u8 = *g.choose(&alternatives).unwrap();
+            Self(u8_to_primitive(byte).unwrap())
         }
     }
 
