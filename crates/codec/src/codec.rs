@@ -13,7 +13,7 @@ use crate::{ParseError, ReadExt, WriteExt};
 pub trait Codec: Sized {
     /// The type of errors that can arise during decoding operations.
     ///
-    /// This should be [`std::convert::Infallible`] if nonexistant.
+    /// This should be [`std::convert::Infallible`] if nonexistent.
     type Error;
 
     /// Writes a binary representation of `self` to `w`.
@@ -124,17 +124,15 @@ where
 /// Encoding of a binary [`Envelope`].
 ///
 /// ```text
-///
-///  +-------------+--------------+----------------+----------------+
-///  |             |              |                |                |
-///  |  Principal  |    Amount    |   Gas Limit    |    Gas Fee     |
-///  |  (Address)  |    (u64)     |     (u64)      |     (u64)      |
-///  |             |              |                |                |
-///  |  20 bytes   |   8 bytes    |    8 bytes     |    8 bytes     |
-///  |             | (Big-Endian) |  (Big-Endian)  |  (Big-Endian)  |
-///  |             |              |                |                |
-///  +-------------+--------------+----------------+----------------+
-///
+///  +-------------+--------------+----------------+----------------+----------------+
+///  |             |              |			       |                |				 |
+///  |  Principal  |    Amount    |     Nonce      |   Gas Limit    |    Gas Fee 	 |
+///  |  (Address)  |    (u64)     |     (u128)     |     (u64)      |     (u64)	 	 |
+///  |             |              |                |                |				 |
+///  |  20 bytes   |   8 bytes    |    16 bytes    |    8 bytes     |    8 bytes     |
+///  |             | (Big-Endian) |  (Big-Endian)  |  (Big-Endian)  |  (Big-Endian)  |
+///  |             |              |                |                |			     |
+///  +-------------+--------------+----------------+----------------+----------------+
 /// ```
 impl Codec for Envelope {
     type Error = ParseError;
@@ -142,6 +140,7 @@ impl Codec for Envelope {
     fn encode(&self, w: &mut impl WriteExt) {
         self.principal().0.encode(w);
         self.amount().encode(w);
+        self.nonce().encode(w);
         self.gas_limit().encode(w);
         self.gas_fee().encode(w);
     }
@@ -149,15 +148,16 @@ impl Codec for Envelope {
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
         let principal = Address::decode(reader)?;
         let amount = u64::decode(reader)?;
+        let nonce = u128::decode(reader)?;
         let gas_limit = Gas::decode(reader)?;
         let gas_fee = u64::decode(reader)?;
 
-        let envelope = Envelope::new(principal, amount, gas_limit, gas_fee);
+        let envelope = Envelope::new(principal, amount, nonce, gas_limit, gas_fee);
         Ok(envelope)
     }
 
     fn fixed_size() -> Option<usize> {
-        Some(20 + 8 + 8 + 8)
+        Some(20 + 8 + 16 + 8 + 8)
     }
 }
 
@@ -598,15 +598,18 @@ mod tests {
     }
 
     #[quickcheck]
-    fn encode_then_decode_envelope(amount: u64, gas_limit: u64, gas_fee: u64) -> bool {
+    fn encode_then_decode_envelope(amount: u64, nonce: u128, gas_limit: u64, gas_fee: u64) -> bool {
+        let gas_limit = if gas_limit == 0 {
+            Gas::new()
+        } else {
+            Gas::from(gas_limit)
+        };
+
         test_codec_bool(Envelope::new(
             Address::zeros(),
             amount,
-            if gas_limit == 0 {
-                Gas::new()
-            } else {
-                Gas::from(gas_limit)
-            },
+            nonce,
+            gas_limit,
             gas_fee,
         ))
     }

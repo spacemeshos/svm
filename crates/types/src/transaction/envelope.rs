@@ -10,6 +10,7 @@ use crate::{Address, BytesPrimitive, Gas};
 pub struct Envelope {
     principal: Address,
     amount: u64,
+    nonce: u128,
     gas_limit: Gas,
     gas_fee: u64,
 }
@@ -22,10 +23,11 @@ impl Default for Envelope {
 
 impl Envelope {
     /// Creates a new [`Envelope`].
-    pub fn new(principal: Address, amount: u64, gas_limit: Gas, gas_fee: u64) -> Self {
+    pub fn new(principal: Address, amount: u64, nonce: u128, gas_limit: Gas, gas_fee: u64) -> Self {
         Self {
             principal,
             amount,
+            nonce,
             gas_limit,
             gas_fee,
         }
@@ -43,6 +45,7 @@ impl Envelope {
         Self {
             principal,
             amount: 0,
+            nonce: 0,
             gas_limit: Gas::new(),
             gas_fee: 0,
         }
@@ -59,6 +62,7 @@ impl Envelope {
         Self {
             principal: Address::zeros(),
             amount: 0,
+            nonce: 0,
             gas_limit,
             gas_fee: 0,
         }
@@ -72,6 +76,11 @@ impl Envelope {
     /// Funding by the `Principal`.
     pub fn amount(&self) -> u64 {
         self.amount
+    }
+
+    /// The transaction's `Nonce`.
+    pub fn nonce(&self) -> u128 {
+        self.nonce
     }
 
     /// Maximum units of Gas to be paid.
