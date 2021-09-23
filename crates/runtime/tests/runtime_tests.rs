@@ -265,7 +265,7 @@ fn memory_runtime_call_func_not_found() {
     let mut runtime = testing::create_memory_runtime();
 
     // 1) `Deploy Template`
-    let layout: FixedLayout = vec![Address::N as u32].into();
+    let layout = FixedLayout::from_byte_sizes(0, &[Address::N as u32]);
     let message = testing::build_deploy(
         0,
         "My Template",
@@ -306,7 +306,7 @@ fn memory_runtime_call_success() {
     let mut runtime = testing::create_memory_runtime();
 
     // 1) `Deploy Template`
-    let layout: FixedLayout = vec![Address::N as u32].into();
+    let layout = FixedLayout::from_byte_sizes(0, &[Address::N as u32]);
     let message = testing::build_deploy(
         0,
         "My Template",

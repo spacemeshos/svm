@@ -45,7 +45,7 @@
 
 use std::convert::TryFrom;
 
-use svm_layout::{FixedLayoutBuilder, Id, Layout, LayoutKind};
+use svm_layout::{FixedLayout, Layout, LayoutKind};
 use svm_types::DataSection;
 
 use crate::{Codec, ParseError, ReadExt, WriteExt};
@@ -96,12 +96,11 @@ impl Codec for Layout {
 
                 if var_count > 0 {
                     // `First Var Id`
-                    let first = layout.first();
-                    (first.0 as u32).encode(w);
+                    layout.first().encode(w);
 
                     // Encoding each `Var Byte-Size`
                     for var in layout.iter() {
-                        (var.byte_size() as u16).encode(w);
+                        (var.byte_size as u16).encode(w);
                     }
                 }
             }
@@ -116,24 +115,20 @@ impl Codec for Layout {
             LayoutKind::Fixed => {
                 // `#Vars
                 let var_count = u16::decode(reader)?;
-                let var_count = var_count as usize;
-
-                let mut builder = FixedLayoutBuilder::with_capacity(var_count);
+                let mut first_var_id = 0;
+                let mut byte_sizes = Vec::with_capacity(var_count as usize);
 
                 if var_count > 0 {
-                    // `First Var Id`
-                    let first = Id(u32::decode(reader)?);
-                    builder.set_first(first);
+                    first_var_id = u32::decode(reader)?;
 
                     // Decoding each `var`
                     for _ in 0..var_count {
                         let byte_size = decode_var_byte_size(reader)?;
-
-                        builder.push(byte_size);
+                        byte_sizes.push(byte_size);
                     }
                 }
 
-                let fixed = builder.build();
+                let fixed = FixedLayout::from_byte_sizes(first_var_id, &byte_sizes);
                 let layout = Layout::Fixed(fixed);
 
                 Ok(layout)

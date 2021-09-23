@@ -122,7 +122,7 @@ fn vmcalls_empty_wasm() {
 fn vmcalls_get32_set32() {
     let template_addr = TemplateAddr::repeat(0xAB);
     let target_addr = Address::repeat(0xCD);
-    let layout: FixedLayout = vec![4, 2].into();
+    let layout = FixedLayout::from_byte_sizes(0, &[4, 2]);
 
     let store = wasmer_store();
     let storage = create_account(&target_addr, &template_addr, layout);
@@ -167,7 +167,7 @@ fn vmcalls_get32_set32() {
 fn vmcalls_get64_set64() {
     let template_addr = TemplateAddr::repeat(0xAB);
     let target_addr = Address::repeat(0xCD);
-    let layout: FixedLayout = vec![4, 2].into();
+    let layout = FixedLayout::from_byte_sizes(0, &[4, 2]);
 
     let store = wasmer_store();
     let storage = create_account(&target_addr, &template_addr, layout);
@@ -212,7 +212,7 @@ fn vmcalls_get64_set64() {
 fn vmcalls_load160() {
     let template_addr = TemplateAddr::repeat(0xAB);
     let target_addr = Address::repeat(0xCD);
-    let layout: FixedLayout = vec![20].into();
+    let layout = FixedLayout::from_byte_sizes(0, &[20]);
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
@@ -265,7 +265,7 @@ fn vmcalls_load160() {
 fn vmcalls_store160() {
     let template_addr = TemplateAddr::repeat(0xAB);
     let target_addr = Address::repeat(0xCD);
-    let layout: FixedLayout = vec![20].into();
+    let layout = FixedLayout::from_byte_sizes(0, &[20]);
 
     let store = wasmer_store();
     let memory = wasmer_memory(&store);

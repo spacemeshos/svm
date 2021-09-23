@@ -88,7 +88,7 @@ mod tests {
 
     use super::*;
 
-    use svm_layout::{FixedLayout, Id, Layout, RawVar};
+    use svm_layout::{FixedLayout, Layout, RawVar};
     use svm_types::{
         Address, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, GasMode,
         HeaderSection, Layer, TemplateAddr, TransactionId,
@@ -101,8 +101,8 @@ mod tests {
     fn make_data_section() -> DataSection {
         let mut section = DataSection::default();
 
-        let var1 = RawVar::new(Id(0), 0, 10);
-        let var2 = RawVar::new(Id(1), 10, 5);
+        let var1 = RawVar::new(0, 0, 10);
+        let var2 = RawVar::new(1, 10, 5);
 
         let fixed = FixedLayout::new(vec![var1, var2]);
         section.add_layout(Layout::Fixed(fixed));
