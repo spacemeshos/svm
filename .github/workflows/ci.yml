@@ -59,8 +59,6 @@ jobs:
           fetch-depth: 1
       - run: rustup update nightly
       - uses: Swatinem/rust-cache@v1
-        with:
-          key: ${{ matrix.os }}
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
@@ -81,8 +79,8 @@ jobs:
       - name: Prepare Artifact
         run: |
           set -e
-          mv target/${{ matrix.profile }}/libsvm_runtime_ffi.${{ matrix.shared }} bins/${{ matrix.lib_name }}.${{ matrix.shared }}
-          mv target/${{ matrix.profile }}/libsvm_runtime_ffi.${{ matrix.static }} bins/${{ matrix.lib_name }}.${{ matrix.static }}
+          mv target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.shared }} bins/${{ matrix.lib_name }}.${{ matrix.shared }}
+          mv target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.static }} bins/${{ matrix.lib_name }}.${{ matrix.static }}
           mv target/${{ matrix.profile }}/svm-cli bins/svm-cli
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
@@ -107,8 +105,6 @@ jobs:
       - name: Install Rust
         run: rustup update nightly
       - uses: Swatinem/rust-cache@v1
-        with:
-          key: ${{ matrix.os }}
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
