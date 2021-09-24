@@ -86,7 +86,6 @@ jobs:
           path: bins/
   test:
     runs-on: ${{ matrix.os }}
-    needs: build
     strategy:
       fail-fast: False
       matrix:
