@@ -19,6 +19,19 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         profile: ["release"]
+        include:
+          - os: ubuntu-latest
+            lib_name: libsvm
+            static: a
+            shared: so
+          - os: macos-latest
+            lib_name: libsvm
+            static: a
+            shared: dylib
+          - os: windows-latest
+            lib_name: svm
+            static: lib
+            shared: dll
     steps:
       - name: Automake (macOS)
         if: matrix.os == 'macos-latest'
@@ -44,29 +57,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - name: Cache Cargo Registry
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/registry
-          key: build-${{ runner.os }}-${{ matrix.profile }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            build-${{ runner.os }}-${{ matrix.profile }}-cargo-registry-
-      - name: Cache Cargo Index
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/git
-          key: build-${{ runner.os }}-${{ matrix.profile }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            build-${{ runner.os }}-${{ matrix.profile }}-cargo-index-
-      - name: Cache Cargo Build
-        uses: actions/cache@v2
-        with:
-          path: target/${{ matrix.profile }}
-          key: build-${{ runner.os }}-${{ matrix.profile }}-nightly-target-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            build-${{ runner.os }}-${{ matrix.profile }}-nightly-target-
-      - name: Install Rust
-        run: rustup update nightly
+      - run: rustup update nightly
+      - uses: Swatinem/rust-cache@v1
+        key: ${{ matrix.os }}
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
@@ -84,26 +77,11 @@ jobs:
           set -e
           mkdir bins
           mv target/${{ matrix.profile }}/svm.h bins/svm.h
-      - name: Prepare Artifact (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Prepare Artifact
         run: |
           set -e
-          mv target/${{ matrix.profile }}/libsvm_runtime_ffi.so bins/libsvm.so
-          mv target/${{ matrix.profile }}/libsvm_runtime_ffi.a bins/libsvm.a
-          mv target/${{ matrix.profile }}/svm-cli bins/svm-cli
-      - name: Prepare Artifact (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          set -e
-          mv target/${{ matrix.profile }}/libsvm_runtime_ffi.dylib bins/libsvm.dylib
-          mv target/${{ matrix.profile }}/libsvm_runtime_ffi.a bins/libsvm.a
-          mv target/${{ matrix.profile }}/svm-cli bins/svm-cli
-      - name: Prepare Artifact (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          set -e
-          mv target/${{ matrix.profile }}/svm_runtime_ffi.dll bins/svm.dll
-          mv target/${{ matrix.profile }}/svm_runtime_ffi.lib bins/svm.lib
+          mv target/${{ matrix.profile }}/libsvm_runtime_ffi.${{ matrix.shared }} bins/${{ matrix.lib_name }}.${{ matrix.shared }}
+          mv target/${{ matrix.profile }}/libsvm_runtime_ffi.${{ matrix.static }} bins/${{ matrix.lib_name }}.${{ matrix.static }}
           mv target/${{ matrix.profile }}/svm-cli bins/svm-cli
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
@@ -112,6 +90,7 @@ jobs:
           path: bins/
   test:
     runs-on: ${{ matrix.os }}
+    needs: build
     strategy:
       fail-fast: False
       matrix:
