@@ -59,7 +59,8 @@ jobs:
           fetch-depth: 1
       - run: rustup update nightly
       - uses: Swatinem/rust-cache@v1
-        key: ${{ matrix.os }}
+        with:
+          key: ${{ matrix.os }}
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
@@ -106,7 +107,8 @@ jobs:
       - name: Install Rust
         run: rustup update nightly
       - uses: Swatinem/rust-cache@v1
-        key: ${{ matrix.os }}
+        with:
+          key: ${{ matrix.os }}
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
