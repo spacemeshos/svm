@@ -100,29 +100,13 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - name: Cache Cargo Registry
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/registry
-          key: test-${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            test-${{ runner.os }}-cargo-registry-
-      - name: Cache Cargo Index
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/git
           key: test-${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             test-${{ runner.os }}-cargo-index-
-      - name: Cache Cargo Test
-        uses: actions/cache@v2
-        with:
-          path: target/tests
-          key: test-${{ runner.os }}-${{ matrix.profile }}-nightly-target-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            test-${{ runner.os }}-${{ matrix.profile }}-nightly-target-
       - name: Install Rust
         run: rustup update nightly
+      - uses: Swatinem/rust-cache@v1
+        key: ${{ matrix.os }}
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
