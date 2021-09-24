@@ -108,11 +108,6 @@ jobs:
           command: test
           args: --all --features=default-cranelift --no-default-features -- --nocapture
           components: rustdoc
-      - name: Run `cargo doc`
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --all
   wasm_codec:
     runs-on: macos-latest
     strategy:
@@ -185,4 +180,9 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check
+          args: --workspace -- --check
+      - name: Run `cargo doc`
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --workspace --no-deps
