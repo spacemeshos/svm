@@ -71,17 +71,14 @@ jobs:
           toolchain: nightly
           command: build
           args: --${{ matrix.profile }} --package svm-cli
-      - name: Prepare Artifact (General)
+      - name: Prepare Artifacts
         run: |
           set -e
           mkdir bins
-          mv target/${{ matrix.profile }}/svm.h bins/svm.h
-      - name: Prepare Artifact
-        run: |
-          set -e
           mv target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.shared }} bins/${{ matrix.lib_name }}.${{ matrix.shared }}
           mv target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.static }} bins/${{ matrix.lib_name }}.${{ matrix.static }}
           mv target/${{ matrix.profile }}/svm-cli bins/svm-cli
+          mv target/${{ matrix.profile }}/svm.h bins/svm.h
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
         with:
