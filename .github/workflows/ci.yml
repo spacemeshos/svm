@@ -118,9 +118,14 @@ jobs:
           rustup update nightly
           rustup target add wasm32-unknown-unknown --toolchain nightly
           rustup default nightly
-      - uses: Swatinem/rust-cache@v1
+      - uses: actions/cache@v2
         with:
-          cache-on-failure: True
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/.git
+            ./target
+          key: ${{ runner.os }}
       - name: Test svm-codec
         working-directory: crates/codec/examples
         run: |
