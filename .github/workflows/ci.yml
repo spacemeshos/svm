@@ -113,7 +113,7 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
-          key: ${{ steps.date.outputs.month }}
+          key: ${{ matrix.os }}-${{ steps.date.outputs.month }}
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
