@@ -57,7 +57,7 @@ jobs:
         with:
           toolchain: nightly
           command: build
-          args: --${{ matrix.profile }} --workspace --features=default-cranelift --no-default-features
+          args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --features=default-cranelift --no-default-features
       - name: Prepare Artifacts
         run: |
           set -e
