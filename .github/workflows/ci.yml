@@ -69,7 +69,7 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
-          key: ${{ steps.date.outputs.month }}
+          key: ${{ matrix.os }}-${{ steps.date.outputs.month }}
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
