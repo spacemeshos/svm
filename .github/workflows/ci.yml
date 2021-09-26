@@ -4,12 +4,7 @@ name: SVM CI
 # ---------------
 #
 # We currently use <https://github.com/Swatinem/rust-cache> for caching Rust
-# builds. It's easy and very effective. However, it's good practice to also
-# run uncached builds from time to time, to make sure that caching is not
-# affecting build correctness (this sometimes happens due to Cargo bugs): for
-# this reason we clear caches at the end of every month (which is a completely
-# arbitrary timeframe). By regularly invalidating the cache, we'll also make
-# sure that cache size stays small.
+# builds. It's easy and very effective.
 
 on:
   push:
@@ -44,8 +39,6 @@ jobs:
             static: lib
             shared: dll
     steps:
-      - id: date
-        run: echo "::set-output name=month::$(date +%b)"
       - name: Cache LLVM (Windows)
         if: matrix.os == 'windows-latest'
         id: cache-llvm-windows
@@ -69,7 +62,6 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
-          key: ${{ steps.date.outputs.month }}
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
@@ -102,8 +94,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - id: date
-        run: echo "::set-output name=month::$(date +%b)"
       - name: Checkout Code
         uses: actions/checkout@v2
         with:
@@ -113,7 +103,7 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
-          key: ${{ matrix.os }}-foobar-${{ steps.date.outputs.month }}
+          key: ${{ matrix.os }}-foobar
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
@@ -131,8 +121,6 @@ jobs:
       run:
         shell: bash
     steps:
-      - id: date
-        run: echo "::set-output name=month::$(date +%b)"
       - name: Setup node.js
         uses: actions/setup-node@v1
         with:
@@ -148,7 +136,6 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
-          key: ${{ steps.date.outputs.month }}
       - name: Test svm-codec
         working-directory: crates/codec/examples
         run: |
