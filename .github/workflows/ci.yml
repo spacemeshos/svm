@@ -100,7 +100,7 @@ jobs:
             test-${{ runner.os }}-cargo-index-
       - name: Install Rust
         run: rustup update nightly
-      - uses: Swatinem/rust-cache@v1
+      #- uses: Swatinem/rust-cache@v1
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
