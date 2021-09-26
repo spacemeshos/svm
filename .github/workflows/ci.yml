@@ -162,14 +162,6 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/
-            ./target/
-          key: ${{ runner.os }}-cargo-${{ github.job }}
       - name: Run `cargo doc`
         uses: actions-rs/cargo@v1
         with:
