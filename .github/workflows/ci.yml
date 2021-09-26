@@ -180,7 +180,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --workspace -- --check
+          args: --all -- --check
       - name: Run `cargo doc`
         uses: actions-rs/cargo@v1
         with:
