@@ -119,7 +119,8 @@ jobs:
         with:
           toolchain: nightly
           command: test
-          args: --all --features=default-cranelift --no-default-features -- --nocapture
+          #args: --all --features=default-cranelift --no-default-features -- --nocapture
+          args: --lib svm-sdk-tests
   wasm_codec:
     runs-on: macos-latest
     strategy:
