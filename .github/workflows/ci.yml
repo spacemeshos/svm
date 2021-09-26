@@ -92,7 +92,7 @@ jobs:
         with:
           toolchain: nightly
           command: test
-          args: --all --features=default-cranelift --no-default-features -- --nocapture
+          args: --all --features=default-cranelift -- --nocapture
   wasm_codec:
     runs-on: macos-latest
     strategy:
