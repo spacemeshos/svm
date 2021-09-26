@@ -72,6 +72,12 @@ jobs:
           toolchain: nightly
           command: build
           args: --${{ matrix.profile }} --package svm-runtime-ffi --features=default-cranelift --no-default-features
+      - name: Cargo Test
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: nightly
+          command: test
+          args: --all --features=default-cranelift --no-default-features -- --nocapture
       - name: Cargo Build CLI
         uses: actions-rs/cargo@v1
         with:
