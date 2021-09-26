@@ -91,6 +91,8 @@ jobs:
       - name: Install Rust
         run: rustup update nightly
       - uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: True
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
