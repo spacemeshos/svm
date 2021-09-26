@@ -1,15 +1,5 @@
 name: SVM CI
 
-# On Rust caching
-# ---------------
-#
-# We currently use <https://github.com/Swatinem/rust-cache> for caching Rust
-# builds. It's easy and very effective.
-#
-# See
-# <https://www.reddit.com/r/rust/comments/muw61h/github_actions_best_practices_for_rust_projects/>
-# for some nice discussion about Rust CI caching.
-
 on:
   push:
     branches:
@@ -51,9 +41,14 @@ jobs:
         run: |
           rustup update nightly
           rustup default nightly
-      - uses: Swatinem/rust-cache@v1
+      - uses: actions/cache@v2
         with:
-          cache-on-failure: True
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/.git
+            ./target
+          key: ${{ runner.os }}
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
@@ -84,18 +79,17 @@ jobs:
         with:
           fetch-depth: 1
       - name: Install Rust
-
         run: |
           rustup update nightly
           rustup default nightly
-      - uses: Swatinem/rust-cache@v1
+      - uses: actions/cache@v2
         with:
-          cache-on-failure: True
-      - name: Cargo Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all --features=default-cranelift --no-default-features
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/.git
+            ./target
+          key: test-${{ runner.os }}
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
@@ -156,7 +150,14 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
-      - uses: Swatinem/rust-cache@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/.git
+            ./target
+          key: ${{ runner.os }}
       - name: Run `cargo doc`
         uses: actions-rs/cargo@v1
         with:
