@@ -17,7 +17,7 @@ pub struct Cursor<'a> {
 impl<'a> Cursor<'a> {
     /// Creates a new `Cursor` for encoded function buffer `bytes`
     pub fn new(bytes: &'a [u8]) -> Self {
-        Self { bytes: bytes, offset: 0 }
+        Self { bytes, offset: 0 }
     }
 
     /// Returns whether cursor has finished traversal
