@@ -50,7 +50,7 @@ jobs:
       - name: Install Rust
         run: |
           rustup update nightly
-          rustup default nightly          default: true
+          rustup default nightly
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
@@ -86,7 +86,7 @@ jobs:
       - name: Install Rust
         run: |
           rustup update nightly
-          rustup default nightly          default: true
+          rustup default nightly
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
