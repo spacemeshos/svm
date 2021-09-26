@@ -110,10 +110,10 @@ jobs:
           fetch-depth: 1
       - name: Install Rust
         run: rustup update nightly
-      #- uses: Swatinem/rust-cache@v1
-      #  with:
-      #    cache-on-failure: True
-      #    key: ${{ steps.date.outputs.month }}
+      - uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: True
+          key: ${{ matrix.os }}-foobar-${{ steps.date.outputs.month }}
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
