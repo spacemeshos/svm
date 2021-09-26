@@ -8,7 +8,8 @@ name: SVM CI
 # run uncached builds from time to time, to make sure that caching is not
 # affecting build correctness (this sometimes happens due to Cargo bugs): for
 # this reason we clear caches at the end of every month (which is a completely
-# arbitrary timeframe).
+# arbitrary timeframe). By regularly invalidating the cache, we'll also make
+# sure that cache size stays small.
 
 on:
   push:
