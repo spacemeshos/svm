@@ -181,6 +181,7 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
+      - uses: Swatinem/rust-cache@v1
       - name: Run `cargo doc`
         uses: actions-rs/cargo@v1
         with:
