@@ -48,9 +48,9 @@ jobs:
         with:
           fetch-depth: 1
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          default: true
+        run: |
+          rustup update nightly
+          rustup default nightly          default: true
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
@@ -84,9 +84,9 @@ jobs:
         with:
           fetch-depth: 1
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          default: true
+        run: |
+          rustup update nightly
+          rustup default nightly          default: true
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
@@ -115,10 +115,10 @@ jobs:
         with:
           fetch-depth: 1
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          target: wasm32-unknown-unknown
-          default: true
+        run: |
+          rustup update nightly
+          rustup target add wasm32-unknown-unknown --toolchain nightly
+          rustup default nightly
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
@@ -142,10 +142,10 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt
-          default: true
+        run: |
+          rustup update nightly
+          rustup target add wasm32-unknown-unknown --toolchain nightly
+          rustup default nightly
       - name: Run `cargo fmt`
         uses: actions-rs/cargo@v1
         with:
