@@ -100,16 +100,16 @@ jobs:
           fetch-depth: 1
       - name: Install Rust
         run: rustup update nightly
-      - uses: Swatinem/rust-cache@v1
-        with:
-          cache-on-failure: True
-          key: test
+      #- uses: Swatinem/rust-cache@v1
+      #  with:
+      #    cache-on-failure: True
+      #    key: test
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: --lib svm-sdk-tests --features=default-cranelift --no-default-features -- --nocapture
+          args: --all --features=default-cranelift --no-default-features -- --nocapture
   wasm_codec:
     runs-on: macos-latest
     strategy:
