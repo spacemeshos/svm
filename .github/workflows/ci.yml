@@ -1,5 +1,12 @@
 name: SVM CI
 
+# On Rust caching
+# ---------------
+# <https://github.com/Swatinem/rust-cache> is a very attractive alternative to
+# rolling your own caching solution, but it's not very effective for Rust
+# nightly and it throws away intermediate compilation artifacts, which might
+# result in linkage bugs...
+
 on:
   push:
     branches:
