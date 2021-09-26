@@ -96,7 +96,7 @@ jobs:
           command: test
           args: --all --features=default-cranelift --no-default-features -- --nocapture
   wasm_codec:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: False
       matrix:
