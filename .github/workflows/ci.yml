@@ -44,11 +44,10 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
+            ~/.cargo/git/
+            ./target/
           key: ${{ runner.os }}-cargo
       - name: Cargo Build
         uses: actions-rs/cargo@v1
@@ -86,11 +85,10 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
+            ~/.cargo/git/
+            ./target/
           key: ${{ runner.os }}-cargo
       - name: Cargo Test
         uses: actions-rs/cargo@v1
@@ -123,11 +121,10 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
+            ~/.cargo/git/
+            ./target/
           key: ${{ runner.os }}-cargo
       - name: Test svm-codec
         working-directory: crates/codec/examples
@@ -161,11 +158,10 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
+            ~/.cargo/git/
+            ./target/
           key: ${{ runner.os }}-cargo
       - name: Run `cargo doc`
         uses: actions-rs/cargo@v1
