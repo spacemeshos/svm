@@ -10,6 +10,7 @@ use svm_sdk_std::Option;
 /// This separation was born out of a need to comply to the safe Rust ownership rules
 /// (see the look under the `decode_array` under `Decoder` as an example).
 pub struct Cursor<'a> {
+
     bytes: &'a [u8],
     offset: usize,
 }
