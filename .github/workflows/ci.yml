@@ -46,12 +46,6 @@ jobs:
     steps:
       - id: date
         run: echo "::set-output name=month::$(date +%b)"
-      - name: Automake (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          set -e
-          brew update
-          brew install automake
       - name: Cache LLVM (Windows)
         if: matrix.os == 'windows-latest'
         id: cache-llvm-windows
