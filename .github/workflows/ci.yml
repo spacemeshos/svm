@@ -5,6 +5,10 @@ name: SVM CI
 #
 # We currently use <https://github.com/Swatinem/rust-cache> for caching Rust
 # builds. It's easy and very effective.
+#
+# See
+# <https://www.reddit.com/r/rust/comments/muw61h/github_actions_best_practices_for_rust_projects/>
+# for some nice discussion about Rust CI caching.
 
 on:
   push:
