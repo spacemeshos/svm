@@ -84,6 +84,7 @@ jobs:
         with:
           fetch-depth: 1
       - name: Install Rust
+
         run: |
           rustup update nightly
           rustup default nightly
