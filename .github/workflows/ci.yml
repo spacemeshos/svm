@@ -130,6 +130,8 @@ jobs:
       run:
         shell: bash
     steps:
+      - id: date
+        run: echo "::set-output name=month::$(date +%b)"
       - name: Setup node.js
         uses: actions/setup-node@v1
         with:
@@ -145,7 +147,7 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
-          key: wasm-codec
+          key: wasm-codec-${{ steps.date.outputs.month }}
       - name: Test svm-codec
         working-directory: crates/codec/examples
         run: |
@@ -155,7 +157,7 @@ jobs:
         uses: actions/upload-artifact@master
         with:
           name: svm_codec.wasm
-          path: target/wasm32-unknown-unknown/release/svm_codec.wasm
+          path: target/wasm32-unknown-unknown/${{ matrix.profile }}/svm_codec.wasm
   lints:
     runs-on: ubuntu-latest
     strategy:
