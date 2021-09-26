@@ -93,6 +93,7 @@ jobs:
       fail-fast: False
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        profile: debug
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -109,8 +110,9 @@ jobs:
         with:
           toolchain: nightly
           command: test
+          args: --${{ matrix.profile }} --all --features=default-cranelift --no-default-features
           #args: --all --features=default-cranelift --no-default-features -- --nocapture
-          args: --lib svm-sdk-tests --features=default-cranelift --no-default-features
+          #args: --lib svm-sdk-tests --features=default-cranelift --no-default-features
   wasm_codec:
     runs-on: macos-latest
     strategy:
