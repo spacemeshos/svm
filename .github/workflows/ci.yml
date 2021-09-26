@@ -103,7 +103,7 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           cache-on-failure: True
-          key: ${{ matrix.os }}-foobar
+          key: test
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
