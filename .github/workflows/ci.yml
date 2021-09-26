@@ -43,20 +43,6 @@ jobs:
             static: lib
             shared: dll
     steps:
-      - name: Cache LLVM (Windows)
-        if: matrix.os == 'windows-latest'
-        id: cache-llvm-windows
-        uses: actions/cache@v2
-        with:
-          path: |
-            C:\\Temp\\chocolatey\llvm
-            C:\\Program Files\\LLVM\bin
-          key: llvm-windows
-      - name: Install LLVM (Windows)
-        if: matrix.os == 'windows-latest' && steps.cache-llvm-windows.outputs.cache-hit != 'true'
-        run: |
-          choco config set cacheLocation C:\\Temp\\chocolatey
-          choco install llvm -y
       - name: Checkout Code
         uses: actions/checkout@v2
         with:
@@ -72,12 +58,6 @@ jobs:
           toolchain: nightly
           command: build
           args: --${{ matrix.profile }} --package svm-runtime-ffi --features=default-cranelift --no-default-features
-      - name: Cargo Test
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: --all --features=default-cranelift --no-default-features -- --nocapture
       - name: Cargo Build CLI
         uses: actions-rs/cargo@v1
         with:
