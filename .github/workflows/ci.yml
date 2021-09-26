@@ -50,7 +50,6 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
           default: true
       - uses: Swatinem/rust-cache@v1
         with:
@@ -58,7 +57,6 @@ jobs:
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           command: build
           args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --features=default-cranelift --no-default-features
       - name: Prepare Artifacts
@@ -88,7 +86,6 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
           default: true
       - uses: Swatinem/rust-cache@v1
         with:
