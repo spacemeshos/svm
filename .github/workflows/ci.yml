@@ -85,9 +85,11 @@ jobs:
       - name: Install Rust
         run: rustup update nightly
       - uses: Swatinem/rust-cache@v1
+        # I'm getting weird linkage errors on the Windows CI when the cache is
+        # turned on...
+        if: matrix.os != 'windows-latest'
         with:
           cache-on-failure: True
-          key: foobar-spam-lol
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
