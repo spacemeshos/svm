@@ -89,11 +89,13 @@ jobs:
           rustup update nightly
           rustup default nightly
       - uses: Swatinem/rust-cache@v1
-        # I'm getting weird linkage errors on the Windows CI when the cache is
-        # turned on...
-        if: matrix.os != 'windows-latest'
         with:
           cache-on-failure: True
+      - name: Cargo Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --debug --workspace --features=default-cranelift --no-default-features
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
