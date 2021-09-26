@@ -95,7 +95,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --debug --workspace --features=default-cranelift --no-default-features
+          args: --all --features=default-cranelift --no-default-features
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
