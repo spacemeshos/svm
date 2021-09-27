@@ -16,4 +16,4 @@ thiserror = "1"
 
 [dev-dependencies]
 wat = "1"
-maplit = "1.0.2"
+maplit = "1"
