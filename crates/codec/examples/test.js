@@ -6,6 +6,7 @@ const fs = require("fs");
 const OK_MARKER = 1;
 const ERR_MARKER = 0;
 
+// Compiles and instantiates the svm_codec instance for use from javascript
 async function compileWasmCodec() {
   const wasm = await WebAssembly.compile(fs.readFileSync("svm_codec.wasm"));
   const importObject = {};
@@ -13,11 +14,15 @@ async function compileWasmCodec() {
   return WebAssembly.instantiate(wasm, importObject);
 }
 
+// Call a function on svm_codec instance with the provided buffer.
+// Returns ???
 function instanceCall(instance, func_name, buf) {
   const func = instance.exports[func_name];
   return func(buf);
 }
 
+// Creates a wasm buffer that can be passed to svm_codec instance methods from a provided json object.
+// Returns the buffer.
 function wasmNewBuffer(instance, object) {
   const objectStr = JSON.stringify(object);
   const bytes = new TextEncoder("utf-8").encode(objectStr);
@@ -30,6 +35,7 @@ function wasmNewBuffer(instance, object) {
   return buf;
 }
 
+// Returns a json object from a provided wasm buffer
 function loadWasmBuffer(instance, buf) {
   let length = wasmBufferLength(instance, buf);
   const slice = wasmBufferDataSlice(instance, buf, 0, length);
@@ -38,6 +44,7 @@ function loadWasmBuffer(instance, buf) {
   return JSON.parse(string);
 }
 
+// Returns a utf-8 string representation of the data in a svm_codec buffer
 function loadWasmBufferDataAsString(instance, buf) {
   let length = wasmBufferLength(instance, buf);
   const slice = wasmBufferDataSlice(instance, buf, 0, length);
@@ -47,6 +54,7 @@ function loadWasmBufferDataAsString(instance, buf) {
   return string;
 }
 
+// Returns a utf-8 string representation of an error in a svm_codec buffer
 function loadWasmBufferError(instance, buf) {
   let length = wasmBufferLength(instance, buf);
   const slice = wasmBufferDataSlice(instance, buf, 0, length);
@@ -56,6 +64,8 @@ function loadWasmBufferError(instance, buf) {
   return string;
 }
 
+// Returns a json object representation of the data in a svm_codec buffer
+// Throws an exception if buffer has an error section with the exception string representation
 function loadWasmBufferDataAsJson(instance, buf) {
   let length = wasmBufferLength(instance, buf);
   const slice = wasmBufferDataSlice(instance, buf, 0, length);
@@ -74,22 +84,27 @@ function loadWasmBufferDataAsJson(instance, buf) {
   return JSON.parse(string);
 }
 
+// Allocates a svm_codec buffer with the provided byte length
 function wasmBufferAlloc(instance, length) {
   return instance.exports.wasm_alloc(length);
 }
 
+// Frees an allocated svm_codec buffer that was previosuly allocated
 function wasmBufferFree(instance, buf) {
   return instance.exports.wasm_free(buf);
 }
 
+// Returns the length in bytes of a wasm_codec buffer
 function wasmBufferLength(instance, buf) {
   return instance.exports.wasm_buffer_length(buf);
 }
 
+// Frees the data allocated in a svm_codec buffer
 function wasmBufferDataPtr(instance, buf) {
   return instance.exports.wasm_buffer_data(buf);
 }
 
+// ????
 function copyToWasmBufferData(instance, buf, data) {
   let ptr = wasmBufferDataPtr(instance, buf);
   let memory = instance.exports.memory.buffer;
@@ -97,6 +112,7 @@ function copyToWasmBufferData(instance, buf, data) {
   view.set([...data], ptr);
 }
 
+// ????
 function wasmBufferDataSlice(instance, buf, offset, length) {
   let ptr = wasmBufferDataPtr(instance, buf);
 
@@ -107,6 +123,7 @@ function wasmBufferDataSlice(instance, buf, offset, length) {
   return slice;
 }
 
+// ????
 function repeatString(s, byteLength) {
   const n = s.length;
   const t = byteLength * 2;
@@ -118,12 +135,15 @@ function repeatString(s, byteLength) {
   return s.repeat(m);
 }
 
+// Returns a 20 bytes address (40 hex digits)
+// Note: in Spacemesh, address should be the last 20 bytes of a public key, not the first 20
 function generateAddress(s) {
   // an `Address` takes 20 bytes
   // which are 40 hexadecimal digits
   return repeatString(s, 20);
 }
 
+// ????
 function encodeInput(instance, object) {
   const buf = wasmNewBuffer(instance, object);
   const result = instanceCall(instance, "wasm_encode_inputdata", buf);
@@ -136,6 +156,7 @@ function encodeInput(instance, object) {
   return encoded;
 }
 
+// ????
 function decodeInput(instance, encodedData) {
   const buf = wasmNewBuffer(instance, encodedData);
   const result = instanceCall(instance, "wasm_decode_inputdata", buf);
@@ -147,10 +168,13 @@ function decodeInput(instance, encodedData) {
   return json;
 }
 
+// ????
 function binToString(array) {
   let result = "";
 
   for (const b of array) {
+
+    // toString takes no arg????
     let s = b.toString(16);
 
     // padding
@@ -162,6 +186,8 @@ function binToString(array) {
   }
   return result;
 }
+
+////// Tests
 
 describe("Encode InputData", function () {
   function testInputData(instance, abi, data) {
