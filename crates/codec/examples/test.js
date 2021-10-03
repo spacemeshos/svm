@@ -6,7 +6,7 @@ const fs = require("fs");
 const OK_MARKER = 1;
 const ERR_MARKER = 0;
 
-// Compiles and instantiates the svm_codec instance for use from javascript
+// Compiles and instantiates an svm_codec instance for use in javascript clients
 async function compileWasmCodec() {
   const wasm = await WebAssembly.compile(fs.readFileSync("svm_codec.wasm"));
   const importObject = {};
@@ -14,15 +14,15 @@ async function compileWasmCodec() {
   return WebAssembly.instantiate(wasm, importObject);
 }
 
-// Call a function on svm_codec instance with the provided buffer.
-// Returns ???
+// Call a function on svm_codec instance with the provided buffer
+// Returns result buffers.
 function instanceCall(instance, func_name, buf) {
   const func = instance.exports[func_name];
   return func(buf);
 }
 
-// Creates a wasm buffer that can be passed to svm_codec instance methods from a provided json object.
-// Returns the buffer.
+// Creates a wasm buffer that can be passed to an svm_codec instance methods from a provided json object
+// Returns the buffer
 function wasmNewBuffer(instance, object) {
   const objectStr = JSON.stringify(object);
   const bytes = new TextEncoder("utf-8").encode(objectStr);
@@ -35,7 +35,7 @@ function wasmNewBuffer(instance, object) {
   return buf;
 }
 
-// Returns a json object from a provided wasm buffer
+// Returns a json object of a provided wasm buffer
 function loadWasmBuffer(instance, buf) {
   let length = wasmBufferLength(instance, buf);
   const slice = wasmBufferDataSlice(instance, buf, 0, length);
@@ -44,7 +44,7 @@ function loadWasmBuffer(instance, buf) {
   return JSON.parse(string);
 }
 
-// Returns a utf-8 string representation of the data in a svm_codec buffer
+// Returns a utf-8 string representation of the data in an svm_codec buffer
 function loadWasmBufferDataAsString(instance, buf) {
   let length = wasmBufferLength(instance, buf);
   const slice = wasmBufferDataSlice(instance, buf, 0, length);
@@ -54,7 +54,7 @@ function loadWasmBufferDataAsString(instance, buf) {
   return string;
 }
 
-// Returns a utf-8 string representation of an error in a svm_codec buffer
+// Returns a utf-8 string representation of an error in an svm_codec buffer
 function loadWasmBufferError(instance, buf) {
   let length = wasmBufferLength(instance, buf);
   const slice = wasmBufferDataSlice(instance, buf, 0, length);
@@ -65,7 +65,7 @@ function loadWasmBufferError(instance, buf) {
 }
 
 // Returns a json object representation of the data in a svm_codec buffer
-// Throws an exception if buffer has an error section with the exception string representation
+// Throws an exception if buffer has an error with the exception's string representation
 function loadWasmBufferDataAsJson(instance, buf) {
   let length = wasmBufferLength(instance, buf);
   const slice = wasmBufferDataSlice(instance, buf, 0, length);
@@ -89,12 +89,12 @@ function wasmBufferAlloc(instance, length) {
   return instance.exports.wasm_alloc(length);
 }
 
-// Frees an allocated svm_codec buffer that was previosuly allocated
+// Frees an allocated svm_codec buffer that was previously allocated by svm_codec
 function wasmBufferFree(instance, buf) {
   return instance.exports.wasm_free(buf);
 }
 
-// Returns the length in bytes of a wasm_codec buffer
+// Returns the bytes length of a wasm_codec buffer
 function wasmBufferLength(instance, buf) {
   return instance.exports.wasm_buffer_length(buf);
 }
@@ -104,7 +104,7 @@ function wasmBufferDataPtr(instance, buf) {
   return instance.exports.wasm_buffer_data(buf);
 }
 
-// ????
+// Copies binary data from buf to an svm_codec memory buffer
 function copyToWasmBufferData(instance, buf, data) {
   let ptr = wasmBufferDataPtr(instance, buf);
   let memory = instance.exports.memory.buffer;
@@ -112,7 +112,7 @@ function copyToWasmBufferData(instance, buf, data) {
   view.set([...data], ptr);
 }
 
-// ????
+// Copies length bytes at an offset from buf to an svm_codec memory buffer
 function wasmBufferDataSlice(instance, buf, offset, length) {
   let ptr = wasmBufferDataPtr(instance, buf);
 
@@ -123,7 +123,6 @@ function wasmBufferDataSlice(instance, buf, offset, length) {
   return slice;
 }
 
-// ????
 function repeatString(s, byteLength) {
   const n = s.length;
   const t = byteLength * 2;
@@ -138,12 +137,11 @@ function repeatString(s, byteLength) {
 // Returns a 20 bytes address (40 hex digits)
 // Note: in Spacemesh, address should be the last 20 bytes of a public key, not the first 20
 function generateAddress(s) {
-  // an `Address` takes 20 bytes
-  // which are 40 hexadecimal digits
+  // a Spacemesh `Address` is 20 bytes which are 40 hexadecimal digits
   return repeatString(s, 20);
 }
 
-// ????
+// Encodes data provided in josn object and returns the encoded data in a json object
 function encodeInput(instance, object) {
   const buf = wasmNewBuffer(instance, object);
   const result = instanceCall(instance, "wasm_encode_inputdata", buf);
@@ -156,7 +154,7 @@ function encodeInput(instance, object) {
   return encoded;
 }
 
-// ????
+// Decode svm data provided in encodedData json object and returns a json object of the decoded data
 function decodeInput(instance, encodedData) {
   const buf = wasmNewBuffer(instance, encodedData);
   const result = instanceCall(instance, "wasm_decode_inputdata", buf);
@@ -168,7 +166,7 @@ function decodeInput(instance, encodedData) {
   return json;
 }
 
-// ????
+// Encodes binary data provided in array as a hex binary string (without an 0x prefix)
 function binToString(array) {
   let result = "";
 
@@ -327,6 +325,7 @@ describe("Deploy Template", function () {
       wasmBufferFree(instance, result);
     });
   });
+
   it("Handles errors for invalid transactions", function () {
     return compileWasmCodec().then((instance) => {
       let tx = {
@@ -408,6 +407,7 @@ describe("Spawn Account", function () {
       });
     });
   });
+
   it("Handles errors for invalid transactions", function () {
     return compileWasmCodec().then((instance) => {
       let tx = {
@@ -503,6 +503,7 @@ describe("Call Account", function () {
       });
     });
   });
+
   it("Handles errors for invalid transactions", function () {
     return compileWasmCodec().then((instance) => {
       let tx = { version: 0, target: "102030" };
