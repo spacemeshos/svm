@@ -6,18 +6,14 @@ use svm_sdk::traits::{ByteSize, Encoder};
 use svm_sdk::{Amount, ReturnData, Vec};
 use svm_sdk_types::value::Value;
 
-pub fn call<T>(func: extern "C" fn(), args: std::vec::Vec<T>) -> ReturnData<'static>
+pub fn call<T>(func: extern "C" fn(), args: std::vec::Vec<T>) -> ReturnData
 where
     T: Encoder + ByteSize,
 {
     call_and_fund(func, args, Amount(0))
 }
 
-pub fn call_and_fund<T>(
-    func: extern "C" fn(),
-    args: std::vec::Vec<T>,
-    value: Amount,
-) -> ReturnData<'static>
+pub fn call_and_fund<T>(func: extern "C" fn(), args: std::vec::Vec<T>, value: Amount) -> ReturnData
 where
     T: Encoder + ByteSize,
 {
