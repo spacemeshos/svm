@@ -1,0 +1,1 @@
+{"api":[{"doc":"","is_ctor":true,"is_fundable":false,"name":"and","signature":{"params":[{"name":"a","type":"bool"},{"name":"b","type":"bool"}],"returns":{"type":"bool"}},"wasm_name":"and"}],"schema":[]}

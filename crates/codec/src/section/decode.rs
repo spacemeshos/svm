@@ -75,7 +75,6 @@ impl<'a> SectionsDecoder<'a> {
         );
 
         let last_preview = self.last_preview.take().unwrap();
-
         let cursor = &mut self.cursor;
 
         let section = match last_preview.kind() {

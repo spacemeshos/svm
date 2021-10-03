@@ -13,6 +13,7 @@ publish = false
 [dependencies]
 anyhow = "1"
 clap = "2.33"
+thiserror = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 svm-codec = { path = "../codec" }
@@ -20,4 +21,3 @@ svm-gas = { path = "../gas" }
 svm-program = { path = "../program" }
 svm-types = { path = "../types" }
 svm-layout = { path = "../layout" }
-thiserror = "1"
