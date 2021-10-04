@@ -1,7 +1,6 @@
 //! JSON API
 
 mod call;
-mod deploy;
 mod error;
 mod inputdata;
 mod receipt;
@@ -9,7 +8,6 @@ mod serde_types;
 mod spawn;
 
 pub use call::{decode_call, encode_call, encode_call_raw};
-pub use deploy::deploy_template;
 pub use error::JsonError;
 pub use inputdata::{decode_inputdata, encode_inputdata};
 pub use receipt::decode_receipt;
