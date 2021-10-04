@@ -6,13 +6,9 @@ const EXEC_FLAGS: u64 = 0x01;
 #[derive(Debug, Clone, PartialEq)]
 pub struct CodeSection {
     kind: CodeKind,
-
     svm_version: u32,
-
     code: Vec<u8>,
-
     flags: u64,
-
     gas_mode: GasMode,
 }
 

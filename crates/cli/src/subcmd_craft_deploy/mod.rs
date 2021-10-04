@@ -5,11 +5,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use std::fs::File;
-use std::io::Write;
+use std::io::{Cursor, Write};
+use std::path::Path;
 
-use svm_codec::SectionsEncoder;
+use svm_codec::{SectionsDecoder, SectionsEncoder};
 use svm_layout::{FixedLayout, Id, Layout};
-use svm_types::{CodeSection, CtorsSection, DataSection, Section, Sections};
+use svm_types::{CodeSection, CtorsSection, DataSection, Section, SectionKind, Sections};
 
 use meta::TemplateMeta;
 
@@ -71,7 +72,44 @@ pub fn subcmd_craft_deploy(args: &ArgMatches) -> anyhow::Result<()> {
     encoder.encode(&sections);
     let bytes = encoder.finish();
 
-    let mut file = File::create(args.value_of("output").unwrap())?;
+    let path = args.value_of("output").unwrap();
+    let mut file = File::create(path)?;
     file.write_all(&bytes)?;
+
+    test_sections_encoding(&path);
+    test_decode_as_template(&path);
+
+    Ok(())
+}
+
+fn test_sections_encoding<P: AsRef<Path>>(path: P) -> anyhow::Result<()> {
+    let bytes = std::fs::read(&path)?;
+    let cursor = Cursor::new(bytes.as_slice());
+    let mut decoder = SectionsDecoder::new(cursor)?;
+
+    assert_eq!(3, decoder.section_count());
+
+    assert_section(&mut decoder, SectionKind::Code);
+    assert_section(&mut decoder, SectionKind::Ctors);
+    assert_section(&mut decoder, SectionKind::Data);
+
+    Ok(())
+}
+
+fn assert_section(decoder: &mut SectionsDecoder, expected: SectionKind) -> anyhow::Result<()> {
+    let preview = decoder.next_preview()?;
+    assert_eq!(preview.kind(), expected);
+
+    let section = decoder.skip_section()?;
+    assert_eq!(preview.kind(), expected);
+
+    Ok(())
+}
+
+fn test_decode_as_template<P: AsRef<Path>>(path: P) -> anyhow::Result<()> {
+    let message = std::fs::read(&path)?;
+    let cursor = Cursor::new(message.as_slice());
+    let _template = svm_codec::template::decode(cursor, None)?;
+
     Ok(())
 }
