@@ -274,52 +274,6 @@ describe("WASM Buffer", function () {
   });
 });
 
-describe("Deploy Template", function () {
-  it("Encodes & Decodes valid transactions", function () {
-    return compileWasmCodec().then((instance) => {
-      let tx = {
-        svm_version: 1,
-        code_version: 2,
-        name: "My Template",
-        desc: "A few words",
-        code: "C0DE",
-        data: "0000000100000003",
-        ctors: ["init", "start"],
-      };
-
-      const buf = wasmNewBuffer(instance, tx);
-      const result = instanceCall(instance, "wasm_encode_deploy", buf);
-
-      let len = wasmBufferLength(instance, result);
-      const slice = wasmBufferDataSlice(instance, result, 0, len);
-      assert.strictEqual(slice[0], OK_MARKER);
-
-      // `bytes` is a `Uint8Array` holding the encoded `SVM spawn-account` transaction
-      const bytes = slice.slice(1);
-
-      wasmBufferFree(instance, buf);
-      wasmBufferFree(instance, result);
-    });
-  });
-  it("Handles errors for invalid transactions", function () {
-    return compileWasmCodec().then((instance) => {
-      let tx = {
-        svm_version: 1,
-        code_version: 2,
-      };
-
-      const buf = wasmNewBuffer(instance, tx);
-      const result = instanceCall(instance, "wasm_encode_deploy", buf);
-
-      const error = loadWasmBufferError(instance, result);
-      assert.strictEqual(error, "A non-optional field was missing (`name`).");
-
-      wasmBufferFree(instance, buf);
-      wasmBufferFree(instance, result);
-    });
-  });
-});
-
 describe("Spawn Account", function () {
   function encodeSpawn(instance, template, name, calldata) {
     let tx = {
