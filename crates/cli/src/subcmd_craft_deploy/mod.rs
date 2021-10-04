@@ -9,7 +9,7 @@ use std::io::{Cursor, Write};
 use std::path::Path;
 
 use svm_codec::{SectionsDecoder, SectionsEncoder};
-use svm_layout::{FixedLayout, FixedLayoutBuilder, Id, Layout};
+use svm_layout::{FixedLayout, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, Section, SectionKind, Sections};
 
 use meta::TemplateMeta;
