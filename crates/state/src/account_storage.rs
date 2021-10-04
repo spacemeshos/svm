@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use std::ops::RangeInclusive;
 
 use svm_codec::{Codec, ParseError, ReadExt, WriteExt};
-use svm_layout::{FixedLayout, Id};
+use svm_layout::FixedLayout;
 use svm_types::{Address, BytesPrimitive, SectionKind, TemplateAddr};
 
 use crate::TemplateStorage;
@@ -80,9 +80,9 @@ impl AccountStorage {
     ///
     /// Panics if `var` is not large enough to hold the `var_id` value.
     pub fn get_var(&self, var_id: u32, mut var: &mut [u8]) -> StorageResult<()> {
-        let raw_var = self.layout.get(Id(var_id));
-        let offset = raw_var.offset();
-        let byte_size = raw_var.byte_size();
+        let raw_var = self.layout.get(var_id);
+        let offset = raw_var.offset;
+        let byte_size = raw_var.byte_size;
 
         if var.len() < byte_size as usize {
             panic!("The given buffer is not large enough");
@@ -113,8 +113,8 @@ impl AccountStorage {
 
     /// Reads and returns the data associated with `var_id` in a [`Vec<u8>`].
     pub fn get_var_vec(&self, var_id: u32) -> StorageResult<Vec<u8>> {
-        let raw_var = self.layout.get(Id(var_id));
-        let mut bytes = vec![0; raw_var.byte_size() as usize];
+        let raw_var = self.layout.get(var_id);
+        let mut bytes = vec![0; raw_var.byte_size as usize];
 
         self.get_var(var_id, &mut bytes)?;
 
@@ -164,9 +164,9 @@ impl AccountStorage {
     /// Panics if `new_value` is not large enough to contain a fully-qualified
     /// `var_id` value.
     pub fn set_var_bytes(&mut self, var_id: u32, mut new_value: &[u8]) -> StorageResult<()> {
-        let raw_var = self.layout.get(Id(var_id));
-        let offset = raw_var.offset();
-        let byte_size = raw_var.byte_size();
+        let raw_var = self.layout.get(var_id);
+        let offset = raw_var.offset;
+        let byte_size = raw_var.byte_size;
 
         if new_value.len() < byte_size as usize {
             panic!("The given buffer is not large enough");
@@ -405,7 +405,7 @@ mod test {
     use super::*;
 
     fn fixed_layout() -> FixedLayout {
-        FixedLayout::from(vec![10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
+        FixedLayout::from_byte_sizes(0, &[10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
     }
 
     fn new_template(gs: &GlobalState) -> TemplateAddr {

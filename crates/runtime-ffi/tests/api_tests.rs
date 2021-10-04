@@ -1,29 +1,23 @@
-use api::svm_init;
-use svm_runtime_ffi as api;
-
 use svm_codec::Codec;
+use svm_layout::FixedLayout;
 use svm_runtime::testing;
+use svm_runtime_ffi as api;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Receipt, TemplateAddr};
 
+use api::svm_init;
+
 fn deploy_message(code_version: u32, name: &str, ctors: &[String], wasm: &[u8]) -> Vec<u8> {
-    use svm_layout::{FixedLayoutBuilder, Id};
+    let layout = FixedLayout::from_byte_sizes(0, &[4]);
 
-    let mut builder = FixedLayoutBuilder::default();
-    builder.set_first(Id(0));
-    builder.push(4);
-    let layout = builder.build();
-
-    let msg = testing::build_deploy(
+    testing::build_deploy(
         code_version,
         name,
         layout,
         ctors,
         testing::WasmFile::Binary(wasm),
-    );
-
-    msg
+    )
 }
 
 fn spawn_message(template_addr: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {

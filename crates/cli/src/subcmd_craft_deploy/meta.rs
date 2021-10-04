@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
 
-use svm_layout::{FixedLayoutBuilder, Id};
+use svm_layout::{FixedLayout, Id, Layout};
 use svm_types::{CtorsSection, DataSection};
 
 // Note: at the time of writing (2021-07-26), we don't care about most fields
@@ -28,16 +28,16 @@ impl TemplateMeta {
     }
 
     pub fn data_section(&self) -> DataSection {
-        let mut builder = FixedLayoutBuilder::default();
-        builder.set_first(Id(0));
+        let mut byte_sizes = vec![];
 
         for schema_var in self.schema.iter() {
             for _ in 0..schema_var.length.unwrap_or(1) {
-                builder.push(schema_var.byte_count as u32);
+                byte_sizes.push(schema_var.byte_count as u32);
             }
         }
 
-        DataSection::with_layout(svm_layout::Layout::Fixed(builder.build()))
+        let fixed_layout = FixedLayout::from_byte_sizes(0, &byte_sizes);
+        DataSection::with_layout(Layout::Fixed(fixed_layout))
     }
 }
 

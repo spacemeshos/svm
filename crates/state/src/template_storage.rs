@@ -89,7 +89,7 @@ mod test {
     use super::*;
 
     fn fixed_layout() -> FixedLayout {
-        FixedLayout::from(vec![10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
+        FixedLayout::from_byte_sizes(0, &[10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
     }
 
     fn new_template(gs: &GlobalState) -> TemplateAddr {

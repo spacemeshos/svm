@@ -14,6 +14,8 @@ use crate::runtime_tracker::RuntimeTracker;
 use crate::svm_result_t;
 
 /// Initializes the configuration options for all newly allocates SVM runtimes.
+#[must_use]
+#[no_mangle]
 pub unsafe extern "C" fn svm_init(in_memory: bool, path: *const u8, path_len: u32) -> svm_result_t {
     Config::set(Config {
         db_path: if in_memory {
