@@ -16,11 +16,11 @@
 //!
 //! ## WASM API Usage
 //!
-//! Before calling `wasm_deploy / wasm_spawn / wasm_call` we need first to allocate
+//! Before calling `wasm_spawn / wasm_call` we need first to allocate
 //! a WASM buffer using the `wasm_alloc` method. After the buffer isn't needed anymore, make sure to
 //! call the `wasm_free` method. (otherwise it'll be a memory-leak).
 //!
-//! The data returned by `wasm_deploy / wasm_spawn / wasm_call` is a pointer to a new allocated
+//! The data returned by `wasm_spawn / wasm_call` is a pointer to a new allocated
 //! WASM buffer. This WASM buffer is allocated internally by the method and have to be freed later too using `wasm_free`.
 //!
 //!
@@ -119,19 +119,6 @@ pub unsafe extern "C" fn wasm_decode_inputdata(ptr: *mut u8) -> *mut u8 {
 #[no_mangle]
 pub unsafe extern "C" fn wasm_decode_receipt(ptr: *mut u8) -> *mut u8 {
     wasm_call_json(api::json::decode_receipt, ptr)
-}
-
-/// ## WASM `Deploy Template`
-///
-/// Reads the WASM buffer given at parameter `ptr` containing a JSON value.
-/// Encodes a `Deploy Template` binary-transaction using that JSON value.
-///
-/// Returns a pointer to a new WASM buffer holding the encoded transaction.
-/// If the encoding failed, the returned WASM buffer will contain a String
-/// containing the error message.
-#[no_mangle]
-pub unsafe extern "C" fn wasm_encode_deploy(ptr: *mut u8) -> *mut u8 {
-    wasm_call_raw(api::json::deploy_template, ptr)
 }
 
 /// ## WASM `Spawn Account`
