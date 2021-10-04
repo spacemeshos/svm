@@ -41,7 +41,6 @@ pub fn subcmd_tx(args: &ArgMatches) -> anyhow::Result<()> {
     let action = match args.value_of("tx-type").unwrap() {
         "spawn" => Action::Spawn,
         "call" => Action::Call,
-        "deploy" => Action::Deploy,
         _ => unreachable!(),
     };
 
@@ -49,7 +48,6 @@ pub fn subcmd_tx(args: &ArgMatches) -> anyhow::Result<()> {
     let input_s = std::fs::read_to_string(input_path)?;
     let bytes = match action {
         Action::Call => json::encode_call_raw(&input_s).expect("Invalid JSON"),
-        Action::Deploy => json::deploy_template(&input_s).expect("Invalid JSON"),
         Action::Spawn => json::encode_spawn(&input_s).expect("Invalid JSON"),
     };
 
@@ -61,6 +59,5 @@ pub fn subcmd_tx(args: &ArgMatches) -> anyhow::Result<()> {
 
 enum Action {
     Spawn,
-    Deploy,
     Call,
 }
