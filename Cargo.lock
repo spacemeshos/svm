@@ -1975,6 +1975,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "svm-workspace-hack"
+version = "0.1.0"
+dependencies = [
+ "ahash",
+ "byteorder",
+ "crossbeam-utils",
+ "futures",
+ "futures-core",
+ "futures-util",
+ "getrandom",
+ "hashbrown",
+ "indexmap",
+ "itoa",
+ "log",
+ "memchr",
+ "num-traits",
+ "rand",
+ "rand_core",
+ "regex",
+ "regex-syntax",
+ "serde",
+ "sha2",
+ "syn",
+ "target-lexicon",
+ "tokio",
+ "wasmer-compiler",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
