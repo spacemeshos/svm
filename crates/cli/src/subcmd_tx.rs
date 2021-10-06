@@ -39,17 +39,13 @@ pub fn clap_app_tx() -> clap::App<'static, 'static> {
 }
 
 pub fn subcmd_tx(args: &ArgMatches) -> anyhow::Result<()> {
-    let action = match args.value_of("tx-type").unwrap() {
-        "spawn" => Action::Spawn,
-        "call" => Action::Call,
-        _ => unreachable!(),
-    };
-
     let input_path = args.value_of("input").unwrap();
-    let input_s = std::fs::read_to_string(input_path)?;
-    let bytes = match action {
-        Action::Call => json::encode_call_raw(&input_s).expect("Invalid JSON"),
-        Action::Spawn => json::encode_spawn(&input_s).expect("Invalid JSON"),
+    let input = std::fs::read_to_string(input_path)?;
+
+    let bytes = match args.value_of("tx-type").unwrap() {
+        "spawn" => encode_spawn(&input),
+        "call" => encode_call(&input),
+        _ => unreachable!(),
     };
 
     let mut file = File::create(args.value_of("output").unwrap())?;
@@ -58,42 +54,48 @@ pub fn subcmd_tx(args: &ArgMatches) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn encode_spawn(input: &str) -> Vec<u8> {
-    let mut object = as_json(input);
+fn encode_spawn(object_str: &str) -> Vec<u8> {
+    let object = encode_inputs(object_str, &["calldata"]);
+    json::encode_spawn(&object.to_string()).expect("Invalid JSON")
+}
+
+fn encode_call(object_str: &str) -> Vec<u8> {
+    let object = encode_inputs(object_str, &["verifydata", "calldata"]);
+    json::encode_call_raw(&object.to_string()).expect("Invalid JSON")
+}
+
+fn encode_inputs(object_str: &str, keys: &[&str]) -> Value {
+    let mut object = serde_json::from_str(object_str).unwrap();
     assert!(
         matches!(object, Value::Object(..)),
         "Expected a JSON Object"
     );
 
-    let verifydata = encode_input(&object, "verifydata");
-    let calldata = encode_input(&object, "calldata");
-
-    let mut map = object.as_object_mut().unwrap();
-    map.insert("verifydata".to_string(), verifydata);
-    map.insert("calldata".to_string(), calldata);
-
-    json::encode_spawn(&object.to_string()).expect("Invalid JSON")
+    for key in keys {
+        update_key(&mut object, key, encode_input);
+    }
+    object
 }
 
-fn encode_input(object: &Value, field: &str) -> Value {
-    let input = object.get(field).unwrap();
+fn update_key<F>(object: &mut Value, key: &str, f: F)
+where
+    F: Fn(&Value, &str) -> Value,
+{
+    let new_value = f(&object, key);
+    let mut map = object.as_object_mut().unwrap();
+    map.insert(key.to_string(), new_value);
+}
+
+fn encode_input(object: &Value, key: &str) -> Value {
+    let input = object.get(key).unwrap();
 
     if let Value::Object(v) = input {
         assert!(v.contains_key("abi"));
         assert!(v.contains_key("data"));
 
-        let mut encoded = json::encode_inputdata(&input.to_string()).unwrap();
-        encoded["data"].take()
+        let mut data = json::encode_inputdata(&input.to_string()).unwrap();
+        data["data"].take()
     } else {
-        unreachable!()
+        panic!("Expected `abi and `data` under root object key {}", key)
     }
-}
-
-fn as_json(s: &str) -> Value {
-    serde_json::from_str(s).unwrap()
-}
-
-enum Action {
-    Spawn,
-    Call,
 }
