@@ -1,7 +1,13 @@
 {
   "version": 0,
-  "target": "A2FB...",
+  "target": "102030405060708090102030405060708090AABB",
   "func_name": "do_work",
-  "verifydata": "",
-  "calldata": ""
+  "verifydata": {
+    "abi": ["u32", "amount"],
+    "data": [10, 20]
+  },
+  "calldata": {
+    "abi": ["bool", "u8"],
+    "data": [true, 30]
+  }
 }

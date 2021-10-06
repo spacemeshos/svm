@@ -11,4 +11,5 @@ node_modules
 *.dylib
 *.dll
 *.so
+*.bin
 svm_codec.wasm
