@@ -8,8 +8,12 @@ mod CallDataTemplate {
     }
 
     #[ctor]
-    fn initialize() {
-        //
+    fn initialize(init: Address, should_store: bool) -> bool {
+        if should_store {
+            Storage::set_addr(&init);
+        }
+
+        true
     }
 
     #[endpoint]
@@ -19,7 +23,6 @@ mod CallDataTemplate {
 
     #[endpoint]
     fn load_addr() -> Address {
-        // panic!()
         Storage::get_addr()
     }
 }

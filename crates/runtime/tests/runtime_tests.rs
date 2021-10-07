@@ -282,7 +282,13 @@ fn memory_runtime_call_func_not_found() {
     let template_addr = receipt.addr.unwrap();
 
     // 2) `Spawn Account`
-    let message = testing::build_spawn(&template_addr, "My Account", "initialize", &[]);
+    // Prepare the `calldata`
+    let param: sdk::Address = sdk::Address::repeat(0x10);
+    let mut calldata = svm_sdk::Vec::with_capacity(Address::N + 2);
+    param.encode(&mut calldata);
+    true.encode(&mut calldata);
+
+    let message = testing::build_spawn(&template_addr, "My Account", "initialize", &calldata);
     let receipt = runtime.spawn(&envelope, &message, &context);
     assert!(receipt.success);
 
@@ -292,12 +298,12 @@ fn memory_runtime_call_func_not_found() {
     let context = Context::with_state(init_state.clone());
 
     // 3) `Call Account`
-    let message = testing::build_call(&spawned_addr, "initialize", &[]);
+    let message = testing::build_call(&spawned_addr, "no_such_func", &[]);
     let receipt = runtime.call(&envelope, &message, &context);
 
     assert!(matches!(
         receipt.error.unwrap(),
-        RuntimeError::FuncNotAllowed { .. }
+        RuntimeError::FuncNotFound { .. }
     ));
 }
 
@@ -316,22 +322,32 @@ fn memory_runtime_call_success() {
     );
     let envelope = Envelope::default();
     let context = Context::default();
-
     let receipt = runtime.deploy(&envelope, &message, &context);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
 
     // 2) `Spawn Account`
-    let message = testing::build_spawn(&template_addr, "My Account", "initialize", &[]);
+    // Prepare the `calldata`
+    let param: sdk::Address = sdk::Address::repeat(0x10);
+    let mut calldata = svm_sdk::Vec::with_capacity(Address::N + 1 + 1);
+    param.encode(&mut calldata);
+    true.encode(&mut calldata);
+
+    let message = testing::build_spawn(&template_addr, "My Account", "initialize", &calldata);
     let receipt = runtime.spawn(&envelope, &message, &context);
     assert!(receipt.success);
 
-    let spawned_addr = receipt.account_addr();
-    let init_state = receipt.init_state();
+    let spawned_addr = receipt.account_addr().clone();
+    let init_state = receipt.init_state().clone();
+
+    let bytes = receipt.returndata.unwrap();
+    let mut returndata = ReturnData::new(&bytes);
+
+    let status: bool = returndata.next_1();
+    assert_eq!(status, true);
 
     // 3) `Call Account`
-
     // Preparing the binary `CallData`
     // Encoding the `Address = "10 10 ... 10"`
     let param: sdk::Address = sdk::Address::repeat(0x10);
