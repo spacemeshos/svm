@@ -32,6 +32,9 @@ pub fn template(
 #[cfg(feature = "meta")]
 fn finalize_ast(ast: proc_macro2::TokenStream, meta: &TemplateMeta) -> proc_macro::TokenStream {
     let path = format!("{}-meta.json", meta.name());
+    dbg!(&path);
+    dbg!(&path);
+    dbg!(&path);
     let meta_json = json::meta(&meta);
     json::json_write(&path, &meta_json);
 
