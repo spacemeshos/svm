@@ -42,8 +42,6 @@ Two different accounts can hold the same code, but each will have its private st
   To leverage a Template, we first need to make sure it's deployed.
   Each Template has a unique `Template Address` assigned to it.
 
----
-
 For the 1st Mainnet - each Template deployment will take place as part of the Genesis flow.
 
 - **Spawn**
@@ -54,23 +52,27 @@ For the 1st Mainnet - each Template deployment will take place as part of the Ge
 - **Call**
   After we've spawned a new account, we can start using it. That's the job of the `Call` transaction.
   The `Call` transaction is by far the most used transaction type on the system since spawning accounts occur much less often.
+
 - **Codec**
   The `Codec` is responsible for encoding & decoding transactions and receipts.
   Its code is shipped on two platforms. One is SVM, and the other is a Wasm package to be used by clients such as `smapp`
   The reason for shipping the `Codec` in its Wasm form is that clients will be able to craft transactions before dispatching them to the network.
   Additionally, clients and others (the Process Explorer) would like to decode historical transactions and receipts.
   They can use the `Codec` Wasm package for doing that.
+
 - **Global-State**
   The Global-State is in charge of all accounts. Therefore, it can do the basics such as creating accounts or transferring coins between accounts, but it always operates in the context of a given State.
   The Global-State may be requested to rewind to a historical `State`.
   Each running accumulates dirty changes that will be persisted on the next commit. As long as changes have not been committed, the Global-State can be asked to drop them.
   It's done when a transaction fails (panics or reaches Out-Of-Gas) - in that case; the Global-State will discard its dirty changes.
+
 - **SDK**
   The SDK of the SVM project exists to assist with developing Templates in Rust.
   In theory, Templates can be manually created by writing Wasm, but it's not a feasible solution.
   The other alternative is writing code in a high-level language that compiles to Wasm, but doing that without some SDK will be unwieldy.
   Besides making lives more manageable for the developer of a Template, the SDK's job is to make sure that the emitted Wasm code adheres to the restrictions of a Fixed-Gas Wasm.
 - **Fixed-Gas**
+
   Each transaction becoming part of the Mesh needs to pay gas for its execution.
   The problem is that we don't have any good answer to the question "How much gas will this transaction require?".
   The reason for that is rooted in the [Halting Problem](https://en.wikipedia.org/wiki/Halting_problem). Given a program, we can't know whether or not it will ever halt.
@@ -98,8 +100,10 @@ that does the heavy lifting of using `cgo` against the SVM objects files. The en
 - **Fast**
   It's crucial that SVM will execute as fast as we can.
   Besides being written in Rust, the Singlepass compiler will be used (Windows solutions is upcoming on Wasmer's next release).
+
 - **Secure**
   The transactions are running in a sandboxed environment (it's one of Wasm's most significant strengths).
   Besides that, using the Singlepass solution guarantees a linear-time compilation and defense against JIT Bombs.
+
 - **Portable**
   Since Spacemesh Full-Node is targeted for the mass, it must work on any of the three popular Operating-Systems: macOS, Linux, and Windows.
