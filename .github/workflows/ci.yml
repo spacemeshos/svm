@@ -73,6 +73,7 @@ jobs:
         run: |
           set -e
           install_name_tool -id libsvm.dylib bins/${{ matrix.lib_name }}.${{ matrix.shared }}
+          cp bins/${{ matrix.lib_name }}.${{ matrix.shared }} /usr/lib/${{ matrix.lib_name }}.${{ matrix.shared }}
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
         with:
