@@ -63,7 +63,8 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          target: ${{ matrix.target }}
+          toolchain:
+            target: ${{ matrix.target }}
           args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --features=default-cranelift --no-default-features
       - name: Prepare Artifacts
         run: |
