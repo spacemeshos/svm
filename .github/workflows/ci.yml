@@ -52,6 +52,7 @@ jobs:
           toolchain: nightly
           target: ${{ matrix.target }}
           override: true
+          use-cross: true
       - uses: actions/cache@v2
         with:
           path: |
@@ -60,9 +61,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-key-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            cargo-${{ runner.os }}-${{ github.job }}
+            cargo-key-${{ runner.os }}-${{ github.job }}
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
@@ -104,9 +105,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-key-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            cargo-${{ runner.os }}-${{ github.job }}
+            cargo-key-${{ runner.os }}-${{ github.job }}
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
@@ -142,9 +143,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-key-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            cargo-${{ runner.os }}-${{ github.job }}
+            cargo-key-${{ runner.os }}-${{ github.job }}
       - name: Test svm-codec
         working-directory: crates/codec/examples
         run: |
@@ -185,9 +186,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-key-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            cargo-${{ runner.os }}-${{ github.job }}
+            cargo-key-${{ runner.os }}-${{ github.job }}
       - name: Run `cargo doc`
         uses: actions-rs/cargo@v1
         with:
