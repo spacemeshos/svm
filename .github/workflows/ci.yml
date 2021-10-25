@@ -55,6 +55,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
+            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/
