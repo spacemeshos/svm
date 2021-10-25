@@ -52,7 +52,6 @@ jobs:
           toolchain: nightly
           target: ${{ matrix.target }}
           override: true
-          use-cross: true
       - uses: actions/cache@v2
         with:
           path: |
@@ -69,6 +68,7 @@ jobs:
         with:
           command: build
           args: --${{ matrix.profile }} --target=${{ matrix.target }} -p svm-runtime-ffi -p svm-cli --features=default-cranelift --no-default-features
+          use-cross: true
       - name: Prepare Artifacts
         run: |
           set -e
