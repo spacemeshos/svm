@@ -38,7 +38,7 @@ jobs:
             shared: dylib
             target: x86_64-apple-darwin
           - os: windows-latest
-            lib_name: libsvm
+            lib_name: svm
             static: lib
             shared: dll.lib
             target: x86_64-pc-windows-gnu
