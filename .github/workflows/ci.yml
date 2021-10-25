@@ -69,6 +69,10 @@ jobs:
           cp target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.static }} bins/${{ matrix.lib_name }}.${{ matrix.static }}
           cp target/${{ matrix.profile }}/svm-cli bins/svm-cli
           cp target/${{ matrix.profile }}/svm.h bins/svm.h
+      - if: matrix.os == 'macos-latest'
+        run: |
+          set -e
+          llvm-install-name-tool -id libsvm.dylib bins-${{ runner.os }}-${{ matrix.profile }}
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
         with:
