@@ -72,7 +72,7 @@ jobs:
       - if: matrix.os == 'macos-latest'
         run: |
           set -e
-          install_name_tool -id libsvm.dylib bins/bins-${{ runner.os }}-${{ matrix.profile }}
+          install_name_tool -id libsvm.dylib bins/${{ matrix.lib_name }}.${{ matrix.shared }}
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
         with:
