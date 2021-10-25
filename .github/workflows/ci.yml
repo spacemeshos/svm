@@ -74,6 +74,7 @@ jobs:
           set -e
           mkdir -p bins
           ls target/${{ matrix.profile }}
+          echo "lol"
           ls target/${{ matrix.target }}
           cp target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.shared }} bins/${{ matrix.lib_name }}.${{ matrix.shared }}
           cp target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.static }} bins/${{ matrix.lib_name }}.${{ matrix.static }}
