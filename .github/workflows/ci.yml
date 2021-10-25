@@ -51,6 +51,7 @@ jobs:
         with:
           toolchain: nightly
           override: true
+      - run: rustup target add ${{ matrix.target }}
       - uses: actions/cache@v2
         with:
           path: |
