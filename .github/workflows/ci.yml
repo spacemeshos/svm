@@ -67,7 +67,6 @@ jobs:
         with:
           command: build
           args: --${{ matrix.profile }} --target=${{ matrix.target }} -p svm-runtime-ffi -p svm-cli --features=default-cranelift --no-default-features
-          use-cross: true
       - name: Prepare Artifacts
         run: |
           set -e
