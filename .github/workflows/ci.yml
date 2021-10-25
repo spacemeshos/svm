@@ -69,6 +69,7 @@ jobs:
         run: |
           set -e
           mkdir -p bins
+          ls target/${{ matrix.profile }}
           cp target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.shared }} bins/${{ matrix.lib_name }}.${{ matrix.shared }}
           cp target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.static }} bins/${{ matrix.lib_name }}.${{ matrix.static }}
           cp target/${{ matrix.profile }}/svm-cli bins/svm-cli
