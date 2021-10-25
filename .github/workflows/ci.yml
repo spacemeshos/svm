@@ -40,7 +40,7 @@ jobs:
           - os: windows-latest
             lib_name: libsvm
             static: lib
-            shared: dll.
+            shared: dll.a
             target: x86_64-pc-windows-gnu
     steps:
       - name: Checkout Code
