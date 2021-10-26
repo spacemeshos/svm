@@ -11,7 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [lib]
-crate-type = ["cdylib", "staticlib"]
+crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 svm-types = { path = "../types" }
