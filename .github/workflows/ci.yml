@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: False
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, ubuntu-latest]
         profile: [release]
         include:
           - os: ubuntu-latest
@@ -37,11 +37,11 @@ jobs:
             static: a
             shared: dylib
             target: x86_64-apple-darwin
-          - os: windows-latest
-            lib_name: svm
+          - os: ubuntu-latest
+            lib_name: libsvm
             static: lib
-            shared: dll
-            target: x86_64-pc-windows-msvc
+            shared: dll.a
+            target: x86_64-pc-windows-gnu
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -60,7 +60,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-key-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-key-${{ matrix.target }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-key-${{ runner.os }}-${{ github.job }}
       - name: Cargo Build
