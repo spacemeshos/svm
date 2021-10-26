@@ -41,7 +41,7 @@ jobs:
             lib_name: svm
             static: lib
             shared: dll.lib
-            target: x86_64-pc-windows-gnu
+            target: x86_64-pc-windows-msvc
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
