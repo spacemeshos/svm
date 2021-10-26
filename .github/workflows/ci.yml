@@ -72,6 +72,14 @@ jobs:
         run: |
           set -e
           mkdir -p bins
+          ls target
+          echo "---"
+          ls target/${{ matrix.target }}
+          echo "---"
+          ls target/${{ matrix.profile }}
+          echo "---"
+          ls target/${{ matrix.target }}/${{ matrix.profile }}
+          echo "---"
           cp target/${{ matrix.target }}/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.shared }} bins/${{ matrix.lib_name }}.${{ matrix.shared }}
           cp target/${{ matrix.target }}/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.static }} bins/${{ matrix.lib_name }}.${{ matrix.static }}
           cp target/${{ matrix.target }}/${{ matrix.profile }}/svm-cli bins/svm-cli
