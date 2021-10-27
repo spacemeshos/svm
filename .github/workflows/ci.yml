@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: False
       matrix:
-        os: [ubuntu-latest, macos-latest, ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         profile: [release]
         include:
           - os: ubuntu-latest
@@ -41,7 +41,7 @@ jobs:
             lib_name: libsvm
             static: lib
             shared: dll.a
-            target: x86_64-pc-windows-gnu
+            target: x86_64-pc-windows-msvc
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
