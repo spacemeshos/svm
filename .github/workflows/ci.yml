@@ -38,9 +38,9 @@ jobs:
             shared: dylib
             target: x86_64-apple-darwin
           - os: windows-latest
-            lib_name: libsvm
+            lib_name: svm
             static: lib
-            shared: dll.a
+            shared: dll
             target: x86_64-pc-windows-msvc
     steps:
       - name: Checkout Code
