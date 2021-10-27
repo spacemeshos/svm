@@ -72,6 +72,12 @@ impl Template {
     /// Panics if and only if `sections` does *not* contain all mandatory
     /// [`Template`] sections.
     pub fn from_sections(sections: Sections) -> Self {
+        if !sections.contains(SectionKind::Code)
+            || !sections.contains(SectionKind::Data)
+            || !sections.contains(SectionKind::Ctors)
+        {
+            panic!("Template must contain all mandatory sections");
+        }
         Self { sections }
     }
 
