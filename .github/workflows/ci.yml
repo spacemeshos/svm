@@ -37,7 +37,7 @@ jobs:
             static: a
             shared: dylib
             target: x86_64-apple-darwin
-          - os: ubuntu-latest
+          - os: windows-latest
             lib_name: libsvm
             static: lib
             shared: dll.a
@@ -68,12 +68,6 @@ jobs:
         with:
           command: build
           args: --${{ matrix.profile }} --target=${{ matrix.target }} -p svm-runtime-ffi -p svm-cli --features=default-cranelift --no-default-features
-      - if: matrix.os == 'windows-latest'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-tools-git
       - name: Prepare Artifacts
         run: |
           set -e
