@@ -67,7 +67,7 @@ jobs:
         env:
           OS: ${{ matrix.os }}
       - name: Upload Artifacts
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@2
         with:
           name: bins-${{ runner.os }}-${{ matrix.profile }}
           path: bins/
@@ -140,7 +140,7 @@ jobs:
           set -e
           ./run.sh
       - name: Upload `svm_codec.wasm`
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@2
         with:
           name: svm_codec.wasm
           path: target/wasm32-unknown-unknown/${{ matrix.profile }}/svm_codec.wasm
