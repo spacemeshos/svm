@@ -64,7 +64,7 @@ jobs:
           ls target/${{ matrix.profile }}
           echo "---"
       - name: Prepare Artifacts
-        run: ./tools/cp-artifacts.sh
+        run: ./.github/copy-artifacts.sh
         env:
           OS: ${{ matrix.os }}
       - name: Upload Artifacts
