@@ -186,10 +186,34 @@ jobs:
     needs: build
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/download-artifact@v2
       - run: |
           VER="${{ github.ref }}"
           echo "VERSION=${VER#refs/tags/v}" >> $GITHUB_ENV
-          ls .
+      - uses: papeloto/action-zip@v1
+        with:
+          files: bins-Linux-release/
+          recursive: false
+          dest: svm-linux.zip
+      - uses: papeloto/action-zip@v1
+        with:
+          files: bins-Windows-release/
+          recursive: false
+          dest: svm-windows.zip
+      - uses: papeloto/action-zip@v1
+        with:
+          files: bins-macOS-release/
+          recursive: false
+          dest: svm-macos.zip
+      - uses: softprops/action-gh-release@v1
+        with:
+          name: v${{ env.VERSION }}
+          files: |
+            svm-linux.zip
+            svm-windows.zip
+            svm-macos.zip
+            svm_codec.wasm/svm_codec.wasm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
