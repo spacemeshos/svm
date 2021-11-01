@@ -7,7 +7,7 @@ mkdir -p bins
 if [[ "${OS}" == "windows-latest" ]]; then
     cp target/${TARGET}/release/svm_runtime_ffi.dll bins/svm.dll
     cp target/${TARGET}/release/svm_runtime_ffi.lib bins/svm.lib
-    cp target/${TARGET}/release/svm_runtime_ffi.pcb bins/svm.pcb
+    cp target/${TARGET}/release/svm_runtime_ffi.pdb bins/svm.pdb
     cp target/${TARGET}/release/svm-cli.exe bins/svm-cli.exe
     cp target/${TARGET}/release/svm.h bins/svm.h
 elif [[ "${OS}" == "macos-latest" ]]; then
