@@ -46,7 +46,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-${{ github.job }}
       - name: Cargo Build
