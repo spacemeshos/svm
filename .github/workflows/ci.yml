@@ -198,24 +198,26 @@ jobs:
         with:
           files: bins-Linux-release/
           recursive: false
-          dest: svm-linux.zip
+          dest: svm-linux-v${{ env.VERSION }}.zip
       - uses: papeloto/action-zip@v1
         with:
           files: bins-Windows-release/
           recursive: false
-          dest: svm-windows.zip
+          dest: svm-windows-v${{ env.VERSION }}.zip
       - uses: papeloto/action-zip@v1
         with:
           files: bins-macOS-release/
           recursive: false
-          dest: svm-macos.zip
+          dest: svm-macos-v${{ env.VERSION }}.zip
+      - run: |
+          cp svm_codec.wasm/svm_codec.wasm svm_codec_v${{ env.VERSION }}.wasm
       - uses: softprops/action-gh-release@v1
         with:
           name: v${{ env.VERSION }}
           files: |
-            svm-linux.zip
-            svm-windows.zip
-            svm-macos.zip
-            svm_codec.wasm/svm_codec.wasm
+            svm-linux-v${{ env.VERSION }}.zip
+            svm-windows-v${{ env.VERSION }}.zip
+            svm-macos-v${{ env.VERSION }}.zip
+            svm_codec_v${{ env.VERSION }}.wasm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
