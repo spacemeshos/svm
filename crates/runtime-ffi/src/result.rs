@@ -1,4 +1,3 @@
-use std::alloc::System as SystemAlloc;
 use std::convert::{Infallible, TryInto};
 use std::ops::FromResidual;
 
@@ -42,7 +41,7 @@ impl svm_result_t {
 
     /// Creates a new [`svm_result_t`] which contains an error.
     pub fn new_error(data: &[u8]) -> Self {
-        let mut new_data = Vec::new_in(SystemAlloc);
+        let mut new_data = Vec::with_capacity(data.len());
         new_data.extend_from_slice(data);
 
         Self {
@@ -54,7 +53,7 @@ impl svm_result_t {
 
     /// Creates a new [`svm_result_t`] which contains a receipt.
     pub fn new_receipt(data: &[u8]) -> Self {
-        let mut new_data = Vec::new_in(SystemAlloc);
+        let mut new_data = Vec::with_capacity(data.len());
         new_data.extend_from_slice(data);
 
         Self {
@@ -104,6 +103,16 @@ impl svm_result_t {
     /// ```
     pub fn is_err(&self) -> bool {
         !self.is_ok()
+    }
+}
+
+impl std::ops::Drop for svm_result_t {
+    fn drop(&mut self) {
+        let len = self.buf_size as usize;
+        unsafe {
+            let _error = Vec::from_raw_parts(self.error, len, len);
+            let _receipt = Vec::from_raw_parts(self.receipt, len, len);
+        }
     }
 }
 
