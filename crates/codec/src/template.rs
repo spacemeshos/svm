@@ -76,8 +76,15 @@ pub fn decode(
 ) -> Result<Template, ParseError> {
     let sections = decode_sections(cursor, interests)?;
 
-    let template = Template::from_sections(sections);
-    Ok(template)
+    if !sections.contains(SectionKind::Code)
+        || !sections.contains(SectionKind::Data)
+        || !sections.contains(SectionKind::Ctors)
+    {
+        Err(ParseError::InvalidSection)
+    } else {
+        let template = Template::from_sections(sections);
+        Ok(template)
+    }
 }
 
 #[cfg(test)]
