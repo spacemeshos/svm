@@ -198,11 +198,11 @@ jobs:
         run: |
           set -e
           cd bins-Linux-release
-          zip -r svm-linux-v${{ env.VERSION }}.zip *
+          zip -r ../svm-linux-v${{ env.VERSION }}.zip *
           cd ../bins-Windows-release
-          zip -r svm-windows-v${{ env.VERSION }}.zip *
+          zip -r ../svm-windows-v${{ env.VERSION }}.zip *
           cd ../bins-macOS-release
-          zip -r svm-macos-v${{ env.VERSION }}.zip *
+          zip -r ../svm-macos-v${{ env.VERSION }}.zip *
           cd ..
           cp svm_codec.wasm/svm_codec.wasm svm_codec_v${{ env.VERSION }}.wasm
       - uses: softprops/action-gh-release@v1
