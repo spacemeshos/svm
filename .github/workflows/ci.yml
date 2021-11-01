@@ -194,22 +194,13 @@ jobs:
       - run: |
           VER="${{ github.ref }}"
           echo "VERSION=${VER#refs/tags/v}" >> $GITHUB_ENV
-      - uses: papeloto/action-zip@v1
-        with:
-          files: bins-Linux-release/
-          recursive: false
-          dest: svm-linux-v${{ env.VERSION }}.zip
-      - uses: papeloto/action-zip@v1
-        with:
-          files: bins-Windows-release/
-          recursive: false
-          dest: svm-windows-v${{ env.VERSION }}.zip
-      - uses: papeloto/action-zip@v1
-        with:
-          files: bins-macOS-release/
-          recursive: false
-          dest: svm-macos-v${{ env.VERSION }}.zip
-      - run: |
+      - name: Zip artifact files
+        run: |
+          set -e
+          tar -czf bins-Linux-release/ svm-linux-v${{ env.VERSION }}.zip
+          tar -czf bins-Windows-release/ svm-windows-v${{ env.VERSION }}.zip
+          tar -czf bins-macOS-release/ svm-macos-v${{ env.VERSION }}.zip
+          tar -czf bins-macOS-release/ svm-macos-v${{ env.VERSION }}.zip
           cp svm_codec.wasm/svm_codec.wasm svm_codec_v${{ env.VERSION }}.wasm
       - uses: softprops/action-gh-release@v1
         with:
