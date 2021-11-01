@@ -47,9 +47,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-key-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            cargo-key-${{ runner.os }}-${{ github.job }}
+            cargo-${{ runner.os }}-${{ github.job }}
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
@@ -93,9 +93,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-key-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            cargo-key-${{ runner.os }}-${{ github.job }}
+            cargo-${{ runner.os }}-${{ github.job }}
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
@@ -131,9 +131,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-key-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            cargo-key-${{ runner.os }}-${{ github.job }}
+            cargo-${{ runner.os }}-${{ github.job }}
       - name: Test svm-codec
         working-directory: crates/codec/examples
         run: |
@@ -174,9 +174,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-key-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            cargo-key-${{ runner.os }}-${{ github.job }}
+            cargo-${{ runner.os }}-${{ github.job }}
       - name: Run `cargo doc`
         uses: actions-rs/cargo@v1
         with:
