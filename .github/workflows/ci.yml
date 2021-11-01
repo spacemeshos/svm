@@ -28,20 +28,8 @@ jobs:
         profile: [release]
         include:
           - os: ubuntu-latest
-            lib_name: libsvm
-            static: a
-            shared: so
-            target: x86_64-unknown-linux-gnu
           - os: macos-latest
-            lib_name: libsvm
-            static: a
-            shared: dylib
-            target: x86_64-apple-darwin
           - os: windows-latest
-            lib_name: svm
-            static: lib
-            shared: dll
-            target: x86_64-pc-windows-msvc
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -51,7 +39,6 @@ jobs:
         with:
           toolchain: nightly
           override: true
-      - run: rustup target add ${{ matrix.target }}
       - uses: actions/cache@v2
         with:
           path: |
@@ -60,30 +47,25 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: cargo-key-${{ matrix.target }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-key-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-key-${{ runner.os }}-${{ github.job }}
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --${{ matrix.profile }} --target=${{ matrix.target }} -p svm-runtime-ffi -p svm-cli --features=default-cranelift --no-default-features
-      - name: Prepare Artifacts
+          args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --features=default-cranelift --no-default-features
+      - name: List Cargo artifacts
         run: |
           set -e
-          mkdir -p bins
           ls target
-          echo "---"
-          ls target/${{ matrix.target }}
           echo "---"
           ls target/${{ matrix.profile }}
           echo "---"
-          ls target/${{ matrix.target }}/${{ matrix.profile }}
-          echo "---"
-          cp target/${{ matrix.target }}/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.shared }} bins/${{ matrix.lib_name }}.${{ matrix.shared }}
-          cp target/${{ matrix.target }}/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.static }} bins/${{ matrix.lib_name }}.${{ matrix.static }}
-          cp target/${{ matrix.target }}/${{ matrix.profile }}/svm-cli bins/svm-cli
-          cp target/${{ matrix.target }}/${{ matrix.profile }}/svm.h bins/svm.h
+      - name: Prepare Artifacts
+        run: ./tools/cp-artifacts.sh
+        env:
+          OS: ${{ matrix.os }}
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
         with:
