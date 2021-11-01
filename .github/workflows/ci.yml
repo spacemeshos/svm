@@ -197,10 +197,9 @@ jobs:
       - name: Zip artifact files
         run: |
           set -e
-          tar -czf bins-Linux-release/ svm-linux-v${{ env.VERSION }}.zip
-          tar -czf bins-Windows-release/ svm-windows-v${{ env.VERSION }}.zip
-          tar -czf bins-macOS-release/ svm-macos-v${{ env.VERSION }}.zip
-          tar -czf bins-macOS-release/ svm-macos-v${{ env.VERSION }}.zip
+          zip -r svm-linux-v${{ env.VERSION }} bins-Linux-release/*
+          zip -r svm-windows-v${{ env.VERSION }} bins-Windows-release/*
+          zip -r svm-macos-v${{ env.VERSION }} bins-macOS-release/*
           cp svm_codec.wasm/svm_codec.wasm svm_codec_v${{ env.VERSION }}.wasm
       - uses: softprops/action-gh-release@v1
         with:
