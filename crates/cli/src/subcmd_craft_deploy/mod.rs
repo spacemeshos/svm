@@ -84,8 +84,8 @@ pub fn subcmd_craft_deploy(args: &ArgMatches) -> anyhow::Result<()> {
 
 fn test_sections_encoding<P: AsRef<Path>>(path: P) -> anyhow::Result<()> {
     let bytes = std::fs::read(&path)?;
-    let cursor = Cursor::new(bytes.as_slice());
-    let mut decoder = SectionsDecoder::new(cursor)?;
+    let mut cursor = Cursor::new(bytes.as_slice());
+    let mut decoder = SectionsDecoder::new(&mut cursor)?;
 
     assert_eq!(3, decoder.section_count());
 
@@ -96,7 +96,10 @@ fn test_sections_encoding<P: AsRef<Path>>(path: P) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn assert_section(decoder: &mut SectionsDecoder, expected: SectionKind) -> anyhow::Result<()> {
+fn assert_section(
+    decoder: &mut SectionsDecoder<Cursor<&[u8]>>,
+    expected: SectionKind,
+) -> anyhow::Result<()> {
     let preview = decoder.next_preview()?;
     assert_eq!(preview.kind(), expected);
 
@@ -108,8 +111,8 @@ fn assert_section(decoder: &mut SectionsDecoder, expected: SectionKind) -> anyho
 
 fn test_decode_as_template<P: AsRef<Path>>(path: P) -> anyhow::Result<()> {
     let message = std::fs::read(&path)?;
-    let cursor = Cursor::new(message.as_slice());
-    let _template = svm_codec::template::decode(cursor, None)?;
+    let mut cursor = Cursor::new(message.as_slice());
+    let _template = svm_codec::template::decode(&mut cursor, None)?;
 
     Ok(())
 }

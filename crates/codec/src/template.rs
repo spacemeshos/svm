@@ -44,12 +44,12 @@
 //! ```
 
 use std::collections::HashSet;
-use std::io::Cursor;
+
+use svm_types::{SectionKind, Template};
 
 use crate::section::decode::decode_sections;
 use crate::section::SectionsEncoder;
-use crate::ParseError;
-use svm_types::{SectionKind, Template};
+use crate::{ParseError, ReadExt};
 
 /// Encodes a `Template` into binary
 ///
@@ -71,17 +71,26 @@ pub fn encode(template: &Template) -> Vec<u8> {
 /// If the input `interests` is `None` - decodes any kind `Section` belonging to
 /// the `Template` pointed by the input `cursor`.
 pub fn decode(
-    cursor: Cursor<&[u8]>,
+    reader: &mut impl ReadExt,
     interests: Option<HashSet<SectionKind>>,
 ) -> Result<Template, ParseError> {
-    let sections = decode_sections(cursor, interests)?;
+    let sections = decode_sections(reader, interests)?;
 
-    let template = Template::from_sections(sections);
-    Ok(template)
+    if !sections.contains(SectionKind::Code)
+        || !sections.contains(SectionKind::Data)
+        || !sections.contains(SectionKind::Ctors)
+    {
+        Err(ParseError::InvalidSection)
+    } else {
+        let template = Template::from_sections(sections);
+        Ok(template)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+
     use maplit::hashset;
 
     use svm_types::BytesPrimitive;
@@ -144,8 +153,7 @@ mod tests {
         template = template.with_deploy(Some(deploy));
 
         let bytes = encode(&template);
-
-        let cursor = Cursor::new(&bytes[..]);
+        let mut cursor = Cursor::new(&bytes[..]);
 
         let interests = hashset! {
             SectionKind::Code,
@@ -155,7 +163,7 @@ mod tests {
             SectionKind::Deploy
         };
 
-        let sections = decode_sections(cursor, Some(interests)).unwrap();
+        let sections = decode_sections(&mut cursor, Some(interests)).unwrap();
 
         assert_eq!(template.sections(), &sections);
     }

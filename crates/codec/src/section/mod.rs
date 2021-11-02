@@ -21,7 +21,6 @@ impl Codec for Sections {
     }
 
     fn decode(reader: &mut impl ReadExt) -> Result<Self, Self::Error> {
-        let template = crate::template::decode(reader.as_cursor(), None)?;
-        Ok(template.sections().clone())
+        decode::decode_sections(reader, None)
     }
 }

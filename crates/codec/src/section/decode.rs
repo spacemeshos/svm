@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::io::Cursor;
 
 use svm_types::{
     ApiSection, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
@@ -16,18 +15,21 @@ use crate::{Codec, ParseError, ReadExt};
 /// to be decoded into its matching Rust form or skipped until the next binary [`Section`].
 /// This mechanism works thanks to having each binary [`Section`] prefixed with a [`SectionPreview`].
 /// It contains information about the kind of [`Section`] and its byte-count.
-pub struct SectionsDecoder<'a> {
+pub struct SectionsDecoder<'a, T> {
     last_preview: Option<SectionPreview>,
     read_previews: usize,
     section_count: usize,
-    cursor: Cursor<&'a [u8]>,
+    reader: &'a mut T,
 }
 
-impl<'a> SectionsDecoder<'a> {
+impl<'a, T> SectionsDecoder<'a, T>
+where
+    T: ReadExt,
+{
     /// New Decoder
-    pub fn new(cursor: Cursor<&'a [u8]>) -> Result<Self, ParseError> {
+    pub fn new(reader: &'a mut T) -> Result<Self, ParseError> {
         let mut me = Self {
-            cursor,
+            reader,
             last_preview: None,
             read_previews: 0,
             section_count: 0,
@@ -59,7 +61,7 @@ impl<'a> SectionsDecoder<'a> {
             "Please call `decode_section` or `skip_section` prior to calling `next_preview` again"
         );
 
-        let preview = SectionPreview::decode(&mut self.cursor)?;
+        let preview = SectionPreview::decode(self.reader)?;
 
         self.last_preview = Some(preview.clone());
         self.read_previews += 1;
@@ -75,16 +77,15 @@ impl<'a> SectionsDecoder<'a> {
         );
 
         let last_preview = self.last_preview.take().unwrap();
-        let cursor = &mut self.cursor;
 
         let section = match last_preview.kind() {
-            SectionKind::Header => HeaderSection::decode(cursor)?.into(),
-            SectionKind::Code => CodeSection::decode(cursor)?.into(),
-            SectionKind::Data => DataSection::decode(cursor)?.into(),
-            SectionKind::Ctors => CtorsSection::decode(cursor)?.into(),
-            SectionKind::Schema => SchemaSection::decode(cursor)?.into(),
-            SectionKind::Api => ApiSection::decode(cursor)?.into(),
-            SectionKind::Deploy => DeploySection::decode(cursor)?.into(),
+            SectionKind::Header => HeaderSection::decode(self.reader)?.into(),
+            SectionKind::Code => CodeSection::decode(self.reader)?.into(),
+            SectionKind::Data => DataSection::decode(self.reader)?.into(),
+            SectionKind::Ctors => CtorsSection::decode(self.reader)?.into(),
+            SectionKind::Schema => SchemaSection::decode(self.reader)?.into(),
+            SectionKind::Api => ApiSection::decode(self.reader)?.into(),
+            SectionKind::Deploy => DeploySection::decode(self.reader)?.into(),
         };
 
         Ok(section)
@@ -103,22 +104,22 @@ impl<'a> SectionsDecoder<'a> {
     }
 
     fn read_section_count(&mut self) -> Result<usize, ParseError> {
-        Ok(u16::decode(&mut self.cursor)? as usize)
+        Ok(u16::decode(self.reader)? as usize)
     }
 
     fn section_bytes(&mut self) -> Result<Vec<u8>, ParseError> {
         let last_preview = self.last_preview.take().unwrap();
 
         let to_skip = last_preview.byte_size();
-        Ok(self.cursor.read_bytes(to_skip as usize)?)
+        Ok(self.reader.read_bytes(to_skip as usize)?)
     }
 }
 
 pub fn decode_sections(
-    cursor: Cursor<&[u8]>,
+    reader: &mut impl ReadExt,
     interests: Option<HashSet<SectionKind>>,
 ) -> Result<Sections, ParseError> {
-    let mut decoder = SectionsDecoder::new(cursor)?;
+    let mut decoder = SectionsDecoder::new(reader)?;
 
     let decode_each = interests.is_none();
     let interests = interests.unwrap_or_else(|| HashSet::default());

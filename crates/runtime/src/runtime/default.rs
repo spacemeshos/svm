@@ -431,7 +431,8 @@ impl DefaultRuntime {
 
 impl Runtime for DefaultRuntime {
     fn validate_deploy(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
-        let template = svm_codec::template::decode(std::io::Cursor::new(message), None)?;
+        let mut cursor = std::io::Cursor::new(message);
+        let template = svm_codec::template::decode(&mut cursor, None)?;
         let code = template.code();
 
         // Opcode and `svm_alloc` checks should only ever be run when deploying [`Template`]s.

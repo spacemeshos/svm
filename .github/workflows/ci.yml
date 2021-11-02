@@ -11,6 +11,8 @@ on:
   push:
     branches:
       - master
+    tags:
+      - "*"
   pull_request:
     branches:
       - master
@@ -28,26 +30,17 @@ jobs:
         profile: [release]
         include:
           - os: ubuntu-latest
-            lib_name: libsvm
-            static: a
-            shared: so
           - os: macos-latest
-            lib_name: libsvm
-            static: a
-            shared: dylib
           - os: windows-latest
-            lib_name: svm
-            static: lib
-            shared: dll
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - name: Install Rust
-        run: |
-          rustup update nightly
-          rustup default nightly
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
       - uses: actions/cache@v2
         with:
           path: |
@@ -55,20 +48,25 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: ${{ runner.os }}-cargo-${{ github.job }}
+          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ github.job }}
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --features=default-cranelift --no-default-features
-      - name: Prepare Artifacts
+      - name: List Cargo artifacts
         run: |
           set -e
-          mkdir -p bins
-          cp target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.shared }} bins/${{ matrix.lib_name }}.${{ matrix.shared }}
-          cp target/${{ matrix.profile }}/${{ matrix.lib_name }}_runtime_ffi.${{ matrix.static }} bins/${{ matrix.lib_name }}.${{ matrix.static }}
-          cp target/${{ matrix.profile }}/svm-cli bins/svm-cli
-          cp target/${{ matrix.profile }}/svm.h bins/svm.h
+          ls target
+          echo "---"
+          ls target/${{ matrix.profile }}
+          echo "---"
+      - name: Prepare Artifacts
+        run: ./.github/copy-artifacts.sh
+        env:
+          OS: ${{ matrix.os }}
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
         with:
@@ -96,7 +94,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: ${{ runner.os }}-cargo-${{ github.job }}
+          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ github.job }}
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
@@ -132,7 +132,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: ${{ runner.os }}-cargo-${{ github.job }}
+          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ github.job }}
       - name: Test svm-codec
         working-directory: crates/codec/examples
         run: |
@@ -173,9 +175,43 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/
             ./target/
-          key: ${{ runner.os }}-cargo-${{ github.job }}
+          key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ github.job }}
       - name: Run `cargo doc`
         uses: actions-rs/cargo@v1
         with:
           command: doc
           args: --workspace --no-deps
+  release:
+    runs-on: ubuntu-latest
+    needs: [build, test, wasm_codec]
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v2
+      - run: |
+          VER="${{ github.ref }}"
+          echo "VERSION=${VER#refs/tags/v}" >> $GITHUB_ENV
+      - name: Zip artifact files
+        run: |
+          set -e
+          cd bins-Linux-release
+          zip -r ../svm-linux-v${{ env.VERSION }}.zip *
+          cd ../bins-Windows-release
+          zip -r ../svm-windows-v${{ env.VERSION }}.zip *
+          cd ../bins-macOS-release
+          zip -r ../svm-macos-v${{ env.VERSION }}.zip *
+          cd ..
+          cp svm_codec.wasm/svm_codec.wasm svm_codec_v${{ env.VERSION }}.wasm
+      - uses: softprops/action-gh-release@v1
+        with:
+          name: v${{ env.VERSION }}
+          files: |
+            svm-linux-v${{ env.VERSION }}.zip
+            svm-windows-v${{ env.VERSION }}.zip
+            svm-macos-v${{ env.VERSION }}.zip
+            svm_codec_v${{ env.VERSION }}.wasm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
