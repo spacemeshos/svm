@@ -57,12 +57,23 @@ jobs:
           command: build
           args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --features=default-cranelift --no-default-features
       - name: List Cargo artifacts
+        run: ls target/${{ matrix.profile }}
+      - name: Prepare Artifacts
+        run: ./.github/copy-artifacts.sh
+        env:
+          OS: ${{ matrix.os }}
+      - uses: msys2/setup-msys2@v2
+        if: matrix.os == 'windows-latest'
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-tools-git
+      - if: matrix.os == 'windows-latest'
+        shell: msys2 {0}
         run: |
-          set -e
-          ls target
-          echo "---"
-          ls target/${{ matrix.profile }}
-          echo "---"
+          cd bins
+          gendef.exe svm.dll
+          dlltool.exe -d svm.def -D svm.dll -l libsvm.a
       - name: Prepare Artifacts
         run: ./.github/copy-artifacts.sh
         env:

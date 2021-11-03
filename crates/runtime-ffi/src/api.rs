@@ -30,6 +30,10 @@ pub unsafe extern "C" fn svm_init(in_memory: bool, path: *const u8, path_len: u3
     svm_result_t::OK
 }
 
+/// Frees the memory allocated within the given [`svm_result_t`].
+#[no_mangle]
+pub unsafe extern "C" fn svm_free_result(_result: svm_result_t) {}
+
 ///
 /// Start of the Public C-API
 ///

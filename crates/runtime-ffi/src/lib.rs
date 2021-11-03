@@ -9,7 +9,6 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![feature(ptr_as_uninit)]
 #![feature(try_trait_v2)]
-#![feature(allocator_api)]
 
 mod api;
 mod config;

@@ -1,4 +1,3 @@
-use std::alloc::System as SystemAlloc;
 use std::convert::{Infallible, TryInto};
 use std::ops::FromResidual;
 
@@ -24,42 +23,42 @@ use std::ops::FromResidual;
 /// free(result->error);
 /// ```
 #[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct svm_result_t {
-    receipt: *const u8,
-    error: *const u8,
+    receipt: *mut u8,
+    error: *mut u8,
     buf_size: u32,
 }
 
 impl svm_result_t {
     /// A successful [`svm_result_t`], with neither a receipt nor error information.
     pub const OK: Self = Self {
-        receipt: std::ptr::null(),
-        error: std::ptr::null(),
+        receipt: std::ptr::null_mut(),
+        error: std::ptr::null_mut(),
         buf_size: 0,
     };
 
     /// Creates a new [`svm_result_t`] which contains an error.
     pub fn new_error(data: &[u8]) -> Self {
-        let mut new_data = Vec::new_in(SystemAlloc);
+        let mut new_data = Vec::with_capacity(data.len());
         new_data.extend_from_slice(data);
 
         Self {
-            receipt: std::ptr::null(),
-            error: new_data.leak().as_ptr(),
+            receipt: std::ptr::null_mut(),
+            error: new_data.leak().as_mut_ptr(),
             buf_size: data.len().try_into().unwrap(),
         }
     }
 
     /// Creates a new [`svm_result_t`] which contains a receipt.
     pub fn new_receipt(data: &[u8]) -> Self {
-        let mut new_data = Vec::new_in(SystemAlloc);
+        let mut new_data = Vec::with_capacity(data.len());
         new_data.extend_from_slice(data);
 
         Self {
-            receipt: new_data.leak().as_ptr(),
-            error: std::ptr::null(),
+            receipt: new_data.leak().as_mut_ptr(),
+            error: std::ptr::null_mut(),
             buf_size: data.len().try_into().unwrap(),
         }
     }
@@ -104,6 +103,16 @@ impl svm_result_t {
     /// ```
     pub fn is_err(&self) -> bool {
         !self.is_ok()
+    }
+}
+
+impl std::ops::Drop for svm_result_t {
+    fn drop(&mut self) {
+        let len = self.buf_size as usize;
+        unsafe {
+            let _error = Vec::from_raw_parts(self.error, len, len);
+            let _receipt = Vec::from_raw_parts(self.receipt, len, len);
+        }
     }
 }
 
