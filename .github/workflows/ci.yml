@@ -74,6 +74,10 @@ jobs:
           cd bins
           gendef.exe svm.dll
           dlltool.exe -d svm.def -D svm.dll -l libsvm.a
+      - name: Prepare Artifacts
+        run: ./.github/copy-artifacts.sh
+        env:
+          OS: ${{ matrix.os }}
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
         with:
