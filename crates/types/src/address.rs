@@ -17,7 +17,7 @@ impl TemplateAddr {
     /// Returns a special-designated [`TemplateAddr`] for accounts created at
     /// genesis.
     pub fn god_template() -> Self {
-        Self::zeros()
+        Self::repeat(0xE3)
     }
 }
 
