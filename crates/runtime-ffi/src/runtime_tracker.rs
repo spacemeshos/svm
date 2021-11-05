@@ -1,5 +1,4 @@
-use lazy_static::lazy_static;
-use svm_runtime::DefaultRuntime;
+use svm_runtime::Runtime;
 
 use std::collections::HashSet;
 use std::ffi::c_void;
@@ -9,28 +8,27 @@ use crate::config::Config;
 use svm_runtime::PriceResolverRegistry;
 use svm_state::GlobalState;
 
-lazy_static! {
-    static ref RUNTIMES: Mutex<HashSet<usize>> = Mutex::default();
+#[derive(Default, Debug)]
+pub struct RuntimeTracker {
+    tracker: Mutex<HashSet<usize>>,
 }
 
-pub struct RuntimeTracker;
-
 impl RuntimeTracker {
-    pub fn count() -> u64 {
-        RUNTIMES.lock().unwrap().len() as u64
+    pub fn count(&self) -> u64 {
+        self.tracker.lock().unwrap().len() as u64
     }
 
-    pub fn get(ptr: *mut c_void) -> Option<&'static mut DefaultRuntime> {
-        let lock = RUNTIMES.lock().unwrap();
+    pub fn get(&self, ptr: *mut c_void) -> Option<&'static mut Runtime> {
+        let lock = self.tracker.lock().unwrap();
         if lock.contains(&(ptr as usize)) {
-            let val = unsafe { Box::leak(Box::<DefaultRuntime>::from_raw(ptr.cast())) };
+            let val = unsafe { Box::leak(Box::<Runtime>::from_raw(ptr.cast())) };
             Some(val)
         } else {
             None
         }
     }
 
-    pub fn alloc() -> *mut c_void {
+    pub fn alloc(&self) -> *mut c_void {
         let config = Config::get();
         let imports = ("sm".to_string(), wasmer::Exports::new());
         let global_state = if let Some(db_path) = config.db_path {
@@ -39,7 +37,7 @@ impl RuntimeTracker {
             GlobalState::in_memory()
         };
 
-        let runtime = DefaultRuntime::new(
+        let runtime = Runtime::new(
             imports,
             global_state,
             PriceResolverRegistry::default(),
@@ -49,13 +47,13 @@ impl RuntimeTracker {
         let boxed = Box::new(runtime);
         let ptr = Box::leak(boxed) as *mut _ as *mut c_void;
 
-        RUNTIMES.lock().unwrap().insert(ptr as usize);
+        self.tracker.lock().unwrap().insert(ptr as usize);
 
         ptr
     }
 
-    pub fn free(ptr: *mut c_void) -> Option<()> {
-        let found = RUNTIMES.lock().unwrap().remove(&(ptr as usize));
+    pub fn free(&self, ptr: *mut c_void) -> Option<()> {
+        let found = self.tracker.lock().unwrap().remove(&(ptr as usize));
 
         if found {
             Some(())

@@ -19,7 +19,7 @@ use svm_types::{
 use super::{Call, Function, Outcome};
 use crate::error::ValidateError;
 use crate::price_registry::PriceResolverRegistry;
-use crate::{vmcalls, FuncEnv, ProtectedMode, Runtime};
+use crate::{vmcalls, FuncEnv, ProtectedMode};
 
 type OutcomeResult<T> = std::result::Result<Outcome<T>, RuntimeFailure>;
 type Result<T> = std::result::Result<T, RuntimeFailure>;
@@ -28,15 +28,12 @@ const ERR_VALIDATE_SPAWN: &str = "Should have called `validate_spawn` first";
 const ERR_VALIDATE_CALL: &str = "Should have called `validate_call` first";
 const ERR_VALIDATE_DEPLOY: &str = "Should have called `validate_deploy` first";
 
-/// Default [`Runtime`] implementation based on [`Wasmer`](https://wasmer.io).
-pub struct DefaultRuntime {
+/// An SVM runtime implementation based on [`Wasmer`](https://wasmer.io).
+pub struct Runtime {
     /// Provided host functions to be consumed by running transactions.
     imports: (String, wasmer::Exports),
-
     gs: GlobalState,
-
     price_registry: PriceResolverRegistry,
-
     /// A naive cache for [`Template`]s' [`FuncPrice`]s. The cache key will, in
     /// the future, also include an identifier for which
     /// [`PriceResolver`](svm_gas::PriceResolver) should be used (possibly an
@@ -44,8 +41,8 @@ pub struct DefaultRuntime {
     template_prices: Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>,
 }
 
-impl DefaultRuntime {
-    /// Initializes a new [`DefaultRuntime`].
+impl Runtime {
+    /// Initializes a new [`Runtime`].
     ///
     /// `template_prices` offers an easy way to inject an append-only, naive caching mechanism to
     /// the [`Template`] pricing logic; using a `None` will result in a new
@@ -151,7 +148,7 @@ impl DefaultRuntime {
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
-        self.validate_call(call, template, func_env)?;
+        self.validate_call_contents(call, template, func_env)?;
 
         let module = self.compile_template(store, func_env, &template, call.gas_limit)?;
         let instance = self.instantiate(func_env, &module, import_object)?;
@@ -370,7 +367,7 @@ impl DefaultRuntime {
         module_res.map_err(|err| err::compilation_failed(env, err))
     }
 
-    fn validate_call(
+    fn validate_call_contents(
         &self,
         call: &Call,
         template: &Template,
@@ -427,10 +424,30 @@ impl DefaultRuntime {
             context,
         }
     }
-}
 
-impl Runtime for DefaultRuntime {
-    fn validate_deploy(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
+    /// Creates a new account with the given information.
+    pub fn create_account(
+        &mut self,
+        account_addr: &Address,
+        name: String,
+        balance: u64,
+        counter: u128,
+    ) -> Result<()> {
+        AccountStorage::create(
+            self.gs.clone(),
+            account_addr,
+            name,
+            TemplateAddr::zeros(),
+            balance,
+            counter,
+        )
+        .unwrap();
+
+        Ok(())
+    }
+
+    /// Validates syntactically a binary `Deploy Template` message prior to executing it.
+    pub fn validate_deploy(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
         let mut cursor = std::io::Cursor::new(message);
         let template = svm_codec::template::decode(&mut cursor, None)?;
         let code = template.code();
@@ -444,17 +461,25 @@ impl Runtime for DefaultRuntime {
         Ok(())
     }
 
-    fn validate_spawn(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
+    /// Validates syntactically a binary `Spawn Account` message prior to executing it.
+    pub fn validate_spawn(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
         SpawnAccount::decode_bytes(message)?;
         Ok(())
     }
 
-    fn validate_call(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
+    /// Validates syntactically a binary `Call Account` message prior to executing it.
+    pub fn validate_call(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
         Transaction::decode_bytes(message)?;
         Ok(())
     }
 
-    fn deploy(&mut self, envelope: &Envelope, message: &[u8], _context: &Context) -> DeployReceipt {
+    /// Deploys a `Template`
+    pub fn deploy(
+        &mut self,
+        envelope: &Envelope,
+        message: &[u8],
+        _context: &Context,
+    ) -> DeployReceipt {
         info!("Runtime `deploy`");
 
         let sections = Sections::decode_bytes(message).expect(ERR_VALIDATE_DEPLOY);
@@ -481,7 +506,13 @@ impl Runtime for DefaultRuntime {
         DeployReceipt::new(addr, gas_used)
     }
 
-    fn spawn(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> SpawnReceipt {
+    /// Spawns a new `Account`
+    pub fn spawn(
+        &mut self,
+        envelope: &Envelope,
+        message: &[u8],
+        context: &Context,
+    ) -> SpawnReceipt {
         // TODO: refactor this function (it has got a bit lengthy...)
 
         info!("Runtime `spawn`");
@@ -576,7 +607,13 @@ impl Runtime for DefaultRuntime {
         }
     }
 
-    fn verify(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
+    /// Verifies a [`Transaction`](svm_types::Transaction) before execution.
+    pub fn verify(
+        &mut self,
+        envelope: &Envelope,
+        message: &[u8],
+        context: &Context,
+    ) -> CallReceipt {
         let tx = Transaction::decode_bytes(message).expect(ERR_VALIDATE_CALL);
 
         // ### Important:
@@ -599,7 +636,10 @@ impl Runtime for DefaultRuntime {
         self.exec_call::<(), ()>(&call)
     }
 
-    fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
+    /// Executes a [`Transaction`](svm_types::Transaction) and returns its output [`CallReceipt`].
+    ///
+    /// This function should be called only if the `verify` stage has passed.
+    pub fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
         let tx = Transaction::decode_bytes(message).expect(ERR_VALIDATE_CALL);
 
         let call = self.build_call(
@@ -614,20 +654,30 @@ impl Runtime for DefaultRuntime {
         self.exec_call::<(), ()>(&call)
     }
 
-    fn rewind(&mut self, layer_id: Layer) -> Result<()> {
+    /// Moves the internal state of this [`Runtime`] back to the time of
+    /// `layer_id`.
+    pub fn rewind(&mut self, layer_id: Layer) -> Result<()> {
         self.gs
             .rewind(layer_id)
             .map_err(|_e| RuntimeFailure::new(RuntimeError::OOG, vec![]))
     }
 
-    fn commit(&mut self) -> Result<()> {
+    /// Creates a new layer with the given changes.
+    pub fn commit(&mut self) -> Result<()> {
         self.gs
             .commit()
             .map_err(|_e| RuntimeFailure::new(RuntimeError::OOG, vec![]))?;
         Ok(())
     }
 
-    fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)> {
+    /// Given the address of an account, it attempts to read:
+    ///
+    /// - balance;
+    /// - counter;
+    /// - template's address;
+    ///
+    /// from the database layer.
+    pub fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)> {
         let account_storage = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
         let balance = account_storage.balance().unwrap();
         let counter = account_storage.counter().unwrap();
