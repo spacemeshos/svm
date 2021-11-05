@@ -474,21 +474,18 @@ pub unsafe extern "C" fn svm_call(
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_rewind(runtime: *mut c_void, layer_id: u64) -> svm_result_t {
+pub unsafe extern "C" fn svm_rewind(runtime_ptr: *mut c_void, layer_id: u64) -> svm_result_t {
     catch_unwind_or_fail(|| {
-        RUNTIME_TRACKER
-            .get(runtime)
-            .unwrap()
-            .rewind(Layer(layer_id))?;
+        get_runtime(runtime_ptr).rewind(Layer(layer_id))?;
         svm_result_t::OK
     })
 }
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_commit(runtime: *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_commit(runtime_ptr: *mut c_void) -> svm_result_t {
     catch_unwind_or_fail(|| {
-        RUNTIME_TRACKER.get(runtime).unwrap().commit()?;
+        get_runtime(runtime_ptr).commit()?;
         svm_result_t::OK
     })
 }
@@ -504,7 +501,7 @@ pub unsafe extern "C" fn svm_get_account(
     template_addr: *mut u8,
 ) -> svm_result_t {
     catch_unwind_or_fail(|| {
-        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
+        let runtime = get_runtime(runtime_ptr);
         let account_addr = Address::new(std::slice::from_raw_parts(account_addr, Address::N));
         let template_addr = std::slice::from_raw_parts_mut(template_addr, TemplateAddr::N);
         let account_data = runtime.get_account(&account_addr).unwrap();
@@ -532,7 +529,7 @@ where
     C: Codec + UnwindSafe + std::fmt::Debug,
 {
     catch_unwind_or_fail(|| {
-        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
+        let runtime = get_runtime(runtime_ptr);
         let message = slice::from_raw_parts(message, message_size as usize);
         let envelope = slice::from_raw_parts(envelope, Envelope::fixed_size().unwrap());
         let context = slice::from_raw_parts(context, Context::fixed_size().unwrap());
@@ -559,7 +556,7 @@ where
     F: FnOnce(&mut Runtime, &[u8]) -> Result<(), ValidateError> + UnwindSafe,
 {
     catch_unwind_or_fail(|| {
-        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
+        let runtime = get_runtime(runtime_ptr);
         let message = slice::from_raw_parts(message, message_size as usize);
 
         match validate_f(runtime, message) {
@@ -573,6 +570,12 @@ where
             }
         }
     })
+}
+
+unsafe fn get_runtime(runtime_ptr: *mut c_void) -> &'static mut Runtime {
+    RUNTIME_TRACKER
+        .get(runtime_ptr)
+        .expect("The given runtime pointer doesn't point to a valid runtime.")
 }
 
 fn catch_unwind_or_fail<F>(f: F) -> svm_result_t

@@ -437,7 +437,7 @@ impl Runtime {
         Ok(())
     }
 
-    /// Creates a new account with the given information.
+    /// Creates a new account at genesis with the given information.
     pub fn create_account(
         &mut self,
         account_addr: &Address,
@@ -449,7 +449,7 @@ impl Runtime {
             self.gs.clone(),
             account_addr,
             name,
-            TemplateAddr::zeros(),
+            TemplateAddr::god_template(),
             balance,
             counter,
         )

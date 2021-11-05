@@ -32,10 +32,7 @@ impl AccountStorage {
         balance: u64,
         counter: u128,
     ) -> StorageResult<Self> {
-        let template_storage = TemplateStorage::load(gs.clone(), &template_addr)?;
-        let sections = template_storage.sections()?;
-        let data_section = sections.get(SectionKind::Data).as_data();
-        let layout = data_section.layouts()[0].as_fixed().clone();
+        let layout = template_layout(gs.clone(), &template_addr)?;
 
         gs.encode_and_write(
             &AccountData {
@@ -58,15 +55,13 @@ impl AccountStorage {
     /// Creates a new [`AccountStorage`].
     pub fn load(gs: GlobalState, address: &Address) -> StorageResult<Self> {
         let account_data = AccountData::read(&gs, address)?;
-        let template_storage = TemplateStorage::load(gs.clone(), &account_data.template_addr)?;
-        let sections = template_storage.sections()?;
-        let data_section = sections.get(SectionKind::Data).as_data();
+        let layout = template_layout(gs.clone(), &account_data.template_addr)?;
 
         Ok(Self {
             gs,
             address: address.clone(),
             template_addr: account_data.template_addr,
-            layout: data_section.layouts()[0].as_fixed().clone(),
+            layout,
         })
     }
 
@@ -269,6 +264,18 @@ fn key_account_var_segment(account_addr: &Address, segment: u32) -> String {
         account_addr.to_string(),
         segment
     )
+}
+
+fn template_layout(gs: GlobalState, template_addr: &TemplateAddr) -> StorageResult<FixedLayout> {
+    if *template_addr == TemplateAddr::god_template() {
+        Ok(FixedLayout::default())
+    } else {
+        let template_storage = TemplateStorage::load(gs, &template_addr)?;
+        let sections = template_storage.sections()?;
+        let data_section = sections.get(SectionKind::Data).as_data();
+        let layout = data_section.layouts()[0].as_fixed().clone();
+        Ok(layout)
+    }
 }
 
 #[derive(Debug)]
