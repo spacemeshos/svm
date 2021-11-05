@@ -206,7 +206,14 @@ impl AccountStorage {
     /// Creates a new [`TemplateStorage`] utility instance for the
     /// [`Template`](svm_types::Template) of this
     /// [`Account`](svm_types::Account).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `self` was originated from a God template.
     pub fn template_storage(&self) -> StorageResult<TemplateStorage> {
+        if self.template_addr == TemplateAddr::god_template() {
+            panic!("Can't get template data associated with a God template!");
+        }
         TemplateStorage::load(self.gs.clone(), &self.template_addr)
     }
 
