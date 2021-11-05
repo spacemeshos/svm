@@ -12,8 +12,8 @@
 
 mod api;
 mod config;
+mod resource_tracker;
 mod result;
-mod runtime_tracker;
 
 /// `SVM` FFI Interface
 #[rustfmt::skip]

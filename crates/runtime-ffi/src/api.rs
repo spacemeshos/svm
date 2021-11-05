@@ -1,5 +1,6 @@
 use lazy_static::lazy_static;
 use log::{debug, error};
+use svm_state::GlobalState;
 
 use std::ffi::c_void;
 use std::panic::UnwindSafe;
@@ -7,15 +8,32 @@ use std::path::PathBuf;
 use std::slice;
 
 use svm_codec::Codec;
-use svm_runtime::{Runtime, ValidateError};
+use svm_runtime::{PriceResolverRegistry, Runtime, ValidateError};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, TemplateAddr};
 
 use crate::config::Config;
-use crate::runtime_tracker::RuntimeTracker;
+use crate::resource_tracker::ResourceTracker;
 use crate::svm_result_t;
 
 lazy_static! {
-    static ref RUNTIME_TRACKER: RuntimeTracker = RuntimeTracker::default();
+    static ref RUNTIME_TRACKER: ResourceTracker<Runtime> = ResourceTracker::default();
+}
+
+fn new_runtime() -> Runtime {
+    let config = Config::get();
+    let imports = ("sm".to_string(), wasmer::Exports::new());
+    let global_state = if let Some(db_path) = config.db_path {
+        GlobalState::new(db_path.as_os_str().to_str().unwrap())
+    } else {
+        GlobalState::in_memory()
+    };
+
+    Runtime::new(
+        imports,
+        global_state,
+        PriceResolverRegistry::default(),
+        None,
+    )
 }
 
 /// Initializes the configuration options for all newly allocates SVM runtimes.
@@ -57,6 +75,21 @@ pub unsafe extern "C" fn svm_create_account(
     })
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn svm_increase_balance(
+    runtime_ptr: *mut c_void,
+    addr: *const u8,
+    additional_balance: u64,
+) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
+        let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
+        runtime.increase_balance(&account_addr, additional_balance)?;
+
+        svm_result_t::OK
+    })
+}
+
 ///
 /// Start of the Public C-API
 ///
@@ -84,13 +117,13 @@ pub unsafe extern "C" fn svm_create_account(
 ///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_runtime_create(runtime: *mut *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_runtime_create(runtime_ptr: *mut *mut c_void) -> svm_result_t {
     catch_unwind_or_fail(|| {
         if !Config::is_ready() {
             return svm_result_t::new_error(b"`svm_init` not called beforehand.");
         }
 
-        *runtime = RUNTIME_TRACKER.alloc();
+        *runtime_ptr = RUNTIME_TRACKER.alloc(new_runtime());
 
         debug!("`svm_runtime_create` end");
 

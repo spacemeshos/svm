@@ -425,6 +425,18 @@ impl Runtime {
         }
     }
 
+    /// Increases the balance by a given amount associated with `account_addr`.
+    pub fn increase_balance(&mut self, account_addr: &Address, amount: u64) -> Result<()> {
+        let mut accounts = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
+        let balance = accounts.balance().unwrap();
+        let new_balance = balance
+            .checked_add(amount)
+            .expect("Overflow when increasing balance.");
+        accounts.set_balance(new_balance).unwrap();
+
+        Ok(())
+    }
+
     /// Creates a new account with the given information.
     pub fn create_account(
         &mut self,
