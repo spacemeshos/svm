@@ -474,6 +474,18 @@ pub unsafe extern "C" fn svm_call(
 
 #[must_use]
 #[no_mangle]
+unsafe fn svm_state_hash(runtime_ptr: *mut c_void, hash: *mut u8) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = get_runtime(runtime_ptr)?;
+        let root_hash = runtime.current_layer();
+        *hash = root_hash;
+
+        svm_result_t::OK
+    })
+}
+
+#[must_use]
+#[no_mangle]
 pub unsafe extern "C" fn svm_rewind(runtime_ptr: *mut c_void, layer_id: u64) -> svm_result_t {
     catch_unwind_or_fail(|| {
         get_runtime(runtime_ptr).rewind(Layer(layer_id))?;

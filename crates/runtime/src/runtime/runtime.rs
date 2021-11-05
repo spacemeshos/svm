@@ -425,6 +425,11 @@ impl Runtime {
         }
     }
 
+    pub fn current_layer(&mutself) -> State {
+        let (_layer, state) = self.gs.current_layer().unwrap();
+        state
+    }
+
     /// Increases the balance by a given amount associated with `account_addr`.
     pub fn increase_balance(&mut self, account_addr: &Address, amount: u64) -> Result<()> {
         let mut accounts = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
