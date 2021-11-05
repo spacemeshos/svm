@@ -425,7 +425,8 @@ impl Runtime {
         }
     }
 
-    pub fn current_layer(&mutself) -> State {
+    /// Returns the state root hash of the last layer.
+    pub fn current_layer(&mut self) -> State {
         let (_layer, state) = self.gs.current_layer().unwrap();
         state
     }

@@ -9,7 +9,7 @@ use std::slice;
 
 use svm_codec::Codec;
 use svm_runtime::{PriceResolverRegistry, Runtime, ValidateError};
-use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, TemplateAddr};
+use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State, TemplateAddr};
 
 use crate::config::Config;
 use crate::resource_tracker::ResourceTracker;
@@ -476,9 +476,10 @@ pub unsafe extern "C" fn svm_call(
 #[no_mangle]
 unsafe fn svm_state_hash(runtime_ptr: *mut c_void, hash: *mut u8) -> svm_result_t {
     catch_unwind_or_fail(|| {
-        let runtime = get_runtime(runtime_ptr)?;
+        let runtime = get_runtime(runtime_ptr);
         let root_hash = runtime.current_layer();
-        *hash = root_hash;
+        let slice = slice::from_raw_parts_mut(hash, State::N);
+        slice.clone_from_slice(&root_hash.0);
 
         svm_result_t::OK
     })
