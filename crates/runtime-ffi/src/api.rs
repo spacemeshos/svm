@@ -478,7 +478,7 @@ pub unsafe extern "C" fn svm_call(
 /// Writes the current state root hash at `hash` and the current layer at `layer`.
 #[must_use]
 #[no_mangle]
-pub unsafe fn svm_layer_info(
+pub unsafe extern "C" fn svm_layer_info(
     runtime_ptr: *mut c_void,
     hash: *mut u8,
     layer: *mut u64,
