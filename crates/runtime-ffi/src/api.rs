@@ -1,3 +1,4 @@
+/// SVM C-API methods to access the runtime.
 use lazy_static::lazy_static;
 use log::{debug, error};
 use svm_state::GlobalState;
@@ -57,6 +58,7 @@ pub unsafe extern "C" fn svm_init(in_memory: bool, path: *const u8, path_len: u3
 #[no_mangle]
 pub unsafe extern "C" fn svm_free_result(_result: svm_result_t) {}
 
+/// Creates an account at genesis with a given balance and nonce counter.
 #[no_mangle]
 pub unsafe extern "C" fn svm_create_account(
     runtime_ptr: *mut c_void,
@@ -75,6 +77,7 @@ pub unsafe extern "C" fn svm_create_account(
     })
 }
 
+/// Magically increases an account's balance by the given amount. Used for genesis setup.
 #[no_mangle]
 pub unsafe extern "C" fn svm_increase_balance(
     runtime_ptr: *mut c_void,
@@ -472,6 +475,7 @@ pub unsafe extern "C" fn svm_call(
     )
 }
 
+/// Writes the current state root hash at `hash`.
 #[must_use]
 #[no_mangle]
 unsafe fn svm_state_hash(runtime_ptr: *mut c_void, hash: *mut u8) -> svm_result_t {
@@ -485,6 +489,7 @@ unsafe fn svm_state_hash(runtime_ptr: *mut c_void, hash: *mut u8) -> svm_result_
     })
 }
 
+/// Undos all changes after the given layer.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_rewind(runtime_ptr: *mut c_void, layer_id: u64) -> svm_result_t {
@@ -494,6 +499,7 @@ pub unsafe extern "C" fn svm_rewind(runtime_ptr: *mut c_void, layer_id: u64) -> 
     })
 }
 
+/// Commits all written data to persistent storage.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_commit(runtime_ptr: *mut c_void) -> svm_result_t {
@@ -503,6 +509,7 @@ pub unsafe extern "C" fn svm_commit(runtime_ptr: *mut c_void) -> svm_result_t {
     })
 }
 
+/// Fetches an account's balance, template address, and nonce counter.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_get_account(
