@@ -425,10 +425,9 @@ impl Runtime {
         }
     }
 
-    /// Returns the state root hash of the last layer.
-    pub fn current_layer(&mut self) -> State {
-        let (_layer, state) = self.gs.current_layer().unwrap();
-        state
+    /// Returns the state root hash and layer ID of the last layer.
+    pub fn current_layer(&mut self) -> (Layer, State) {
+        self.gs.current_layer().unwrap()
     }
 
     /// Increases the balance by a given amount associated with `account_addr`.

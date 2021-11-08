@@ -475,15 +475,20 @@ pub unsafe extern "C" fn svm_call(
     )
 }
 
-/// Writes the current state root hash at `hash`.
+/// Writes the current state root hash at `hash` and the current layer at `layer`.
 #[must_use]
 #[no_mangle]
-unsafe fn svm_state_hash(runtime_ptr: *mut c_void, hash: *mut u8) -> svm_result_t {
+pub unsafe fn svm_layer_info(
+    runtime_ptr: *mut c_void,
+    hash: *mut u8,
+    layer: *mut u64,
+) -> svm_result_t {
     catch_unwind_or_fail(|| {
         let runtime = get_runtime(runtime_ptr);
-        let root_hash = runtime.current_layer();
+        let (layer_id, state_hash) = runtime.current_layer();
         let slice = slice::from_raw_parts_mut(hash, State::N);
-        slice.clone_from_slice(&root_hash.0);
+        slice.clone_from_slice(&state_hash.0);
+        *layer = layer_id.0;
 
         svm_result_t::OK
     })
