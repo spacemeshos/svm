@@ -11,8 +11,8 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-derive_more = "0.99"
-hex = "0.4"
-indexmap = "1.6.2"
+derive_more = "0.99.16"
+hex = "0.4.3"
+indexmap = "1.7.0"
 svm-layout = { path = "../layout" }
-thiserror = "1"
+thiserror = "1.0.30"

@@ -15,8 +15,8 @@ svm-sdk = { path = "../../crates/sdk", features = ["dynamic-alloc"], default-fea
 svm-sdk-types = { path = "../../crates/sdk-types", features = ["dynamic-alloc", "debug"], default-features = false }
 
 [dev-dependencies]
-trybuild = { version = "1.0.42", features = ["diff"] }
-serde_json = { version = "1.0" }
+trybuild = { version = "1.0.52", features = ["diff"] }
+serde_json = "1.0.69"
 
 [features]
 default = ["mock"]
