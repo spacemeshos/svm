@@ -14,10 +14,10 @@ publish = false
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1.0.24"
-quote = "1.0.7"
-syn = { version = "1.0.42", features = ["full"] }
-serde_json = { version = "1.0" }
+proc-macro2 = "1.0.32"
+quote = "1.0.10"
+syn = { version = "1.0.81", features = ["full"] }
+serde_json = "1.0.69"
 svm-types = { path = "../types" }
 svm-sdk-types = { path = "../sdk-types", default-features = false }
 svm-abi-encoder = { path = "../abi-encoder", default-features = false }
@@ -28,7 +28,7 @@ svm-sdk-std = { path = "../sdk-std", default-features = false }
 
 [dev-dependencies]
 lazy_static = "1.4.0"
-trybuild = { version = "1.0", features = ["diff"] }
+trybuild = { version = "1.0.52", features = ["diff"] }
 
 [features]
 default = ["mock", "meta", "dynamic-alloc"]
