@@ -9,7 +9,7 @@ use svm_types::{
 };
 
 use crate::price_registry::PriceResolverRegistry;
-use crate::DefaultRuntime;
+use crate::Runtime;
 
 /// Hold a Wasm file in textual or binary form
 pub enum WasmFile<'a> {
@@ -43,10 +43,10 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
 }
 
 /// Creates an in-memory `Runtime` backed by a `state_kv`.
-pub fn create_memory_runtime() -> DefaultRuntime {
+pub fn create_memory_runtime() -> Runtime {
     let imports = ("sm".to_string(), wasmer::Exports::new());
 
-    DefaultRuntime::new(
+    Runtime::new(
         imports,
         GlobalState::in_memory(),
         PriceResolverRegistry::default(),
@@ -55,10 +55,10 @@ pub fn create_memory_runtime() -> DefaultRuntime {
 }
 
 /// Creates an in-memory `Runtime` backed by a `state_kv`.
-pub fn create_db_runtime(path: &str) -> DefaultRuntime {
+pub fn create_db_runtime(path: &str) -> Runtime {
     let imports = ("sm".to_string(), wasmer::Exports::new());
 
-    DefaultRuntime::new(
+    Runtime::new(
         imports,
         GlobalState::new(path),
         PriceResolverRegistry::default(),

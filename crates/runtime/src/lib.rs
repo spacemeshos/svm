@@ -22,5 +22,5 @@ pub mod vmcalls;
 pub use error::ValidateError;
 pub use func_env::{FuncEnv, ProtectedMode};
 pub use price_registry::PriceResolverRegistry;
-pub use runtime::{DefaultRuntime, Runtime};
+pub use runtime::Runtime;
 pub use wasm_store::new_store;

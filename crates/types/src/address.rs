@@ -13,6 +13,14 @@ impl BytesPrimitive<20> for Address {}
 #[derive(Debug, Default, Copy, Clone, From, Hash, PartialEq, Eq, AsRef)]
 pub struct TemplateAddr(pub [u8; 20]);
 
+impl TemplateAddr {
+    /// Returns a special-designated [`TemplateAddr`] for accounts created at
+    /// genesis.
+    pub fn god_template() -> Self {
+        Self::repeat(0xE3)
+    }
+}
+
 impl BytesPrimitive<20> for TemplateAddr {}
 
 #[cfg(test)]

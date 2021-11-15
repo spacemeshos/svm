@@ -6,7 +6,7 @@ use svm_sdk::ReturnData;
 use svm_codec::ParseError;
 use svm_layout::FixedLayout;
 use svm_program::ProgramError;
-use svm_runtime::{testing, Runtime, ValidateError};
+use svm_runtime::{testing, ValidateError};
 
 use svm_types::{
     Address, BytesPrimitive, Context, DeployReceipt, Envelope, Gas, RuntimeError, SpawnReceipt,
