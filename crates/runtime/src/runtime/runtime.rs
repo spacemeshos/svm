@@ -701,6 +701,34 @@ impl Runtime {
         let template_addr = account_storage.template_addr().unwrap();
         Some((balance, counter, template_addr))
     }
+
+    /// Sends coins from the current executing account to a destination account.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the destination account does not exist.
+    pub fn transfer(&mut self, src_addr: &Address, dst_addr: &Address, amount: u64) -> Result<()> {
+        let mut src_account = AccountStorage::load(self.gs.clone(), src_addr).unwrap();
+        let mut dst_account = if let Ok(dst) = AccountStorage::load(self.gs.clone(), dst_addr) {
+            dst
+        } else {
+            panic!("Destination account does not exist")
+        };
+
+        let src_bal = src_account.balance().unwrap();
+        let dst_bal = dst_account.balance().unwrap();
+
+        if src_bal < amount {
+            panic!("Not enough balance to execute transfer")
+        }
+        src_account
+            .set_balance(src_bal.checked_sub(amount).unwrap())
+            .unwrap();
+        dst_account
+            .set_balance(dst_bal.checked_add(amount).unwrap())
+            .unwrap();
+        Ok(())
+    }
 }
 
 fn compute_template_addr(template: &Template) -> TemplateAddr {
