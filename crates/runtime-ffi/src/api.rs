@@ -540,6 +540,27 @@ pub unsafe extern "C" fn svm_get_account(
     })
 }
 
+/// Sends coins from the current executing account to a destination account.
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_transfer(
+    runtime_ptr: *mut c_void,
+    src_addr: *mut u8,
+    dst_addr: *mut u8,
+    amount: u64,
+) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = get_runtime(runtime_ptr);
+        let src_account_addr = Address::new(std::slice::from_raw_parts_mut(src_addr, Address::N));
+        let dst_account_addr = Address::new(std::slice::from_raw_parts_mut(dst_addr, Address::N));
+        runtime
+            .transfer(&src_account_addr, &dst_account_addr, amount)
+            .unwrap();
+
+        svm_result_t::OK
+    })
+}
+
 unsafe fn svm_runtime_action<F, C>(
     runtime_ptr: *mut c_void,
     envelope: *const u8,
