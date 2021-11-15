@@ -707,7 +707,7 @@ impl Runtime {
     /// # Panics
     ///
     /// Panics when the destination account does not exist.
-    pub fn transfer(&mut self, src_addr: &Address, dst_addr: &Address, amount: u64) -> Result<()> {
+    pub fn transfer(&self, src_addr: &Address, dst_addr: &Address, amount: u64) -> Result<()> {
         let mut src_account = AccountStorage::load(self.gs.clone(), src_addr).unwrap();
         let mut dst_account = if let Ok(dst) = AccountStorage::load(self.gs.clone(), dst_addr) {
             dst
