@@ -3,7 +3,7 @@ name = "svm-runtime-examples-calldata"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
-edition = "2021"
+edition = "2018"
 readme = "README.md"
 publish = false
 
