@@ -9,12 +9,14 @@ mod calldata;
 mod logs;
 mod returndata;
 mod storage;
+mod transfer;
 
 pub use alloc::static_alloc;
 pub use calldata::{calldata_len, calldata_offset};
 pub use logs::log;
 pub use returndata::set_returndata;
 pub use storage::{get32, get64, load160, set32, set64, store160};
+pub use transfer::svm_transfer;
 
 macro_rules! func {
     ($store:ident, $env:ident, $f:expr) => {{
@@ -44,4 +46,6 @@ pub fn wasmer_register(store: &Store, env: &FuncEnv, ns: &mut Exports) {
     ns.insert("svm_store160", func!(store, env, store160));
 
     ns.insert("svm_log", func!(store, env, log));
+
+    ns.insert("svm_transfer", func!(store, env, svm_transfer));
 }
