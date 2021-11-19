@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::mem::MaybeUninit;
 use std::sync::Once;
 
-use crate::traits::Storage;
+use svm_sdk_types::Storage;
 
 /// Regarding why we don't use any concurrency primitives for initializing `STORAGE`
 /// see the explanation of `MockHost`.

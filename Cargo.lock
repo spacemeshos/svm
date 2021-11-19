@@ -1954,6 +1954,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "svm-sdk-storage-mock"
+version = "0.0.0"
+dependencies = [
+ "lazy_static",
+ "svm-sdk-alloc",
+ "svm-sdk-std",
+ "svm-sdk-types",
+]
+
+[[package]]
 name = "svm-sdk-tests"
 version = "0.0.0"
 dependencies = [
