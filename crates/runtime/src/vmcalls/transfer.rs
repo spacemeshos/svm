@@ -1,6 +1,6 @@
 use crate::FuncEnv;
 use svm_state::AccountStorage;
-use svm_types::Address;
+use svm_types::{Address, BytesPrimitive};
 
 /// Sends coins from the current executing account to a destination account.
 ///
@@ -14,8 +14,8 @@ pub fn svm_transfer(env: &FuncEnv, src_addr: u8, dst_addr: u8, amount: u64) {
     let src_addr = Address::repeat(src_addr);
     let dst_addr = Address::repeat(dst_addr);
 
-    let mut src_account = AccountStorage::load(storage.gs.clone(), src_addr).unwrap();
-    let mut dst_account = if let Ok(dst) = AccountStorage::load(storage.gs.clone(), dst_addr) {
+    let mut src_account = AccountStorage::load(storage.gs.clone(), &src_addr).unwrap();
+    let mut dst_account = if let Ok(dst) = AccountStorage::load(storage.gs.clone(), &dst_addr) {
         dst
     } else {
         panic!("Destination account does not exist")
