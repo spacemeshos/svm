@@ -545,17 +545,15 @@ pub unsafe extern "C" fn svm_get_account(
 #[no_mangle]
 pub unsafe extern "C" fn svm_transfer(
     runtime_ptr: *mut c_void,
-    src_addr: *mut u8,
-    dst_addr: *mut u8,
+    src_addr: *const u8,
+    dst_addr: *const u8,
     amount: u64,
 ) -> svm_result_t {
     catch_unwind_or_fail(|| {
         let runtime = get_runtime(runtime_ptr);
-        let src_account_addr = Address::new(std::slice::from_raw_parts_mut(src_addr, Address::N));
-        let dst_account_addr = Address::new(std::slice::from_raw_parts_mut(dst_addr, Address::N));
-        runtime
-            .transfer(&src_account_addr, &dst_account_addr, amount)
-            .unwrap();
+        let src_account_addr = Address::new(std::slice::from_raw_parts(src_addr, Address::N));
+        let dst_account_addr = Address::new(std::slice::from_raw_parts(dst_addr, Address::N));
+        runtime.transfer(&src_account_addr, &dst_account_addr, amount);
 
         svm_result_t::OK
     })
