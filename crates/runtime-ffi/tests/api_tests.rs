@@ -1,3 +1,5 @@
+extern crate svm_sdk_mock as svm_sdk;
+
 use svm_codec::Codec;
 use svm_layout::FixedLayout;
 use svm_runtime::testing;

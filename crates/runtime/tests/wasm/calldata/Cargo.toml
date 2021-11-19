@@ -21,7 +21,7 @@ incremental = false
 rpath = false
 
 [dependencies]
-svm-sdk = { path = "../../../../sdk", default-features = false }
+svm-sdk-mock = { path = "../../../../sdk-mock", default-features = false }
 
 [features]
 default = ["mock", "static-alloc"]

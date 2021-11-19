@@ -28,7 +28,7 @@ wasmer = { version = "2.0.0", default-features = false }
 wat = "1.0.40"
 serde_json = "1.0.69"
 maplit = "1.0.2"
-svm-sdk = { path="../sdk", features = ["mock", "dynamic-alloc"], default-features=false }
+svm-sdk-mock = { path="../sdk-mock", features = ["mock", "dynamic-alloc"], default-features=false }
 svm-abi-encoder = { path="../abi-encoder", features = ["dynamic-alloc"], default-features=false }
 svm-types = { path="../types", default-features=false }
 
