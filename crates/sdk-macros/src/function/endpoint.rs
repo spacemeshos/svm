@@ -13,8 +13,8 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], template: &Template) -> Resul
     validate_sig(func)?;
 
     let name = func.raw_name();
-    let prologue = expand_prologue(func)?;
-    let epilogue = expand_epilogue(func)?;
+    let prologue = expand_prologue(func, template.must_mock())?;
+    let epilogue = expand_epilogue(func, template.must_mock())?;
     let returns = expand_returns(func)?;
     let body = func.raw_body();
 
@@ -54,7 +54,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], template: &Template) -> Resul
     Ok(ast)
 }
 
-fn expand_prologue(func: &Function) -> Result<TokenStream> {
+fn expand_prologue(func: &Function, must_mock: bool) -> Result<TokenStream> {
     let sig = func.raw_sig();
 
     if sig.inputs.is_empty() {
@@ -81,7 +81,7 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
         }
     }
 
-    let includes = function::host_includes();
+    let includes = function::host_includes(must_mock);
 
     let ast = quote! {
         #includes
@@ -117,9 +117,9 @@ fn expand_returns_size(func: &Function) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn expand_epilogue(func: &Function) -> Result<TokenStream> {
+fn expand_epilogue(func: &Function, must_mock: bool) -> Result<TokenStream> {
     let ast = if func.has_returns() {
-        let includes = function::host_includes();
+        let includes = function::host_includes(must_mock);
         let returns_size = expand_returns_size(func)?;
 
         quote! {

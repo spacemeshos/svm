@@ -10,6 +10,7 @@ use r#struct::has_storage_attr;
 
 pub struct Template {
     name: Ident,
+    must_mock: bool,
     functions: Vec<Function>,
     structs: Vec<Struct>,
     imports: Vec<ItemUse>,
@@ -20,6 +21,10 @@ pub struct Template {
 impl Template {
     pub fn name(&self) -> String {
         self.name.to_string()
+    }
+
+    pub fn must_mock(&self) -> bool {
+        self.must_mock
     }
 
     pub fn functions(&self) -> &[Function] {
@@ -47,9 +52,13 @@ impl Template {
     }
 }
 
-pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TokenStream, TemplateMeta)> {
+pub fn expand(
+    args: TokenStream,
+    input: TokenStream,
+    must_mock: bool,
+) -> Result<(TokenStream, TemplateMeta)> {
     let module = syn::parse2(input)?;
-    let template = parse_template(module)?;
+    let template = parse_template(module, must_mock)?;
     let meta = meta::template_meta(&template)?;
 
     let _imports = template.imports();
@@ -58,7 +67,7 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TokenStream, Te
     let structs = expand_structs(&template)?;
     let functions = expand_functions(&template)?;
     let verify_export = export_verify_ast();
-    let alloc_export = export_alloc_ast();
+    let alloc_export = export_alloc_ast(&template);
 
     let ast = quote! {
         #verify_export
@@ -73,7 +82,7 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TokenStream, Te
     Ok((ast, meta))
 }
 
-pub fn parse_template(mut raw_template: ItemMod) -> Result<Template> {
+pub fn parse_template(mut raw_template: ItemMod, must_mock: bool) -> Result<Template> {
     let name = raw_template.ident.clone();
 
     let mut functions = Vec::new();
@@ -157,6 +166,7 @@ pub fn parse_template(mut raw_template: ItemMod) -> Result<Template> {
     }
 
     let mut template = Template {
+        must_mock,
         name,
         functions,
         structs,
@@ -205,7 +215,7 @@ fn expand_structs(template: &Template) -> Result<TokenStream> {
     validate_structs(template)?;
 
     for strukt in template.structs() {
-        let strukt = r#struct::expand(strukt)?;
+        let strukt = r#struct::expand(strukt, template.must_mock())?;
 
         structs.push(strukt);
     }
@@ -265,10 +275,18 @@ fn expand_functions(template: &Template) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn export_alloc_ast() -> TokenStream {
+fn export_alloc_ast(template: &Template) -> TokenStream {
+    let extern_crate = if template.must_mock {
+        quote! {
+            extern crate svm_sdk_mock as svm_sdk;
+        }
+    } else {
+        quote! {
+            extern crate svm_sdk;
+        }
+    };
     quote! {
-        // using the `Allocator` of `svm_sdk`
-        extern crate svm_sdk;
+        #extern_crate
 
         #[no_mangle]
         pub extern "C" fn svm_alloc(size: u32) -> u32 {

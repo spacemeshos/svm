@@ -1,4 +1,4 @@
-use svm_sdk::template;
+use svm_sdk_mock::template;
 
 #[template]
 mod Template {
@@ -10,7 +10,7 @@ mod Template {
 }
 
 fn main() {
-    use svm_sdk::Amount;
+    use svm_sdk_mock::Amount;
 
     // `amount`
     let amount = Storage::get_amount();

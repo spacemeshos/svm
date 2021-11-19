@@ -12,7 +12,7 @@ compile_error!("Must have either `static-alloc` or `dynamic-alloc` features turn
 
 /// Logging API
 pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
-pub use svm_sdk_macros::template;
+pub use svm_sdk_macros::template_mock as template;
 
 pub use svm_sdk_std::{ensure, log};
 /// std

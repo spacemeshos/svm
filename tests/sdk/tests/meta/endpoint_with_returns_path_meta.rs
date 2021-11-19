@@ -1,6 +1,7 @@
 #![allow(unused)]
+
 use serde_json::{json, Value};
-use svm_sdk::{template, Address, Amount};
+use svm_sdk_mock::{template, Address, Amount};
 
 #[template]
 mod Template {

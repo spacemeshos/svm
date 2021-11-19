@@ -23,7 +23,18 @@ pub fn template(
     args: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    match template::expand(args.into(), input.into()) {
+    match template::expand(args.into(), input.into(), false) {
+        Ok((ast, meta)) => finalize_ast(ast, &meta),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+pub fn template_mock(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    match template::expand(args.into(), input.into(), true) {
         Ok((ast, meta)) => finalize_ast(ast, &meta),
         Err(err) => err.to_compile_error().into(),
     }
