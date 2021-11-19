@@ -96,13 +96,11 @@ pub fn host_includes(must_mock: bool) -> TokenStream {
     if must_mock {
         quote! {
             use svm_sdk::traits::Host;
-
             use svm_sdk::host::MockHost as Node;
         }
     } else {
         quote! {
             use svm_sdk::traits::Host;
-
             use svm_sdk::host::ExtHost as Node;
         }
     }

@@ -1,5 +1,5 @@
 [package]
-name = "svm-sdk-storage"
+name = "svm-sdk-storage-ffi"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
@@ -11,6 +11,20 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
+lazy_static = "1.4.0"
+svm-sdk-storage = { path = "../sdk-storage", default-features = false }
 svm-sdk-alloc = { path = "../sdk-alloc", default-features = false }
 svm-sdk-types = { path = "../sdk-types", default-features = false }
 svm-sdk-std = { path = "../sdk-std", default-features = false }
+
+[features]
+static-alloc = [
+    "svm-sdk-alloc/static-alloc",
+    "svm-sdk-types/static-alloc",
+    "svm-sdk-std/static-alloc"
+]
+dynamic-alloc = [
+    "svm-sdk-alloc/dynamic-alloc",
+    "svm-sdk-types/dynamic-alloc",
+    "svm-sdk-std/dynamic-alloc"
+]

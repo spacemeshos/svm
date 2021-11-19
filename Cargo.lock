@@ -1874,11 +1874,14 @@ dependencies = [
  "lazy_static",
  "svm-abi-decoder",
  "svm-abi-encoder",
+ "svm-sdk",
  "svm-sdk-alloc",
  "svm-sdk-host",
+ "svm-sdk-host-ffi",
  "svm-sdk-macros",
  "svm-sdk-std",
  "svm-sdk-storage",
+ "svm-sdk-storage-ffi",
  "svm-sdk-types",
 ]
 
@@ -1893,10 +1896,31 @@ dependencies = [
 name = "svm-sdk-host"
 version = "0.0.0"
 dependencies = [
+ "svm-sdk-types",
+]
+
+[[package]]
+name = "svm-sdk-host-ffi"
+version = "0.0.0"
+dependencies = [
  "lazy_static",
  "svm-abi-decoder",
  "svm-abi-encoder",
  "svm-sdk-alloc",
+ "svm-sdk-host",
+ "svm-sdk-std",
+ "svm-sdk-types",
+]
+
+[[package]]
+name = "svm-sdk-host-mock"
+version = "0.0.0"
+dependencies = [
+ "lazy_static",
+ "svm-abi-decoder",
+ "svm-abi-encoder",
+ "svm-sdk-alloc",
+ "svm-sdk-host",
  "svm-sdk-std",
  "svm-sdk-types",
 ]
@@ -1929,9 +1953,11 @@ dependencies = [
  "svm-abi-encoder",
  "svm-sdk-alloc",
  "svm-sdk-host",
+ "svm-sdk-host-mock",
  "svm-sdk-macros",
  "svm-sdk-std",
  "svm-sdk-storage",
+ "svm-sdk-storage-mock",
  "svm-sdk-types",
 ]
 
@@ -1947,9 +1973,19 @@ dependencies = [
 name = "svm-sdk-storage"
 version = "0.0.0"
 dependencies = [
+ "svm-sdk-alloc",
+ "svm-sdk-std",
+ "svm-sdk-types",
+]
+
+[[package]]
+name = "svm-sdk-storage-ffi"
+version = "0.0.0"
+dependencies = [
  "lazy_static",
  "svm-sdk-alloc",
  "svm-sdk-std",
+ "svm-sdk-storage",
  "svm-sdk-types",
 ]
 
@@ -1960,6 +1996,7 @@ dependencies = [
  "lazy_static",
  "svm-sdk-alloc",
  "svm-sdk-std",
+ "svm-sdk-storage",
  "svm-sdk-types",
 ]
 

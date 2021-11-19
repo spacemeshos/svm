@@ -5,26 +5,26 @@
 
 #![no_std]
 #![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
-#![deny(rustdoc::broken_intra_doc_links)]
-#![feature(maybe_uninit_uninit_array)]
-#![feature(once_cell)]
+#![allow(missing_docs)]
 
-pub mod traits;
+use svm_sdk_types::{Address, Amount, LayerId};
 
-mod ext;
-mod mock;
+pub trait Host {
+    fn calldata(&self) -> &'static [u8];
 
-#[cfg(all(feature = "ffi", feature = "mock"))]
-compile_error!("can't have both `ffi` and `mock` features turned-on");
+    fn set_returndata(&mut self, bytes: &[u8]);
 
-#[cfg(not(any(feature = "ffi", feature = "mock")))]
-compile_error!("must have at least one feature flag turned-on (`ffi` or `mock`)");
+    fn principal(&self) -> Address;
 
-#[cfg(feature = "ffi")]
-pub use ext::ExtHost;
+    fn target(&self) -> Address;
 
-#[cfg(feature = "mock")]
-pub use mock::MockHost;
+    fn value(&self) -> Amount;
+
+    fn layer_id(&self) -> LayerId;
+
+    fn balance(&self) -> Amount;
+
+    fn transfer(&mut self, dst: &Address, amount: Amount);
+
+    fn log(&mut self, msg: &str, code: u8);
+}

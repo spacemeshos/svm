@@ -1,4 +1,4 @@
-use svm_sdk_types::Storage;
+use svm_sdk_storage::Storage;
 
 #[link(wasm_import_module = "svm")]
 extern "C" {

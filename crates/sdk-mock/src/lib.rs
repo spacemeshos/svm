@@ -26,17 +26,17 @@ extern crate svm_sdk_alloc;
 pub use svm_sdk_alloc::{alloc, Ptr};
 
 pub mod host {
-    pub use svm_sdk_host::MockHost;
+    pub use svm_sdk_host_mock::MockHost;
 }
 
 pub mod traits {
     pub use svm_abi_encoder::{ByteSize, Encoder};
-    pub use svm_sdk_host::traits::Host;
+    pub use svm_sdk_host::Host;
     pub use svm_sdk_storage::Storage;
 }
 
 pub mod storage {
-    pub use svm_sdk_storage::MockStorage;
+    pub use svm_sdk_storage_mock::MockStorage;
 
     pub mod ops {
         #[rustfmt::skip]

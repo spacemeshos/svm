@@ -12,11 +12,21 @@
 #![allow(unreachable_code)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
-mod ext;
+use svm_sdk_types::{Address, Amount};
 
-pub use ext::ExtStorage;
+pub trait Storage {
+    fn get32(var_id: u32) -> u32;
 
-use svm_sdk_types::{Address, Amount, Storage};
+    fn get64(var_id: u32) -> u64;
+
+    fn set32(var_id: u32, value: u32);
+
+    fn set64(var_id: u32, value: u64);
+
+    fn store160(var_id: u32, offset: usize);
+
+    fn load160(var_id: u32, offset: usize);
+}
 
 pub fn get32<S: Storage>(var_id: u32) -> u32 {
     S::get32(var_id)

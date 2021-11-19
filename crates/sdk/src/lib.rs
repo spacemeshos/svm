@@ -56,11 +56,7 @@
 //! ```rust, no_run
 //! use svm_sdk::{Amount, Address};
 //!
-//! #[cfg(feature = "ffi")]
 //! use svm_sdk::storage::ExtStorage as StorageImpl;
-//!
-//! #[cfg(feature = "mock")]
-//! use svm_sdk::storage::MockStorage as StorageImpl;
 //!
 //! struct MyStorage;
 //!
@@ -121,11 +117,7 @@
 //! ```rust, no_run
 //! use svm_sdk::{Amount, Address};
 //!
-//! #[cfg(feature = "ffi")]
 //! use svm_sdk::storage::ExtStorage as StorageImpl;
-//!
-//! #[cfg(feature = "mock")]
-//! use svm_sdk::storage::MockStorage as StorageImpl;
 //!
 //! struct MyStorage;
 //!
@@ -194,11 +186,6 @@
 //! #[no_mangle]
 //! pub extern "C" fn work() {
 //!     use svm_sdk::traits::Host;
-//!
-//!     #[cfg(feature = "mock")]
-//!     use svm_sdk::host::MockHost as Node;
-//!
-//!     #[cfg(feature = "ffi")]
 //!     use svm_sdk::host::ExtHost as Node;
 //!
 //!     fn __inner__() -> Amount {
@@ -298,11 +285,6 @@
 //! #[no_mangle]
 //! pub extern "C" fn do_nothing() {
 //!     use svm_sdk::traits::Host;
-//!
-//!     #[cfg(feature = "mock")]
-//!     use svm_sdk::host::MockHost as Node;
-//!
-//!     #[cfg(feature = "ffi")]
 //!     use svm_sdk::host::ExtHost as Node;
 //!
 //!     // we grab the `value` given in the transaction
@@ -353,17 +335,17 @@ extern crate svm_sdk_alloc;
 pub use svm_sdk_alloc::{alloc, Ptr};
 
 pub mod host {
-    pub use svm_sdk_host::ExtHost;
+    pub use svm_sdk_host_ffi::ExtHost;
 }
 
 pub mod traits {
     pub use svm_abi_encoder::{ByteSize, Encoder};
-    pub use svm_sdk_host::traits::Host;
+    pub use svm_sdk_host::Host;
     pub use svm_sdk_storage::Storage;
 }
 
 pub mod storage {
-    pub use svm_sdk_storage::ExtStorage;
+    pub use svm_sdk_storage_ffi::ExtStorage;
 
     pub mod ops {
         #[rustfmt::skip]
