@@ -11,7 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-indexmap = "1.6.2"
+indexmap = "1.7.0"
 parity-wasm = "0.42.2"
-thiserror = "1"
-wat = "1"
+thiserror = "1.0.30"
+wat = "1.0.40"
