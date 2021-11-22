@@ -34,11 +34,11 @@ impl Struct {
     }
 }
 
-pub fn expand(strukt: &Struct) -> Result<TokenStream> {
+pub fn expand(strukt: &Struct, must_mock: bool) -> Result<TokenStream> {
     match strukt.attrs() {
         Ok(attrs) => {
             if has_storage_attr(attrs) {
-                storage::expand(strukt, attrs)
+                storage::expand(strukt, attrs, must_mock)
             } else {
                 todo!()
             }

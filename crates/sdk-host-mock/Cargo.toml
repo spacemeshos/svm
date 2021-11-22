@@ -1,0 +1,39 @@
+[package]
+name = "svm-sdk-host-mock"
+version = "0.0.0"
+authors = ["Spacemesh SVM Team"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[dependencies]
+svm-sdk-alloc = { path = "../sdk-alloc", default-features = false }
+svm-sdk-host = { path = "../sdk-host" }
+svm-sdk-types = { path = "../sdk-types", default-features = false }
+svm-sdk-std = { path = "../sdk-std", default-features = false }
+svm-abi-encoder = { path = "../abi-encoder", default-features = false }
+svm-abi-decoder = { path = "../abi-decoder", default-features = false }
+
+[dev-dependencies]
+lazy_static = "1.4.0"
+
+[features]
+mock = []
+static-alloc = [
+    "svm-sdk-alloc/static-alloc", 
+    "svm-sdk-types/static-alloc", 
+    "svm-sdk-std/static-alloc",
+    "svm-abi-encoder/static-alloc",
+    "svm-abi-decoder/static-alloc",
+]
+dynamic-alloc = [
+    "svm-sdk-alloc/dynamic-alloc", 
+    "svm-sdk-types/dynamic-alloc", 
+    "svm-sdk-std/dynamic-alloc",
+    "svm-abi-encoder/dynamic-alloc",
+    "svm-abi-decoder/dynamic-alloc",
+]

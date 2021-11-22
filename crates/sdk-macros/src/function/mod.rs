@@ -74,7 +74,7 @@ pub fn expand(func: &Function, template: &Template) -> Result<TokenStream> {
     } else if has_endpoint_attr(&attrs) {
         endpoint::expand(func, &attrs, template)?
     } else if has_fundable_hook_attr(&attrs) {
-        fundable_hook::expand(func, &attrs)?
+        fundable_hook::expand(func, &attrs, template.must_mock())?
     } else {
         expand_func(func, &attrs)?
     };
@@ -92,15 +92,17 @@ fn validate_attrs(attrs: &[FuncAttr]) -> Result<()> {
     Ok(())
 }
 
-pub fn host_includes() -> TokenStream {
-    quote! {
-        use svm_sdk::traits::Host;
-
-        #[cfg(feature = "mock")]
-        use svm_sdk::host::MockHost as Node;
-
-        #[cfg(feature = "ffi")]
-        use svm_sdk::host::ExtHost as Node;
+pub fn host_includes(must_mock: bool) -> TokenStream {
+    if must_mock {
+        quote! {
+            use svm_sdk::traits::Host;
+            use svm_sdk::host::MockHost as Node;
+        }
+    } else {
+        quote! {
+            use svm_sdk::traits::Host;
+            use svm_sdk::host::ExtHost as Node;
+        }
     }
 }
 

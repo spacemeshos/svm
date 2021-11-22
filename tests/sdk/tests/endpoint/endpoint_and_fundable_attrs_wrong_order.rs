@@ -1,4 +1,4 @@
-use svm_sdk::template;
+use svm_sdk_mock::template;
 
 #[template]
 mod Template {

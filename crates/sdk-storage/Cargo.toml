@@ -11,22 +11,6 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-lazy_static = "1.4.0"
 svm-sdk-alloc = { path = "../sdk-alloc", default-features = false }
 svm-sdk-types = { path = "../sdk-types", default-features = false }
 svm-sdk-std = { path = "../sdk-std", default-features = false }
-
-[features]
-default = ["mock"]
-ffi = []
-mock = []
-static-alloc = [
-    "svm-sdk-alloc/static-alloc",
-    "svm-sdk-types/static-alloc",
-    "svm-sdk-std/static-alloc"
-]
-dynamic-alloc = [
-    "svm-sdk-alloc/dynamic-alloc",
-    "svm-sdk-types/dynamic-alloc",
-    "svm-sdk-std/dynamic-alloc"
-]

@@ -20,11 +20,11 @@ pub fn expand(attrs: &[FuncAttr], template: &Template) -> Result<TokenStream> {
         _ => unreachable!(),
     };
 
-    call_fundable_hook_ast(fundable_hook)
+    call_fundable_hook_ast(fundable_hook, template.must_mock())
 }
 
-pub fn call_fundable_hook_ast(fundable_hook: Ident) -> Result<TokenStream> {
-    let includes = function::host_includes();
+pub fn call_fundable_hook_ast(fundable_hook: Ident, must_mock: bool) -> Result<TokenStream> {
+    let includes = function::host_includes(must_mock);
 
     let ast = quote! {
         {

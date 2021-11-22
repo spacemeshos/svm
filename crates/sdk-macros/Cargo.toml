@@ -31,23 +31,17 @@ lazy_static = "1.4.0"
 trybuild = { version = "1.0.52", features = ["diff"] }
 
 [features]
-default = ["mock", "meta", "dynamic-alloc"]
+default = ["meta", "dynamic-alloc"]
 meta = []
-ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
-mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
 static-alloc = [
     "svm-sdk-types/static-alloc",
     "svm-abi-encoder/static-alloc",
     "svm-abi-decoder/static-alloc",
     "svm-sdk-std/static-alloc",
-    "svm-sdk-host/static-alloc",
-    "svm-sdk-storage/static-alloc",
 ]
 dynamic-alloc = [
     "svm-sdk-types/dynamic-alloc",
     "svm-abi-encoder/dynamic-alloc",
     "svm-abi-decoder/dynamic-alloc",
     "svm-sdk-std/dynamic-alloc",
-    "svm-sdk-host/dynamic-alloc",
-    "svm-sdk-storage/dynamic-alloc",
 ]

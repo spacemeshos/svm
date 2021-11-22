@@ -28,7 +28,7 @@ svm-program = { path = "../program" }
 
 [dev-dependencies]
 maplit = "1.0.2"
-svm-sdk = { path = "../sdk", features = ["mock", "dynamic-alloc"], default-features = false }
+svm-sdk-mock = { path = "../sdk-mock", features = ["dynamic-alloc"], default-features = false }
 
 [features]
 default = []
