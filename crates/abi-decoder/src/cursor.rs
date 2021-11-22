@@ -39,8 +39,8 @@ impl<'a> Cursor<'a> {
         if self.is_eof() {
             Option::None
         } else {
-            let byte = unsafe { self.bytes.get_unchecked(self.offset) };
-            Option::Some(*byte)
+            let byte = self.bytes[self.offset];
+            Option::Some(byte)
         }
     }
 
