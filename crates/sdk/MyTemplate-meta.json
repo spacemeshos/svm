@@ -1,1 +1,1 @@
-{"api":[],"schema":[{"byte_count":8,"id":0,"name":"amount","offset":0,"type":"Amount"},{"byte_count":20,"id":1,"name":"addr","offset":8,"type":"Address"},{"byte_count":4,"id":2,"length":3,"name":"data","offset":28,"type":"[u32]"}]}
+{"api":[{"doc":"","is_ctor":false,"is_fundable":true,"name":"do_nothing","signature":{"params":[],"returns":{}},"wasm_name":"do_nothing"}],"schema":[{"byte_count":8,"id":0,"name":"coins","offset":0,"type":"Amount"}]}
