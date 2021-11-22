@@ -15,11 +15,7 @@ pub fn svm_transfer(env: &FuncEnv, src_addr: i32, dst_addr: i32, amount: i64) {
     let dst_addr = Address::repeat(dst_addr as u8);
 
     let mut src_account = AccountStorage::load(storage.gs.clone(), &src_addr).unwrap();
-    let mut dst_account = if let Ok(dst) = AccountStorage::load(storage.gs.clone(), &dst_addr) {
-        dst
-    } else {
-        panic!("Destination account does not exist")
-    };
+    let mut dst_account = AccountStorage::load(storage.gs.clone(), &dst_addr).unwrap();
 
     let src_bal = src_account.balance().unwrap();
     let dst_bal = dst_account.balance().unwrap();

@@ -541,6 +541,10 @@ pub unsafe extern "C" fn svm_get_account(
 }
 
 /// Sends coins from the current executing account to a destination account.
+///
+/// # Panics
+///
+/// Panics when the destination account does not exist.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_transfer(

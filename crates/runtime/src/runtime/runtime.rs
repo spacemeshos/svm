@@ -709,8 +709,9 @@ impl Runtime {
     /// Panics when the destination account does not exist.
     pub fn transfer(&self, src_addr: &Address, dst_addr: &Address, amount: u64) {
         let mut src_account = AccountStorage::load(self.gs.clone(), src_addr).unwrap();
-        let mut dst_account = if let Ok(dst) = AccountStorage::load(self.gs.clone(), dst_addr) {
-            dst
+
+        let mut dst_account = if let Some((_bal, _counter, _addr)) = self.get_account(dst_addr) {
+            AccountStorage::load(self.gs.clone(), dst_addr).unwrap()
         } else {
             panic!("Destination account does not exist")
         };
@@ -719,7 +720,7 @@ impl Runtime {
         let dst_bal = dst_account.balance().unwrap();
 
         if src_bal < amount {
-            panic!("Not enough balance to execute transfer")
+            panic!("Not enough balance to execute transfer");
         }
         src_account
             .set_balance(src_bal.checked_sub(amount).unwrap())

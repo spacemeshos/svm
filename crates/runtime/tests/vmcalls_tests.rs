@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use wasmer::{imports, FromToNativeWasmType, NativeFunc};
+use wasmer::{imports, FromToNativeWasmType, NativeFunc, Value};
 
 use svm_layout::FixedLayout;
 use svm_runtime::testing::WasmFile;
@@ -353,4 +353,53 @@ fn vmcalls_log() {
 
     let logs = func_env.borrow_mut().take_logs();
     assert_eq!(logs, vec![ReceiptLog::new(b"Hello World".to_vec(),)]);
+}
+
+#[test]
+fn vmcalls_svm_transfer() {
+    let src_template = TemplateAddr::repeat(0xAB);
+    let src_addr = Address::repeat(0xCD);
+
+    let dst_template = TemplateAddr::repeat(0x10);
+    let dst_addr = Address::repeat(0x11);
+
+    let layout = FixedLayout::from_byte_sizes(0, &[20]);
+    let store = wasmer_store();
+
+    let mut src_account = create_account(&src_addr, &src_template, layout.clone());
+    let _dst_account = create_account(&dst_addr, &dst_template, layout);
+
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let src_func_env = FuncEnv::new(
+        src_account.clone(),
+        &envelope,
+        &context,
+        src_template,
+        src_addr.clone(),
+        ProtectedMode::FullAccess,
+    );
+
+    let res = src_account.set_balance(1000);
+    assert!(res.is_ok());
+    assert_eq!(src_account.balance().unwrap(), 1000);
+
+    let import_object = imports! {
+        "svm" => {
+            "svm_transfer" => func!(store, src_func_env, vmcalls::svm_transfer),
+        },
+    };
+
+    let instance = wasmer_instantiate(
+        &store,
+        &import_object,
+        include_str!("wasm/svm_transfer.wast").into(),
+    );
+
+    let transfer = instance.exports.get_function("transfer").unwrap();
+    let res = transfer.call(&[Value::I32(0xCD), Value::I32(0x11), Value::I64(100)]);
+    assert!(res.is_ok());
+
+    assert_eq!(src_account.balance().unwrap(), 900);
+    assert_eq!(src_account.balance().unwrap(), 100);
 }

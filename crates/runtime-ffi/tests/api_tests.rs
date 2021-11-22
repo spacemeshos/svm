@@ -215,7 +215,7 @@ fn svm_runtime_failure() {
 }
 
 #[test]
-fn svm_transfer_failure() {
+fn svm_transfer_success() {
     unsafe {
         let _ = svm_init(true, std::ptr::null(), 0);
 
@@ -227,27 +227,42 @@ fn svm_transfer_failure() {
 
         // create coin-transfer addresses
         let src_addr = Address::repeat(0xAB);
+        let src_template = TemplateAddr::repeat(0x10);
+
         let dst_addr = Address::repeat(0xCD);
+        let dst_template = TemplateAddr::repeat(0x11);
 
         // create a pristine `GoblalState`
         let gs = GlobalState::in_memory();
 
         // create associated accounts
-        let src_account = AccountStorage::load(gs.clone(), &src_addr);
-        assert!(src_account.is_err());
-        
-        let dst_account = AccountStorage::load(gs, &dst_addr);
-        assert!(dst_account.is_err());
+        let src_account_res = AccountStorage::create(
+            gs.clone(),
+            &src_addr,
+            "SRC_ACCOUNT".to_string(),
+            src_template,
+            1000,
+            0,
+        );
+        assert!(src_account_res.is_ok());
 
-        let sending_amount: u64 = 100;
+        let dst_account_res = AccountStorage::create(
+            gs.clone(),
+            &dst_addr,
+            "DST_ACCOUNT".to_string(),
+            dst_template,
+            0,
+            0,
+        );
+        assert!(dst_account_res.is_ok());
 
         // init transfer
         let res = api::svm_transfer(
             runtime,
             src_addr.encode_to_vec().as_ptr(),
             dst_addr.encode_to_vec().as_ptr(),
-            sending_amount,
+            100,
         );
-        assert!(res.is_err());
+        assert!(res.is_ok());
     }
 }
