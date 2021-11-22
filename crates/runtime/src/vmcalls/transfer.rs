@@ -7,12 +7,12 @@ use svm_types::{Address, BytesPrimitive};
 /// # Panics
 ///
 /// Panics when the destination account does not exist.
-pub fn svm_transfer(env: &FuncEnv, src_addr: u8, dst_addr: u8, amount: u64) {
+pub fn svm_transfer(env: &FuncEnv, src_addr: i32, dst_addr: i32, amount: i64) {
     let borrow = env.borrow();
     let storage = borrow.storage();
 
-    let src_addr = Address::repeat(src_addr);
-    let dst_addr = Address::repeat(dst_addr);
+    let src_addr = Address::repeat(src_addr as u8);
+    let dst_addr = Address::repeat(dst_addr as u8);
 
     let mut src_account = AccountStorage::load(storage.gs.clone(), &src_addr).unwrap();
     let mut dst_account = if let Ok(dst) = AccountStorage::load(storage.gs.clone(), &dst_addr) {
@@ -23,6 +23,8 @@ pub fn svm_transfer(env: &FuncEnv, src_addr: u8, dst_addr: u8, amount: u64) {
 
     let src_bal = src_account.balance().unwrap();
     let dst_bal = dst_account.balance().unwrap();
+
+    let amount = amount as u64;
 
     if src_bal < amount {
         panic!("Not enough balance to execute transfer")
