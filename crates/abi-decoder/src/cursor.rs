@@ -39,7 +39,7 @@ impl<'a> Cursor<'a> {
         if self.is_eof() {
             Option::None
         } else {
-            let byte = unsafe { *self.offset_ptr() };
+            let byte = self.bytes[self.offset];
             Option::Some(byte)
         }
     }
@@ -60,21 +60,36 @@ impl<'a> Cursor<'a> {
     /// And then, it increments the `offset` by `nbytes`.
     ///
     /// In case there are less then `nbytes` left bytes - returns `None`.
-    pub fn read_bytes(&mut self, nbytes: usize) -> Option<*const u8> {
-        let last_byte_off = self.offset + nbytes - 1;
-
-        if last_byte_off >= self.len() {
-            Option::None
-        } else {
-            let ptr = unsafe { self.offset_ptr() };
-            self.offset += nbytes;
-            Option::Some(ptr)
+    pub fn read_bytes(&mut self, nbytes: usize) -> Option<&'a [u8]> {
+        match self.bytes.get(self.offset..self.offset + nbytes) {
+            core::option::Option::Some(slice) => {
+                self.offset += nbytes;
+                Option::Some(slice)
+            }
+            core::option::Option::None => Option::None,
         }
     }
+}
 
-    /// Returns a raw pointer to the current pointed-at address.
-    #[inline]
-    pub unsafe fn offset_ptr(&self) -> *const u8 {
-        self.bytes.as_ptr().add(self.offset)
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn read_whole_contents() {
+        let mut cursor = Cursor::new(b"foo");
+        assert_eq!(cursor.read_bytes(3), Option::Some(b"foo" as &[u8]));
+    }
+
+    #[test]
+    fn read_empty() {
+        let mut cursor = Cursor::new(b"");
+        assert_eq!(cursor.read_bytes(0), Option::Some(b"" as &[u8]));
+    }
+
+    #[test]
+    fn read_too_many_bytes() {
+        let mut cursor = Cursor::new(b"");
+        assert_eq!(cursor.read_bytes(1), Option::None);
     }
 }
