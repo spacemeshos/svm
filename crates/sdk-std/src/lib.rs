@@ -22,6 +22,7 @@
 #![deny(unreachable_code)]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![feature(core_intrinsics)]
+#![feature(try_trait_v2)]
 
 mod log;
 pub use log::log;
