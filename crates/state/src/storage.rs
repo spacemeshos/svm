@@ -122,6 +122,10 @@ impl Storage {
         assert!(layer_id < self.next_layer.id);
     }
 
+    pub fn has_uncommitted_changes(&self) -> bool {
+        !self.dirty_changes.is_empty()
+    }
+
     /// Fetches the value associated with the Blake3 hash of `key`. See
     /// [`Storage::get_by_hash`] for more information.
     ///

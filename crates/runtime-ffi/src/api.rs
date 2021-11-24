@@ -431,7 +431,7 @@ pub unsafe extern "C" fn svm_verify(
 ///
 /// # Examples
 ///
-/// ```rust, no_run
+/// ```rust
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
@@ -473,6 +473,19 @@ pub unsafe extern "C" fn svm_call(
         |r, e, m, c| r.call(e, m, c),
         "svm_call",
     )
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_uncommitted_changes(runtime_ptr: *mut c_void) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = get_runtime(runtime_ptr);
+        if runtime.has_uncommitted_changes()? {
+            svm_result_t::new_error(b"The SVM global state contains uncommitted changes.")
+        } else {
+            svm_result_t::OK
+        }
+    })
 }
 
 /// Writes the current state root hash at `hash` and the current layer at `layer`.
