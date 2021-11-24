@@ -3,7 +3,7 @@ name = "svm-runtime-examples-calldata"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
 readme = "README.md"
 publish = false
 
@@ -21,14 +21,6 @@ incremental = false
 rpath = false
 
 [dependencies]
-svm-sdk = { path = "../../../../sdk", default-features = false }
-
-[features]
-default = ["mock", "static-alloc"]
-meta = ["svm-sdk/meta"]
-ffi = ["svm-sdk/ffi"]
-mock = ["svm-sdk/mock"]
-static-alloc = ["svm-sdk/static-alloc"]
-dynamic-alloc = ["svm-sdk/dynamic-alloc"]
+svm-sdk = { path = "../../../../sdk", features = ["static-alloc", "meta"] }
 
 [workspace]

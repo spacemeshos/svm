@@ -3,7 +3,7 @@ name = "svm-abi-encoder"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
 readme = "README.md"
 repository = "https://github.com/spacemeshos/svm"
 homepage = "https://github.com/spacemeshos/svm"
@@ -11,7 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-num-traits = { version="0.2.14", default-features=false }
+num-traits = { version = "0.2.14", default-features = false }
 seq-macro = "0.2.2"
 svm-abi-layout = { path="../abi-layout" }
 svm-sdk-types = { path="../sdk-types", default-features=false }

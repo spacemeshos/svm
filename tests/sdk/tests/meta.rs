@@ -1,5 +1,7 @@
-use svm_sdk::host::MockHost;
-use svm_sdk::storage::MockStorage;
+extern crate svm_sdk_mock as svm_sdk;
+
+use svm_sdk_mock::host::MockHost;
+use svm_sdk_mock::storage::MockStorage;
 
 use trybuild::TestCases;
 

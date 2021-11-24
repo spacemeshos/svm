@@ -1,19 +1,25 @@
 #![allow(unused)]
 
+extern crate svm_sdk_mock as svm_sdk;
+
 use svm_sdk::host::MockHost;
 use svm_sdk::storage::MockStorage;
 use svm_sdk::traits::{ByteSize, Encoder};
 use svm_sdk::{Amount, ReturnData, Vec};
 use svm_sdk_types::value::Value;
 
-pub fn call<T>(func: extern "C" fn(), args: std::vec::Vec<T>) -> ReturnData
+pub fn call<T>(func: extern "C" fn(), args: std::vec::Vec<T>) -> ReturnData<'static>
 where
     T: Encoder + ByteSize,
 {
     call_and_fund(func, args, Amount(0))
 }
 
-pub fn call_and_fund<T>(func: extern "C" fn(), args: std::vec::Vec<T>, value: Amount) -> ReturnData
+pub fn call_and_fund<T>(
+    func: extern "C" fn(),
+    args: std::vec::Vec<T>,
+    value: Amount,
+) -> ReturnData<'static>
 where
     T: Encoder + ByteSize,
 {

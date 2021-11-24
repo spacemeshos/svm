@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::mem::MaybeUninit;
 use std::sync::Once;
 
-use crate::traits::Storage;
+use svm_sdk_storage::Storage;
 
 /// Regarding why we don't use any concurrency primitives for initializing `STORAGE`
 /// see the explanation of `MockHost`.
@@ -125,11 +125,12 @@ impl MockStorage {
     }
 
     pub fn clear() {
-        let mut storage = Self::instance();
+        let storage = Self::instance();
 
         storage.clear();
     }
 
+    #[cfg(test)]
     fn from_raw_parts<'a>(offset: usize, len: usize) -> &'a [u8] {
         unsafe { core::slice::from_raw_parts(offset as *const u8, len) }
     }
@@ -137,37 +138,37 @@ impl MockStorage {
 
 impl Storage for MockStorage {
     fn get32(var_id: u32) -> u32 {
-        let mut storage = Self::instance();
+        let storage = Self::instance();
 
         storage.get32(var_id)
     }
 
     fn get64(var_id: u32) -> u64 {
-        let mut storage = Self::instance();
+        let storage = Self::instance();
 
         storage.get64(var_id)
     }
 
     fn set32(var_id: u32, value: u32) {
-        let mut storage = Self::instance();
+        let storage = Self::instance();
 
         storage.set32(var_id, value)
     }
 
     fn set64(var_id: u32, value: u64) {
-        let mut storage = Self::instance();
+        let storage = Self::instance();
 
         storage.set64(var_id, value)
     }
 
     fn store160(var_id: u32, offset: usize) {
-        let mut storage = Self::instance();
+        let storage = Self::instance();
 
         storage.store160(var_id, offset)
     }
 
     fn load160(var_id: u32, offset: usize) {
-        let mut storage = Self::instance();
+        let storage = Self::instance();
 
         storage.load160(var_id, offset)
     }
@@ -194,7 +195,7 @@ mod tests {
         // Holding `guard` throughout the test-lifetime.
         // By doing that, we make sure that the tests are running in a linear-order (one test at a time)..
         // That's crucial since `MockStorage` serves as a shared-memory resource.
-        let guard = TEST_LOCK.lock().unwrap();
+        let _guard = TEST_LOCK.lock().unwrap();
 
         storage_clear();
 

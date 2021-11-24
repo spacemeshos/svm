@@ -1,4 +1,4 @@
-use svm_sdk::{template, Amount};
+use svm_sdk_mock::{template, Amount};
 
 use svm_sdk_tests::{call_1, call_2};
 

@@ -3,7 +3,7 @@ name = "svm-runtime-ffi"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
 readme = "README.md"
 repository = "https://github.com/spacemeshos/svm"
 homepage = "https://github.com/spacemeshos/svm"
@@ -14,7 +14,7 @@ publish = false
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-log = "0.4"
+log = "0.4.14"
 lazy_static = "1.4.0"
 svm-runtime = { path="../runtime", default-features=false }
 svm-gas = { path="../gas" }
@@ -22,18 +22,18 @@ svm-types = { path="../types" }
 svm-codec = { path="../codec" }
 svm-layout = { path="../layout" }
 svm-state = { path="../state", default-features=false }
-wasmer = { version = "2", default-features = false }
+wasmer = { version = "2.0.0", default-features = false }
 
 [dev-dependencies]
-wat = "1.0"
-serde_json = "1.0"
+wat = "1.0.40"
+serde_json = "1.0.69"
 maplit = "1.0.2"
-svm-sdk = { path="../sdk", features = ["mock", "dynamic-alloc"], default-features=false }
+svm-sdk-mock = { path="../sdk-mock", features = ["dynamic-alloc"], default-features=false }
 svm-abi-encoder = { path="../abi-encoder", features = ["dynamic-alloc"], default-features=false }
 svm-types = { path="../types", default-features=false }
 
 [build-dependencies]
-cbindgen = "0.19.0"
+cbindgen = "0.20.0"
 
 [features]
 default = []

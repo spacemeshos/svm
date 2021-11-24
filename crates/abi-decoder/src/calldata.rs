@@ -6,14 +6,14 @@ use crate::{Cursor, Decoder};
 /// `CallData` exposes an ergonomic API for decoding a binary `calldata`.
 ///
 /// Its main usage is by the `svm-sdk` crate for decoding the binary `calldata` into a Rust native values.
-pub struct CallData {
-    cursor: Cursor,
+pub struct CallData<'a> {
+    cursor: Cursor<'a>,
     decoder: Decoder,
 }
 
-impl CallData {
+impl<'a> CallData<'a> {
     /// New instance, input is the binary `calldata` to be decoded.
-    pub fn new(bytes: &[u8]) -> Self {
+    pub fn new(bytes: &'a [u8]) -> Self {
         Self {
             cursor: Cursor::new(bytes),
             decoder: Decoder::new(),
@@ -38,7 +38,7 @@ impl CallData {
 /// let value = calldata.next().unwrap();
 /// ```
 ///
-impl CallData {
+impl<'a> CallData<'a> {
     pub fn next(&mut self) -> Option<Value> {
         if self.cursor.is_eof() {
             return Option::None;

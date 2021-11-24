@@ -3,17 +3,17 @@ name = "svm-gas"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
 readme = "README.md"
 description = "SVM gas formulas, metering, fixed gas compilation etc."
 publish = false
 
 [dependencies]
-indexmap = "1.6.2"
+indexmap = "1.7.0"
 parity-wasm = "0.42.2"
 svm-program = { path = "../program" }
-thiserror = "1"
+thiserror = "1.0.30"
 
 [dev-dependencies]
-wat = "1"
-maplit = "1"
+wat = "1.0.40"
+maplit = "1.0.2"

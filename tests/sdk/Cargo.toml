@@ -3,7 +3,7 @@ name = "svm-sdk-tests"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
 readme = "README.md"
 repository = "https://github.com/spacemeshos/svm"
 homepage = "https://github.com/spacemeshos/svm"
@@ -11,13 +11,11 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-svm-sdk = { path = "../../crates/sdk", features = ["dynamic-alloc"], default-features = false }
+svm-sdk-mock = { path = "../../crates/sdk-mock", features = ["dynamic-alloc"], default-features = false }
 svm-sdk-types = { path = "../../crates/sdk-types", features = ["dynamic-alloc", "debug"], default-features = false }
 
 [dev-dependencies]
-trybuild = { version = "1.0.42", features = ["diff"] }
-serde_json = { version = "1.0" }
+trybuild = { version = "1.0.52", features = ["diff"] }
+serde_json = "1.0.69"
 
 [features]
-default = ["mock"]
-mock = ["svm-sdk/mock"]

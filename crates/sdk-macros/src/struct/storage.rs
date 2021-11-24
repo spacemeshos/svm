@@ -8,14 +8,14 @@ use attr::{has_storage_attr, StructAttr};
 
 use crate::{PrimType, Struct, Type};
 
-pub fn expand(strukt: &Struct, attrs: &[StructAttr]) -> Result<TokenStream> {
+pub fn expand(strukt: &Struct, attrs: &[StructAttr], must_mock: bool) -> Result<TokenStream> {
     debug_assert!(has_storage_attr(attrs));
 
     let vars = storage_vars(strukt)?;
 
     let name = strukt.raw_name();
-    let getters = getters_ast(&vars);
-    let setters = setters_ast(&vars);
+    let getters = getters_ast(&vars, must_mock);
+    let setters = setters_ast(&vars, must_mock);
 
     let ast = quote! {
         struct #name;
@@ -121,11 +121,11 @@ fn ensure_named_fields(fields: &Fields) -> Result<()> {
     }
 }
 
-fn getters_ast(vars: &[Var]) -> TokenStream {
+fn getters_ast(vars: &[Var], must_mock: bool) -> TokenStream {
     let mut getters = Vec::new();
 
     for var in vars.iter() {
-        let ast = getter_ast(var);
+        let ast = getter_ast(var, must_mock);
 
         getters.push(ast);
     }
@@ -135,11 +135,11 @@ fn getters_ast(vars: &[Var]) -> TokenStream {
     }
 }
 
-fn setters_ast(vars: &[Var]) -> TokenStream {
+fn setters_ast(vars: &[Var], must_mock: bool) -> TokenStream {
     let mut setters = Vec::new();
 
     for var in vars.iter() {
-        let ast = setter_ast(var);
+        let ast = setter_ast(var, must_mock);
 
         setters.push(ast);
     }
@@ -149,8 +149,8 @@ fn setters_ast(vars: &[Var]) -> TokenStream {
     }
 }
 
-fn getter_ast(var: &Var) -> TokenStream {
-    let includes = include_storage_ast();
+fn getter_ast(var: &Var, must_mock: bool) -> TokenStream {
+    let includes = include_storage_ast(must_mock);
 
     match var {
         Var::Primitive { id, name, ty, .. } => {
@@ -264,8 +264,8 @@ fn getter_ast(var: &Var) -> TokenStream {
     }
 }
 
-fn setter_ast(var: &Var) -> TokenStream {
-    let includes = include_storage_ast();
+fn setter_ast(var: &Var, must_mock: bool) -> TokenStream {
+    let includes = include_storage_ast(must_mock);
 
     match var {
         Var::Primitive { id, name, ty, .. } => {
@@ -383,21 +383,19 @@ fn setter_ident(var_name: &Ident) -> Ident {
     Ident::new(&format!("set_{}", var_name), Span::call_site())
 }
 
-fn include_storage_ast() -> TokenStream {
-    quote! {
-        use svm_sdk::traits::Storage;
+fn include_storage_ast(must_mock: bool) -> TokenStream {
+    if must_mock {
+        quote! {
+            use svm_sdk::traits::Storage;
 
-        #[cfg(all(feature = "mock", feature = "ffi"))]
-        compile_error!("`svm_sdk` must be compiled with feature \"mock\" or \"ffi\" but not both!");
+            use svm_sdk::storage::MockStorage as StorageImpl;
+        }
+    } else {
+        quote! {
+            use svm_sdk::traits::Storage;
 
-        #[cfg(all(not(feature = "mock"), not(feature = "ffi")))]
-        compile_error!("`svm_sdk` must be compiled with feature \"mock\" or \"ffi\"");
-
-        #[cfg(feature = "mock")]
-        use svm_sdk::storage::MockStorage as StorageImpl;
-
-        #[cfg(feature = "ffi")]
-        use svm_sdk::storage::ExtStorage as StorageImpl;
+            use svm_sdk::storage::ExtStorage as StorageImpl;
+        }
     }
 }
 

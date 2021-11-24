@@ -1,4 +1,4 @@
-use svm_sdk::template;
+use svm_sdk_mock::template;
 
 #[template]
 mod Template {
@@ -10,7 +10,7 @@ mod Template {
 }
 
 fn main() {
-    use svm_sdk::Address;
+    use svm_sdk_mock::Address;
 
     let zero_addr = Address::from([0; Address::len()]);
     let ones_addr = Address::from([0xFF; Address::len()]);

@@ -23,7 +23,18 @@ pub fn template(
     args: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    match template::expand(args.into(), input.into()) {
+    match template::expand(args.into(), input.into(), false) {
+        Ok((ast, meta)) => finalize_ast(ast, &meta),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+pub fn template_mock(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    match template::expand(args.into(), input.into(), true) {
         Ok((ast, meta)) => finalize_ast(ast, &meta),
         Err(err) => err.to_compile_error().into(),
     }
@@ -32,9 +43,6 @@ pub fn template(
 #[cfg(feature = "meta")]
 fn finalize_ast(ast: proc_macro2::TokenStream, meta: &TemplateMeta) -> proc_macro::TokenStream {
     let path = format!("{}-meta.json", meta.name());
-    dbg!(&path);
-    dbg!(&path);
-    dbg!(&path);
     let meta_json = json::meta(&meta);
     json::json_write(&path, &meta_json);
 

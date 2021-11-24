@@ -1,6 +1,5 @@
-use crate::traits::Host;
-
 use svm_sdk_alloc::Ptr;
+use svm_sdk_host::Host;
 use svm_sdk_types::{Address, Amount, LayerId};
 
 use core::mem::MaybeUninit;

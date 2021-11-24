@@ -7,7 +7,7 @@ use attr::{has_fundable_hook_attr, FuncAttr};
 
 use crate::{function, Function};
 
-pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
+pub fn expand(func: &Function, attrs: &[FuncAttr], must_mock: bool) -> Result<TokenStream> {
     debug_assert!(has_fundable_hook_attr(attrs));
 
     validate_fundable_hook_func_sig(func)?;
@@ -15,7 +15,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     let sig = func.raw_sig();
     let body = func.raw_body();
 
-    let includes = function::host_includes();
+    let includes = function::host_includes(must_mock);
 
     let ast = quote! {
         #[inline]

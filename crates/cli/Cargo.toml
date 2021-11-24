@@ -3,7 +3,7 @@ name = "svm-cli"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
 readme = "README.md"
 repository = "https://github.com/spacemeshos/svm"
 homepage = "https://github.com/spacemeshos/svm"
@@ -11,11 +11,11 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-anyhow = "1"
-clap = "2.33"
-thiserror = "1"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+anyhow = "1.0.45"
+clap = "2.33.3"
+thiserror = "1.0.30"
+serde = { version = "1.0.130", features = ["derive"] }
+serde_json = "1.0.69"
 svm-codec = { path = "../codec" }
 svm-gas = { path = "../gas" }
 svm-program = { path = "../program" }

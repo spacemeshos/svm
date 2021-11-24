@@ -3,7 +3,7 @@ name = "svm-query"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
 readme = "README.md"
 repository = "https://github.com/spacemeshos/svm"
 homepage = "https://github.com/spacemeshos/svm"
@@ -11,6 +11,6 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-hex = "0.4"
-serde_json = "1.0.51"
-byteorder = "1"
+hex = "0.4.3"
+serde_json = "1.0.69"
+byteorder = "1.4.3"

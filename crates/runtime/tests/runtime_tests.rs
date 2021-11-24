@@ -1,3 +1,5 @@
+extern crate svm_sdk_mock as svm_sdk;
+
 use svm_sdk as sdk;
 
 use svm_sdk::traits::Encoder;
