@@ -60,6 +60,7 @@ pub unsafe extern "C" fn svm_free_result(_result: svm_result_t) {}
 
 /// Creates an account at genesis with a given balance and nonce counter.
 #[no_mangle]
+#[must_use]
 pub unsafe extern "C" fn svm_create_account(
     runtime_ptr: *mut c_void,
     addr: *const u8,
@@ -79,6 +80,7 @@ pub unsafe extern "C" fn svm_create_account(
 
 /// Magically increases an account's balance by the given amount. Used for genesis setup.
 #[no_mangle]
+#[must_use]
 pub unsafe extern "C" fn svm_increase_balance(
     runtime_ptr: *mut c_void,
     addr: *const u8,
@@ -138,7 +140,7 @@ pub unsafe extern "C" fn svm_runtime_create(runtime_ptr: *mut *mut c_void) -> sv
 ///
 /// # Examples
 ///
-/// ```rust, no_run
+/// ```rust
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
@@ -176,7 +178,7 @@ pub unsafe extern "C" fn svm_runtimes_count(count: *mut u64) {
 ///
 /// # Examples
 ///
-/// ```rust, no_run
+/// ```rust
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
@@ -214,7 +216,7 @@ pub unsafe extern "C" fn svm_validate_deploy(
 ///
 /// # Examples
 ///
-/// ```rust, no_run
+/// ```rust
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
@@ -248,7 +250,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
 ///
 /// # Examples
 ///
-/// ```rust, no_run
+/// ```rust
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
@@ -282,7 +284,7 @@ pub unsafe extern "C" fn svm_validate_call(
 ///
 /// # Examples
 ///
-/// ```rust, no_run
+/// ```rust
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
@@ -330,7 +332,7 @@ pub unsafe extern "C" fn svm_deploy(
 ///
 /// # Examples
 ///
-/// ```rust, no_run
+/// ```rust
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
@@ -382,7 +384,7 @@ pub unsafe extern "C" fn svm_spawn(
 ///
 /// # Examples
 ///
-/// ```rust, no_run
+/// ```rust
 /// use svm_runtime_ffi::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
@@ -560,7 +562,7 @@ unsafe fn svm_runtime_action<F, C>(
     message_size: u32,
     context: *const u8,
     f: F,
-    f_name: &str,
+    _f_name: &str,
 ) -> svm_result_t
 where
     F: FnOnce(&mut Runtime, &Envelope, &[u8], &Context) -> C + UnwindSafe,
@@ -572,13 +574,10 @@ where
         let envelope = slice::from_raw_parts(envelope, Envelope::fixed_size().unwrap());
         let context = slice::from_raw_parts(context, Context::fixed_size().unwrap());
 
-        debug!("`{}` start", f_name);
-
         let envelope = Envelope::decode_bytes(envelope)?;
         let context = Context::decode_bytes(context)?;
         let receipt = f(runtime, &envelope, &message, &context);
 
-        debug!("`{}` returns `svm_result_t::OK`", f_name);
         svm_result_t::new_receipt(&receipt.encode_to_vec())
     })
 }
@@ -603,7 +602,7 @@ where
                 svm_result_t::OK
             }
             Err(e) => {
-                error!("`{}` returns `SVM_FAILURE`", f_name);
+                error!("`{}` returns an errors", f_name);
                 svm_result_t::new_error(e.to_string().as_bytes())
             }
         }
