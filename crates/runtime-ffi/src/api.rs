@@ -477,6 +477,38 @@ pub unsafe extern "C" fn svm_call(
     )
 }
 
+/// Detects if the given runtime contains any uncommitted changes in memory; if
+/// it does, then it returns an error wrapped inside [`svm_result_t`].
+///
+/// # Examples
+///
+/// ```rust
+/// use svm_runtime_ffi::*;
+///
+/// let mut runtime = std::ptr::null_mut();
+///
+/// unsafe { svm_init(true, std::ptr::null(), 0); }
+///
+/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// assert!(res.is_ok());
+///
+/// let res = unsafe { svm_uncommitted_changes(runtime) };
+/// assert!(res.is_ok());
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_uncommitted_changes(runtime_ptr: *mut c_void) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = get_runtime(runtime_ptr);
+        if runtime.has_uncommitted_changes()? {
+            svm_result_t::new_error(b"The SVM global state contains uncommitted changes.")
+        } else {
+            svm_result_t::OK
+        }
+    })
+}
+
 /// Writes the current state root hash at `hash` and the current layer at `layer`.
 #[must_use]
 #[no_mangle]
