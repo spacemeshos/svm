@@ -100,8 +100,8 @@ impl GlobalState {
 
     /// Returns [`true`] iff there are any dirty changes in memory; [`false`]
     /// otherwise.
-    pub fn has_uncommitted_changes(&self) -> Result<bool> {
-        Ok(self.storage().has_uncommitted_changes())
+    pub fn has_uncommitted_changes(&self) -> bool {
+        self.storage().has_uncommitted_changes()
     }
 
     // GETTER/SETTER UTILITIES
