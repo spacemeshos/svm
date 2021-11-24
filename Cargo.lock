@@ -1795,13 +1795,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "svm-genesis-template"
-version = "0.0.0"
-dependencies = [
- "svm-sdk",
-]
-
-[[package]]
 name = "svm-hash"
 version = "0.0.0"
 dependencies = [
