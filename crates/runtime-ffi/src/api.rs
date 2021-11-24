@@ -549,7 +549,7 @@ unsafe fn svm_runtime_action<F, C>(
     message_size: u32,
     context: *const u8,
     f: F,
-    f_name: &str,
+    _f_name: &str,
 ) -> svm_result_t
 where
     F: FnOnce(&mut Runtime, &Envelope, &[u8], &Context) -> C + UnwindSafe,
