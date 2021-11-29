@@ -9,6 +9,7 @@ use svm_state::{AccountStorage, GlobalState};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, ReceiptLog, TemplateAddr};
 
 fn create_account(
+    gs: GlobalState,
     addr: &Address,
     template_addr: &TemplateAddr,
     layout: FixedLayout,
@@ -16,8 +17,6 @@ fn create_account(
     use svm_layout::Layout;
     use svm_state::TemplateStorage;
     use svm_types::*;
-
-    let gs = GlobalState::in_memory();
 
     let code_section = CodeSection::new(
         svm_types::CodeKind::Wasm,
@@ -124,8 +123,9 @@ fn vmcalls_get32_set32() {
     let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::from_byte_sizes(0, &[4, 2]);
 
+    let gs = GlobalState::in_memory();
     let store = wasmer_store();
-    let storage = create_account(&target_addr, &template_addr, layout);
+    let storage = create_account(gs, &target_addr, &template_addr, layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new(
@@ -169,8 +169,9 @@ fn vmcalls_get64_set64() {
     let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::from_byte_sizes(0, &[4, 2]);
 
+    let gs = GlobalState::in_memory();
     let store = wasmer_store();
-    let storage = create_account(&target_addr, &template_addr, layout);
+    let storage = create_account(gs, &target_addr, &template_addr, layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new(
@@ -214,9 +215,10 @@ fn vmcalls_load160() {
     let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::from_byte_sizes(0, &[20]);
 
+    let gs = GlobalState::in_memory();
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = create_account(&target_addr, &template_addr, layout);
+    let storage = create_account(gs, &target_addr, &template_addr, layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -267,9 +269,10 @@ fn vmcalls_store160() {
     let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::from_byte_sizes(0, &[20]);
 
+    let gs = GlobalState::in_memory();
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = create_account(&target_addr, &template_addr, layout);
+    let storage = create_account(gs, &target_addr, &template_addr, layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -315,9 +318,10 @@ fn vmcalls_log() {
     let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::default();
 
+    let gs = GlobalState::in_memory();
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let storage = create_account(&target_addr, &template_addr, layout);
+    let storage = create_account(gs, &target_addr, &template_addr, layout);
     let envelope = Envelope::default();
     let context = Context::default();
     let func_env = FuncEnv::new_with_memory(
@@ -366,8 +370,9 @@ fn vmcalls_svm_transfer() {
     let layout = FixedLayout::from_byte_sizes(0, &[20]);
     let store = wasmer_store();
 
-    let mut src_account = create_account(&src_addr, &src_template, layout.clone());
-    let _dst_account = create_account(&dst_addr, &dst_template, layout);
+    let gs = GlobalState::in_memory();
+    let mut src_account = create_account(gs.clone(), &src_addr, &src_template, layout.clone());
+    let dst_account = create_account(gs, &dst_addr, &dst_template, layout);
 
     let envelope = Envelope::default();
     let context = Context::default();
@@ -401,5 +406,5 @@ fn vmcalls_svm_transfer() {
     assert!(res.is_ok());
 
     assert_eq!(src_account.balance().unwrap(), 900);
-    assert_eq!(src_account.balance().unwrap(), 100);
+    assert_eq!(dst_account.balance().unwrap(), 100);
 }
