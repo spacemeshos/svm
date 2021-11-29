@@ -576,11 +576,10 @@ impl Runtime {
             let account_addr = compute_account_addr(&spawn);
 
             return SpawnReceipt::from_err(
-                RuntimeError::FuncNotAllowed {
+                RuntimeError::FuncNotFound {
                     target: account_addr,
                     template: account.template_addr().clone(),
                     func: spawn.ctor_name().to_string(),
-                    msg: "The given function is not a `ctor`.".to_string(),
                 },
                 vec![],
             );
