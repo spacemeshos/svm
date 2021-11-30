@@ -20,6 +20,8 @@ lazy_static! {
     static ref RUNTIME_TRACKER: ResourceTracker<Runtime> = ResourceTracker::default();
 }
 
+type RuntimePtr = *mut c_void;
+
 fn new_runtime() -> Runtime {
     let config = Config::get();
     let imports = ("sm".to_string(), wasmer::Exports::new());
@@ -58,43 +60,6 @@ pub unsafe extern "C" fn svm_init(in_memory: bool, path: *const u8, path_len: u3
 #[no_mangle]
 pub unsafe extern "C" fn svm_free_result(_result: svm_result_t) {}
 
-/// Creates an account at genesis with a given balance and nonce counter.
-#[no_mangle]
-#[must_use]
-pub unsafe extern "C" fn svm_create_account(
-    runtime_ptr: *mut c_void,
-    addr: *const u8,
-    balance: u64,
-    counter_upper_bits: u64,
-    counter_lower_bits: u64,
-) -> svm_result_t {
-    catch_unwind_or_fail(|| {
-        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
-        let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
-        let counter = ((counter_upper_bits as u128) << 64) | (counter_lower_bits as u128);
-        runtime.create_account(&account_addr, "".to_string(), balance, counter)?;
-
-        svm_result_t::OK
-    })
-}
-
-/// Magically increases an account's balance by the given amount. Used for genesis setup.
-#[no_mangle]
-#[must_use]
-pub unsafe extern "C" fn svm_increase_balance(
-    runtime_ptr: *mut c_void,
-    addr: *const u8,
-    additional_balance: u64,
-) -> svm_result_t {
-    catch_unwind_or_fail(|| {
-        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
-        let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
-        runtime.increase_balance(&account_addr, additional_balance)?;
-
-        svm_result_t::OK
-    })
-}
-
 ///
 /// Start of the Public C-API
 ///
@@ -122,7 +87,7 @@ pub unsafe extern "C" fn svm_increase_balance(
 ///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_runtime_create(runtime_ptr: *mut *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_runtime_create(runtime_ptr: *mut RuntimePtr) -> svm_result_t {
     catch_unwind_or_fail(|| {
         if !Config::is_ready() {
             return svm_result_t::new_error(b"`svm_init` not called beforehand.");
@@ -156,7 +121,7 @@ pub unsafe extern "C" fn svm_runtime_create(runtime_ptr: *mut *mut c_void) -> sv
 ///
 #[must_use]
 #[no_mangle]
-pub extern "C" fn svm_runtime_destroy(runtime: *mut c_void) -> svm_result_t {
+pub extern "C" fn svm_runtime_destroy(runtime: RuntimePtr) -> svm_result_t {
     if RUNTIME_TRACKER.free(runtime).is_some() {
         svm_result_t::OK
     } else {
@@ -195,7 +160,7 @@ pub unsafe extern "C" fn svm_runtimes_count(count: *mut u64) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_deploy(
-    runtime: *mut c_void,
+    runtime: RuntimePtr,
     message: *const u8,
     message_size: u32,
 ) -> svm_result_t {
@@ -233,7 +198,7 @@ pub unsafe extern "C" fn svm_validate_deploy(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_spawn(
-    runtime: *mut c_void,
+    runtime: RuntimePtr,
     message: *const u8,
     message_size: u32,
 ) -> svm_result_t {
@@ -267,7 +232,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_call(
-    runtime: *mut c_void,
+    runtime: RuntimePtr,
     message: *const u8,
     message_size: u32,
 ) -> svm_result_t {
@@ -311,7 +276,7 @@ pub unsafe extern "C" fn svm_validate_call(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_deploy(
-    runtime: *mut c_void,
+    runtime: RuntimePtr,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
@@ -359,7 +324,7 @@ pub unsafe extern "C" fn svm_deploy(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_spawn(
-    runtime: *mut c_void,
+    runtime: RuntimePtr,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
@@ -411,7 +376,7 @@ pub unsafe extern "C" fn svm_spawn(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_verify(
-    runtime: *mut c_void,
+    runtime: RuntimePtr,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
@@ -460,7 +425,7 @@ pub unsafe extern "C" fn svm_verify(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_call(
-    runtime: *mut c_void,
+    runtime: RuntimePtr,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
@@ -498,7 +463,7 @@ pub unsafe extern "C" fn svm_call(
 ///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_uncommitted_changes(runtime_ptr: *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_uncommitted_changes(runtime_ptr: RuntimePtr) -> svm_result_t {
     catch_unwind_or_fail(|| {
         let runtime = get_runtime(runtime_ptr);
         if runtime.has_uncommitted_changes()? {
@@ -513,7 +478,7 @@ pub unsafe extern "C" fn svm_uncommitted_changes(runtime_ptr: *mut c_void) -> sv
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_layer_info(
-    runtime_ptr: *mut c_void,
+    runtime_ptr: RuntimePtr,
     hash: *mut u8,
     layer: *mut u64,
 ) -> svm_result_t {
@@ -531,7 +496,7 @@ pub unsafe extern "C" fn svm_layer_info(
 /// Undos all changes after the given layer.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_rewind(runtime_ptr: *mut c_void, layer_id: u64) -> svm_result_t {
+pub unsafe extern "C" fn svm_rewind(runtime_ptr: RuntimePtr, layer_id: u64) -> svm_result_t {
     catch_unwind_or_fail(|| {
         get_runtime(runtime_ptr).rewind(Layer(layer_id))?;
         svm_result_t::OK
@@ -541,47 +506,91 @@ pub unsafe extern "C" fn svm_rewind(runtime_ptr: *mut c_void, layer_id: u64) -> 
 /// Commits all written data to persistent storage.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_commit(runtime_ptr: *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_commit(runtime_ptr: RuntimePtr) -> svm_result_t {
     catch_unwind_or_fail(|| {
         get_runtime(runtime_ptr).commit()?;
         svm_result_t::OK
     })
 }
 
+/// Contains data related to an SVM account.
+///
+/// See [`svm_get_account`] for more information.
+#[allow(missing_docs)]
+#[derive(Debug, Default, Copy, Clone)]
+#[repr(C)]
+pub struct svm_account {
+    pub address: [u8; Address::N],
+    pub balance: u64,
+    pub counter_upper_bits: u64,
+    pub counter_lower_bits: u64,
+    pub template_addr: [u8; TemplateAddr::N],
+}
+
+impl svm_account {
+    /// Returns the counter value of `self` as a [`u128`].
+    pub fn counter(&self) -> u128 {
+        (self.counter_upper_bits as u128) << 64 | self.counter_lower_bits as u128
+    }
+}
+
 /// Fetches an account's balance, template address, and nonce counter.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_get_account(
-    runtime_ptr: *mut c_void,
+    runtime_ptr: RuntimePtr,
     account_addr: *const u8,
-    balance: *mut u64,
-    counter_upper_bits: *mut u64,
-    counter_lower_bits: *mut u64,
-    template_addr: *mut u8,
+    account: *mut svm_account,
 ) -> svm_result_t {
-    assert!(!runtime_ptr.is_null());
-    assert!(!account_addr.is_null());
+    assert!(!account.is_null());
     catch_unwind_or_fail(|| {
         let runtime = get_runtime(runtime_ptr);
         let account_addr = Address::new(std::slice::from_raw_parts(account_addr, Address::N));
-        let account_data = match runtime.get_account(&account_addr) {
-            Some(account) => account,
-            None => return svm_result_t::new_error(b"The account does not exist."),
-        };
+        let account_data = runtime.get_account(&account_addr).unwrap();
 
-        if !balance.is_null() {
-            *balance = account_data.0;
-        }
-        if !counter_upper_bits.is_null() {
-            *counter_upper_bits = (account_data.1 >> 64) as u64;
-        }
-        if !counter_lower_bits.is_null() {
-            *counter_lower_bits = account_data.1 as u64;
-        }
-        if !template_addr.is_null() {
-            let template_addr = std::slice::from_raw_parts_mut(template_addr, TemplateAddr::N);
-            template_addr.clone_from_slice(account_data.2.as_slice());
-        }
+        (*account).balance = account_data.0;
+        (*account).counter_upper_bits = (account_data.1 >> 64) as u64;
+        (*account).counter_lower_bits = account_data.1 as u64;
+        (*account)
+            .template_addr
+            .clone_from_slice(account_data.2.as_slice());
+
+        svm_result_t::OK
+    })
+}
+
+/// Creates an account at genesis with a given balance and nonce counter.
+#[no_mangle]
+#[must_use]
+pub unsafe extern "C" fn svm_create_account(
+    runtime_ptr: RuntimePtr,
+    addr: *const u8,
+    balance: u64,
+    counter_upper_bits: u64,
+    counter_lower_bits: u64,
+) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
+        let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
+        let counter = ((counter_upper_bits as u128) << 64) | (counter_lower_bits as u128);
+        runtime.create_account(&account_addr, "".to_string(), balance, counter)?;
+
+        svm_result_t::OK
+    })
+}
+
+/// Magically increases an account's balance by the given amount. Used for genesis setup.
+#[no_mangle]
+#[must_use]
+pub unsafe extern "C" fn svm_increase_balance(
+    runtime_ptr: RuntimePtr,
+    addr: *const u8,
+    additional_balance: u64,
+) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
+        let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
+        runtime.increase_balance(&account_addr, additional_balance)?;
 
         svm_result_t::OK
     })
@@ -611,7 +620,7 @@ pub unsafe extern "C" fn svm_transfer(
 }
 
 unsafe fn svm_runtime_action<F, C>(
-    runtime_ptr: *mut c_void,
+    runtime_ptr: RuntimePtr,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
@@ -638,7 +647,7 @@ where
 }
 
 unsafe fn svm_validate<F>(
-    runtime_ptr: *mut c_void,
+    runtime_ptr: RuntimePtr,
     message: *const u8,
     message_size: u32,
     validate_f: F,
@@ -657,14 +666,14 @@ where
                 svm_result_t::OK
             }
             Err(e) => {
-                error!("`{}` returns an errors", f_name);
+                error!("`{}` returns an error", f_name);
                 svm_result_t::new_error(e.to_string().as_bytes())
             }
         }
     })
 }
 
-unsafe fn get_runtime(runtime_ptr: *mut c_void) -> &'static mut Runtime {
+unsafe fn get_runtime(runtime_ptr: RuntimePtr) -> &'static mut Runtime {
     RUNTIME_TRACKER
         .get(runtime_ptr)
         .expect("The given runtime pointer doesn't point to a valid runtime.")

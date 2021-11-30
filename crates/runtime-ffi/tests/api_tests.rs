@@ -8,7 +8,7 @@ use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Receipt, TemplateAddr};
 
-use api::svm_init;
+use api::{svm_account, svm_init};
 
 fn deploy_message(code_version: u32, name: &str, ctors: &[String], wasm: &[u8]) -> Vec<u8> {
     let layout = FixedLayout::from_byte_sizes(0, &[4]);
@@ -235,28 +235,12 @@ fn svm_transfer_success() {
         )
         .unwrap();
 
-        let mut balance_src = 0u64;
-        let mut balance_dst = 0u64;
-        api::svm_get_account(
-            runtime,
-            src_addr.as_slice().as_ptr(),
-            &mut balance_src,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-        )
-        .unwrap();
-        api::svm_get_account(
-            runtime,
-            dst_addr.as_slice().as_ptr(),
-            &mut balance_dst,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-        )
-        .unwrap();
+        let mut src = svm_account::default();
+        let mut dst = svm_account::default();
+        api::svm_get_account(runtime, src_addr.as_slice().as_ptr(), &mut src).unwrap();
+        api::svm_get_account(runtime, dst_addr.as_slice().as_ptr(), &mut dst).unwrap();
 
-        assert_eq!(balance_src, 900);
-        assert_eq!(balance_dst, 100);
+        assert_eq!(src.balance, 900);
+        assert_eq!(dst.balance, 100);
     }
 }
