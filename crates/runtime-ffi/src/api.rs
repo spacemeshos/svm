@@ -58,43 +58,6 @@ pub unsafe extern "C" fn svm_init(in_memory: bool, path: *const u8, path_len: u3
 #[no_mangle]
 pub unsafe extern "C" fn svm_free_result(_result: svm_result_t) {}
 
-/// Creates an account at genesis with a given balance and nonce counter.
-#[no_mangle]
-#[must_use]
-pub unsafe extern "C" fn svm_create_account(
-    runtime_ptr: *mut c_void,
-    addr: *const u8,
-    balance: u64,
-    counter_upper_bits: u64,
-    counter_lower_bits: u64,
-) -> svm_result_t {
-    catch_unwind_or_fail(|| {
-        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
-        let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
-        let counter = ((counter_upper_bits as u128) << 64) | (counter_lower_bits as u128);
-        runtime.create_account(&account_addr, "".to_string(), balance, counter)?;
-
-        svm_result_t::OK
-    })
-}
-
-/// Magically increases an account's balance by the given amount. Used for genesis setup.
-#[no_mangle]
-#[must_use]
-pub unsafe extern "C" fn svm_increase_balance(
-    runtime_ptr: *mut c_void,
-    addr: *const u8,
-    additional_balance: u64,
-) -> svm_result_t {
-    catch_unwind_or_fail(|| {
-        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
-        let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
-        runtime.increase_balance(&account_addr, additional_balance)?;
-
-        svm_result_t::OK
-    })
-}
-
 ///
 /// Start of the Public C-API
 ///
@@ -548,27 +511,77 @@ pub unsafe extern "C" fn svm_commit(runtime_ptr: *mut c_void) -> svm_result_t {
     })
 }
 
+/// Contains data related to an SVM account.
+///
+/// See [`svm_get_account`] for more information.
+#[allow(missing_docs)]
+#[derive(Debug)]
+#[repr(C)]
+pub struct svm_account {
+    pub address: [u8; Address::N],
+    pub balance: u64,
+    pub counter_upper_bits: u64,
+    pub counter_lower_bits: u64,
+    pub template_addr: [u8; TemplateAddr::N],
+}
+
 /// Fetches an account's balance, template address, and nonce counter.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_get_account(
     runtime_ptr: *mut c_void,
     account_addr: *const u8,
-    balance: *mut u64,
-    counter_upper_bits: *mut u64,
-    counter_lower_bits: *mut u64,
-    template_addr: *mut u8,
+    account: *mut svm_account,
 ) -> svm_result_t {
+    assert!(!account.is_null());
     catch_unwind_or_fail(|| {
         let runtime = get_runtime(runtime_ptr);
         let account_addr = Address::new(std::slice::from_raw_parts(account_addr, Address::N));
-        let template_addr = std::slice::from_raw_parts_mut(template_addr, TemplateAddr::N);
         let account_data = runtime.get_account(&account_addr).unwrap();
 
-        *balance = account_data.0;
-        *counter_upper_bits = (account_data.1 >> 64) as u64;
-        *counter_lower_bits = account_data.1 as u64;
-        template_addr.clone_from_slice(account_data.2.as_slice());
+        (*account).balance = account_data.0;
+        (*account).counter_upper_bits = (account_data.1 >> 64) as u64;
+        (*account).counter_lower_bits = account_data.1 as u64;
+        (*account)
+            .template_addr
+            .clone_from_slice(account_data.2.as_slice());
+
+        svm_result_t::OK
+    })
+}
+
+/// Creates an account at genesis with a given balance and nonce counter.
+#[no_mangle]
+#[must_use]
+pub unsafe extern "C" fn svm_create_account(
+    runtime_ptr: *mut c_void,
+    addr: *const u8,
+    balance: u64,
+    counter_upper_bits: u64,
+    counter_lower_bits: u64,
+) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
+        let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
+        let counter = ((counter_upper_bits as u128) << 64) | (counter_lower_bits as u128);
+        runtime.create_account(&account_addr, "".to_string(), balance, counter)?;
+
+        svm_result_t::OK
+    })
+}
+
+/// Magically increases an account's balance by the given amount. Used for genesis setup.
+#[no_mangle]
+#[must_use]
+pub unsafe extern "C" fn svm_increase_balance(
+    runtime_ptr: *mut c_void,
+    addr: *const u8,
+    additional_balance: u64,
+) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
+        let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
+        runtime.increase_balance(&account_addr, additional_balance)?;
 
         svm_result_t::OK
     })
