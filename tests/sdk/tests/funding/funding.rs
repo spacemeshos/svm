@@ -1,5 +1,5 @@
-use svm_sdk::storage::MockStorage;
-use svm_sdk::{template, Amount};
+use svm_sdk_mock::storage::MockStorage;
+use svm_sdk_mock::{template, Amount};
 
 use svm_sdk_tests::call_and_fund_1;
 

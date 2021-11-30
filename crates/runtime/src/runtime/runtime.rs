@@ -687,6 +687,12 @@ impl Runtime {
         Ok(())
     }
 
+    /// Returns [`true`] iff the underlying [`GlobalState`] has changed since
+    /// the last call to [`Runtime::commit`].
+    pub fn has_uncommitted_changes(&self) -> Result<bool> {
+        Ok(self.gs.has_uncommitted_changes())
+    }
+
     /// Given the address of an account, it attempts to read:
     ///
     /// - balance;

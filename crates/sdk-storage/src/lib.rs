@@ -12,22 +12,21 @@
 #![allow(unreachable_code)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
-mod ext;
-mod mock;
-mod traits;
-
-#[cfg(not(any(feature = "ffi", feature = "mock")))]
-compile_error!("must have at least one feature flag turned-on (`ffi` or `mock`)");
-
-#[cfg(feature = "ffi")]
-pub use ext::ExtStorage;
-
-#[cfg(feature = "mock")]
-pub use mock::MockStorage;
-
-pub use traits::Storage;
-
 use svm_sdk_types::{Address, Amount};
+
+pub trait Storage {
+    fn get32(var_id: u32) -> u32;
+
+    fn get64(var_id: u32) -> u64;
+
+    fn set32(var_id: u32, value: u32);
+
+    fn set64(var_id: u32, value: u64);
+
+    fn store160(var_id: u32, offset: usize);
+
+    fn load160(var_id: u32, offset: usize);
+}
 
 pub fn get32<S: Storage>(var_id: u32) -> u32 {
     S::get32(var_id)
