@@ -1,17 +1,14 @@
 use crate::FuncEnv;
 use svm_state::AccountStorage;
 use svm_types::{Address, BytesPrimitive};
+use wasmer::WasmPtr;
 
-fn load_addr(env: &FuncEnv, mem_ptr: u32) -> Address {
-    let borrow = env.borrow();
-    let wasm_memory = &borrow.memory().view::<u8>();
+const NOT_FOUND_ERR: &str = "Not found address at the given memory offsset.";
 
-    let byte_cells = &wasm_memory[mem_ptr as usize..mem_ptr as usize + Address::N];
-    let mut bytes = [0u8; Address::N];
-    for (i, cell) in byte_cells.iter().enumerate() {
-        bytes[i] = cell.get();
-    }
-    Address::new(bytes)
+fn read_addr(env: &FuncEnv, ptr: WasmPtr<Address>) -> Option<Address> {
+    let ptr: WasmPtr<[u8; Address::N]> = WasmPtr::new(ptr.offset());
+    let bytes = super::read_memory_bytes(env, ptr)?;
+    Some(Address::new(bytes))
 }
 
 /// Sends coins from the current executing account to a destination account.
@@ -19,28 +16,29 @@ fn load_addr(env: &FuncEnv, mem_ptr: u32) -> Address {
 /// # Panics
 ///
 /// Panics when the destination account does not exist.
-pub fn svm_transfer(env: &FuncEnv, src_addr_ptr: i32, dst_addr_ptr: i32, amount: i64) {
+pub fn svm_transfer(env: &FuncEnv, src_addr_offset: i32, dst_addr_offset: i32, amount: i64) {
+    let src_addr_ptr = WasmPtr::new(src_addr_offset as u32);
+    let dst_addr_ptr = WasmPtr::new(dst_addr_offset as u32);
+
     let borrow = env.borrow();
     let gs = borrow.storage().gs.clone();
 
-    let src_addr = load_addr(env, src_addr_ptr as u32);
-    let dst_addr = load_addr(env, dst_addr_ptr as u32);
+    let src_addr = read_addr(env, src_addr_ptr).expect(NOT_FOUND_ERR);
+    let dst_addr = read_addr(env, dst_addr_ptr).expect(NOT_FOUND_ERR);
 
     let mut src_account = AccountStorage::load(gs.clone(), &src_addr).unwrap();
     let mut dst_account = AccountStorage::load(gs, &dst_addr).unwrap();
-
-    let src_bal = src_account.balance().unwrap();
-    let dst_bal = dst_account.balance().unwrap();
+    let src_balance = src_account.balance().unwrap();
+    let dst_balance = dst_account.balance().unwrap();
 
     let amount = amount as u64;
 
-    if src_bal < amount {
+    if src_balance < amount {
         panic!("Not enough balance to execute transfer")
     }
-    src_account
-        .set_balance(src_bal.checked_sub(amount).unwrap())
-        .unwrap();
+
+    src_account.set_balance(src_balance - amount).unwrap();
     dst_account
-        .set_balance(dst_bal.checked_add(amount).unwrap())
+        .set_balance(dst_balance.checked_add(amount).unwrap())
         .unwrap();
 }

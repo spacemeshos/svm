@@ -1,6 +1,6 @@
 //! Implements the `SVM` vmcalls (a.k.a `libcalls / hostcalls / syscalls`)
 
-use wasmer::{Exports, Function, Store};
+use wasmer::{Exports, Function, Store, ValueType, WasmPtr};
 
 use crate::FuncEnv;
 
@@ -48,4 +48,17 @@ pub fn wasmer_register(store: &Store, env: &FuncEnv, ns: &mut Exports) {
     ns.insert("svm_log", func!(store, env, log));
 
     ns.insert("svm_transfer", func!(store, env, svm_transfer));
+}
+
+#[derive(Copy, Clone)]
+struct Bytes<const N: usize>([u8; N]);
+unsafe impl<const N: usize> ValueType for Bytes<N> {}
+
+/// Utility function to read a fixed number of bytes with arbitrary offset from
+/// `env`'s internal [`wasmer::Memory`].
+fn read_memory_bytes<const N: usize>(env: &FuncEnv, ptr: WasmPtr<[u8; N]>) -> Option<[u8; N]> {
+    let borrow = env.borrow();
+    let ptr: WasmPtr<Bytes<N>> = WasmPtr::new(ptr.offset());
+
+    ptr.deref(borrow.memory()).map(|cell| cell.get().0)
 }
