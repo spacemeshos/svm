@@ -701,11 +701,39 @@ impl Runtime {
     ///
     /// from the database layer.
     pub fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)> {
-        let account_storage = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
-        let balance = account_storage.balance().unwrap();
-        let counter = account_storage.counter().unwrap();
-        let template_addr = account_storage.template_addr().unwrap();
+        let account_storage = AccountStorage::load(self.gs.clone(), account_addr).ok()?;
+        let balance = account_storage.balance().ok()?;
+        let counter = account_storage.counter().ok()?;
+        let template_addr = account_storage.template_addr().ok()?;
         Some((balance, counter, template_addr))
+    }
+
+    /// Sends coins from the current executing account to a destination account.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the destination account does not exist.
+    pub fn transfer(&self, src_addr: &Address, dst_addr: &Address, amount: u64) {
+        let mut src_account = AccountStorage::load(self.gs.clone(), src_addr).unwrap();
+
+        let mut dst_account = if let Some((_bal, _counter, _addr)) = self.get_account(dst_addr) {
+            AccountStorage::load(self.gs.clone(), dst_addr).unwrap()
+        } else {
+            panic!("Destination account does not exist")
+        };
+
+        let src_bal = src_account.balance().unwrap();
+        let dst_bal = dst_account.balance().unwrap();
+
+        if src_bal < amount {
+            panic!("Not enough balance to execute transfer");
+        }
+        src_account
+            .set_balance(src_bal.checked_sub(amount).unwrap())
+            .unwrap();
+        dst_account
+            .set_balance(dst_bal.checked_add(amount).unwrap())
+            .unwrap();
     }
 }
 

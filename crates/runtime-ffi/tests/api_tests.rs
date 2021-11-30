@@ -8,7 +8,7 @@ use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Receipt, TemplateAddr};
 
-use api::svm_init;
+use api::{svm_account, svm_init};
 
 fn deploy_message(code_version: u32, name: &str, ctors: &[String], wasm: &[u8]) -> Vec<u8> {
     let layout = FixedLayout::from_byte_sizes(0, &[4]);
@@ -33,7 +33,7 @@ fn call_message(target: &Address, func_name: &str, calldata: &[u8]) -> Vec<u8> {
 #[test]
 fn svm_runtime_success() {
     unsafe {
-        let _ = svm_init(true, std::ptr::null(), 0);
+        svm_init(true, std::ptr::null(), 0).unwrap();
 
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
@@ -125,14 +125,14 @@ fn svm_runtime_success() {
         assert_eq!((a, b), (10, 15));
 
         // Destroy `Runtime`
-        let _ = api::svm_runtime_destroy(runtime);
+        api::svm_runtime_destroy(runtime).unwrap();
     }
 }
 
 #[test]
 fn svm_runtime_failure() {
     unsafe {
-        svm_init(true, std::ptr::null(), 0);
+        svm_init(true, std::ptr::null(), 0).unwrap();
 
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
@@ -211,6 +211,36 @@ fn svm_runtime_failure() {
         assert_eq!(receipt.success, false);
 
         // Destroy `Runtime`
-        let _ = api::svm_runtime_destroy(runtime);
+        api::svm_runtime_destroy(runtime).unwrap();
+    }
+}
+
+#[test]
+fn svm_transfer_success() {
+    unsafe {
+        let src_addr = Address::repeat(0xAB);
+        let dst_addr = Address::repeat(0xCD);
+
+        let mut runtime = std::ptr::null_mut();
+
+        api::svm_init(true, std::ptr::null(), 0).unwrap();
+        api::svm_runtime_create(&mut runtime).unwrap();
+        api::svm_create_account(runtime, src_addr.as_slice().as_ptr(), 1000, 0, 0).unwrap();
+        api::svm_create_account(runtime, dst_addr.as_slice().as_ptr(), 0, 0, 0).unwrap();
+        api::svm_transfer(
+            runtime,
+            src_addr.as_slice().as_ptr(),
+            dst_addr.as_slice().as_ptr(),
+            100,
+        )
+        .unwrap();
+
+        let mut src = svm_account::default();
+        let mut dst = svm_account::default();
+        api::svm_get_account(runtime, src_addr.as_slice().as_ptr(), &mut src).unwrap();
+        api::svm_get_account(runtime, dst_addr.as_slice().as_ptr(), &mut dst).unwrap();
+
+        assert_eq!(src.balance, 900);
+        assert_eq!(dst.balance, 100);
     }
 }

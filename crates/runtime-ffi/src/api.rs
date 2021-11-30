@@ -517,7 +517,7 @@ pub unsafe extern "C" fn svm_commit(runtime_ptr: RuntimePtr) -> svm_result_t {
 ///
 /// See [`svm_get_account`] for more information.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, Default, Copy, Clone)]
 #[repr(C)]
 pub struct svm_account {
     pub address: [u8; Address::N],
@@ -525,6 +525,13 @@ pub struct svm_account {
     pub counter_upper_bits: u64,
     pub counter_lower_bits: u64,
     pub template_addr: [u8; TemplateAddr::N],
+}
+
+impl svm_account {
+    /// Returns the counter value of `self` as a [`u128`].
+    pub fn counter(&self) -> u128 {
+        (self.counter_upper_bits as u128) << 64 | self.counter_lower_bits as u128
+    }
 }
 
 /// Fetches an account's balance, template address, and nonce counter.
@@ -584,6 +591,29 @@ pub unsafe extern "C" fn svm_increase_balance(
         let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
         let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
         runtime.increase_balance(&account_addr, additional_balance)?;
+
+        svm_result_t::OK
+    })
+}
+
+/// Sends coins from the current executing account to a destination account.
+///
+/// # Panics
+///
+/// Panics when the destination account does not exist.
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_transfer(
+    runtime_ptr: *mut c_void,
+    src_addr: *const u8,
+    dst_addr: *const u8,
+    amount: u64,
+) -> svm_result_t {
+    catch_unwind_or_fail(|| {
+        let runtime = get_runtime(runtime_ptr);
+        let src_account_addr = Address::new(std::slice::from_raw_parts(src_addr, Address::N));
+        let dst_account_addr = Address::new(std::slice::from_raw_parts(dst_addr, Address::N));
+        runtime.transfer(&src_account_addr, &dst_account_addr, amount);
 
         svm_result_t::OK
     })
