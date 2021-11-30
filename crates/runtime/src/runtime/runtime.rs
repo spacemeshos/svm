@@ -701,10 +701,10 @@ impl Runtime {
     ///
     /// from the database layer.
     pub fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)> {
-        let account_storage = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
-        let balance = account_storage.balance().unwrap();
-        let counter = account_storage.counter().unwrap();
-        let template_addr = account_storage.template_addr().unwrap();
+        let account_storage = AccountStorage::load(self.gs.clone(), account_addr).ok()?;
+        let balance = account_storage.balance().ok()?;
+        let counter = account_storage.counter().ok()?;
+        let template_addr = account_storage.template_addr().ok()?;
         Some((balance, counter, template_addr))
     }
 

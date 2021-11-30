@@ -564,7 +564,10 @@ pub unsafe extern "C" fn svm_get_account(
     catch_unwind_or_fail(|| {
         let runtime = get_runtime(runtime_ptr);
         let account_addr = Address::new(std::slice::from_raw_parts(account_addr, Address::N));
-        let account_data = runtime.get_account(&account_addr).unwrap();
+        let account_data = match runtime.get_account(&account_addr) {
+            Some(account) => account,
+            None => return svm_result_t::new_error(b"The account does not exist."),
+        };
 
         if !balance.is_null() {
             *balance = account_data.0;
