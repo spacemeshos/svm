@@ -359,8 +359,13 @@ fn vmcalls_log() {
     assert_eq!(logs, vec![ReceiptLog::new(b"Hello World".to_vec(),)]);
 }
 
-#[test]
-fn vmcalls_svm_transfer() {
+fn setup_svm_transfer_test() -> (
+    NativeFunc<(u32, u32, i64)>,
+    u32,
+    u32,
+    AccountStorage,
+    AccountStorage,
+) {
     let src_addr = Address::repeat(0xCD);
     let dst_addr = Address::repeat(0x11);
     let template = TemplateAddr::god_template();
@@ -404,7 +409,6 @@ fn vmcalls_svm_transfer() {
         instance.exports.get_native_function("transfer").unwrap();
     let src_addr_ptr = 0u32;
     let dst_addr_ptr = 20u32;
-    let amount = 100i64;
 
     for (cell, byte) in memory
         .view::<u8>()
@@ -424,8 +428,26 @@ fn vmcalls_svm_transfer() {
         cell.set(*byte);
     }
 
-    func.call(src_addr_ptr, dst_addr_ptr, amount).unwrap();
+    (func, src_addr_ptr, dst_addr_ptr, src_account, dst_account)
+}
 
+#[test]
+fn vmcalls_svm_transfer() {
+    let (func, src_addr_ptr, dst_addr_ptr, src_account, dst_account) = setup_svm_transfer_test();
+
+    func.call(src_addr_ptr, dst_addr_ptr, 100).unwrap();
     assert_eq!(src_account.balance().unwrap(), 900);
     assert_eq!(dst_account.balance().unwrap(), 100);
+
+    func.call(src_addr_ptr, dst_addr_ptr, 900).unwrap();
+    assert_eq!(src_account.balance().unwrap(), 0);
+    assert_eq!(dst_account.balance().unwrap(), 1000);
+}
+
+#[test]
+#[should_panic]
+fn vmcalls_svm_transfer_insufficient_funds() {
+    let (func, src_addr_ptr, dst_addr_ptr, _, _) = setup_svm_transfer_test();
+
+    func.call(src_addr_ptr, dst_addr_ptr, 1001).ok();
 }
