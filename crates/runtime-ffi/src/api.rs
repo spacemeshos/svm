@@ -634,7 +634,7 @@ where
                 svm_result_t::OK
             }
             Err(e) => {
-                error!("`{}` returns an errors", f_name);
+                error!("`{}` returns an error", f_name);
                 svm_result_t::new_error(e.to_string().as_bytes())
             }
         }
