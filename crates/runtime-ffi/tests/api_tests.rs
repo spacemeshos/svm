@@ -217,52 +217,45 @@ fn svm_runtime_failure() {
 #[test]
 fn svm_transfer_success() {
     unsafe {
-        let _ = svm_init(true, std::ptr::null(), 0);
+        let src_addr = Address::repeat(0xAB);
+        let dst_addr = Address::repeat(0xCD);
 
-        // init runtime
         let mut runtime = std::ptr::null_mut();
 
-        let res = api::svm_runtime_create(&mut runtime);
-        assert!(res.is_ok());
-
-        // create coin-transfer addresses
-        let src_addr = Address::repeat(0xAB);
-        let src_template = TemplateAddr::repeat(0x10);
-
-        let dst_addr = Address::repeat(0xCD);
-        let dst_template = TemplateAddr::repeat(0x11);
-
-        // create a pristine `GoblalState`
-        let gs = GlobalState::in_memory();
-
-        // create associated accounts
-        let src_account_res = AccountStorage::create(
-            gs.clone(),
-            &src_addr,
-            "SRC_ACCOUNT".to_string(),
-            src_template,
-            1000,
-            0,
-        );
-        assert!(src_account_res.is_ok());
-
-        let dst_account_res = AccountStorage::create(
-            gs.clone(),
-            &dst_addr,
-            "DST_ACCOUNT".to_string(),
-            dst_template,
-            0,
-            0,
-        );
-        assert!(dst_account_res.is_ok());
-
-        // init transfer
-        let res = api::svm_transfer(
+        api::svm_init(true, std::ptr::null(), 0).unwrap();
+        api::svm_runtime_create(&mut runtime).unwrap();
+        api::svm_create_account(runtime, src_addr.as_slice().as_ptr(), 1000, 0, 0).unwrap();
+        api::svm_create_account(runtime, dst_addr.as_slice().as_ptr(), 0, 0, 0).unwrap();
+        api::svm_transfer(
             runtime,
-            src_addr.encode_to_vec().as_ptr(),
-            dst_addr.encode_to_vec().as_ptr(),
+            src_addr.as_slice().as_ptr(),
+            dst_addr.as_slice().as_ptr(),
             100,
-        );
-        assert!(res.is_ok());
+        )
+        .unwrap();
+
+        let mut balance_src = 0u64;
+        let mut balance_dst = 0u64;
+        api::svm_get_account(
+            runtime,
+            src_addr.as_slice().as_ptr(),
+            &mut balance_src,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+        .unwrap();
+        api::svm_get_account(
+            runtime,
+            dst_addr.as_slice().as_ptr(),
+            &mut balance_dst,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+        .unwrap();
+
+        assert_eq!(balance_src, 900);
+        assert_eq!(balance_dst, 100);
     }
 }

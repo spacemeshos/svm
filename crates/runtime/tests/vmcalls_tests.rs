@@ -361,33 +361,32 @@ fn vmcalls_log() {
 
 #[test]
 fn vmcalls_svm_transfer() {
-    let src_template = TemplateAddr::repeat(0xAB);
     let src_addr = Address::repeat(0xCD);
-
-    let dst_template = TemplateAddr::repeat(0x10);
     let dst_addr = Address::repeat(0x11);
+    let template = TemplateAddr::god_template();
 
     let layout = FixedLayout::from_byte_sizes(0, &[20]);
     let store = wasmer_store();
-
+    let memory = wasmer_memory(&store);
     let gs = GlobalState::in_memory();
-    let mut src_account = create_account(gs.clone(), &src_addr, &src_template, layout.clone());
-    let dst_account = create_account(gs, &dst_addr, &dst_template, layout);
+
+    let mut src_account = create_account(gs.clone(), &src_addr, &template, layout.clone());
+    src_account.set_balance(1000).unwrap();
+    assert_eq!(src_account.balance().unwrap(), 1000);
+
+    let dst_account = create_account(gs, &dst_addr, &template, layout);
 
     let envelope = Envelope::default();
     let context = Context::default();
-    let src_func_env = FuncEnv::new(
+    let src_func_env = FuncEnv::new_with_memory(
+        memory.clone(),
         src_account.clone(),
         &envelope,
         &context,
-        src_template,
+        template,
         src_addr.clone(),
         ProtectedMode::FullAccess,
     );
-
-    let res = src_account.set_balance(1000);
-    assert!(res.is_ok());
-    assert_eq!(src_account.balance().unwrap(), 1000);
 
     let import_object = imports! {
         "svm" => {
@@ -401,9 +400,31 @@ fn vmcalls_svm_transfer() {
         include_str!("wasm/svm_transfer.wast").into(),
     );
 
-    let transfer = instance.exports.get_function("transfer").unwrap();
-    let res = transfer.call(&[Value::I32(0xCD), Value::I32(0x11), Value::I64(100)]);
-    assert!(res.is_ok());
+    let func: NativeFunc<(u32, u32, i64)> =
+        instance.exports.get_native_function("transfer").unwrap();
+    let src_addr_ptr = 0u32;
+    let dst_addr_ptr = 20u32;
+    let amount = 100i64;
+
+    for (cell, byte) in memory
+        .view::<u8>()
+        .iter()
+        .skip(src_addr_ptr as usize)
+        .zip(src_addr.as_slice())
+    {
+        cell.set(*byte);
+    }
+
+    for (cell, byte) in memory
+        .view::<u8>()
+        .iter()
+        .skip(dst_addr_ptr as usize)
+        .zip(dst_addr.as_slice())
+    {
+        cell.set(*byte);
+    }
+
+    func.call(src_addr_ptr, dst_addr_ptr, amount).unwrap();
 
     assert_eq!(src_account.balance().unwrap(), 900);
     assert_eq!(dst_account.balance().unwrap(), 100);

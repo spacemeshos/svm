@@ -63,6 +63,22 @@ impl svm_result_t {
         }
     }
 
+    /// Panics if `self` contains an error. If it doesn't, either returns
+    /// [`None`] if there is no receipt or a [`Some`] with the receipt.
+    pub fn unwrap(self) -> Option<Vec<u8>> {
+        if self.error.is_null() && self.receipt.is_null() {
+            None
+        } else if self.error.is_null() {
+            Some(unsafe {
+                Vec::from_raw_parts(self.receipt, self.buf_size as usize, self.buf_size as usize)
+            })
+        } else {
+            let err_bytes =
+                unsafe { std::slice::from_raw_parts(self.error, self.buf_size as usize) };
+            panic!("Error: {}", std::str::from_utf8(err_bytes).unwrap());
+        }
+    }
+
     /// Returns [`Some(bytes)`] if and only if `self` is a transaction receipt.
     pub fn receipt(&self) -> Option<&[u8]> {
         if !self.receipt.is_null() {

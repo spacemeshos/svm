@@ -525,16 +525,26 @@ pub unsafe extern "C" fn svm_get_account(
     counter_lower_bits: *mut u64,
     template_addr: *mut u8,
 ) -> svm_result_t {
+    assert!(!runtime_ptr.is_null());
+    assert!(!account_addr.is_null());
     catch_unwind_or_fail(|| {
         let runtime = get_runtime(runtime_ptr);
         let account_addr = Address::new(std::slice::from_raw_parts(account_addr, Address::N));
-        let template_addr = std::slice::from_raw_parts_mut(template_addr, TemplateAddr::N);
         let account_data = runtime.get_account(&account_addr).unwrap();
 
-        *balance = account_data.0;
-        *counter_upper_bits = (account_data.1 >> 64) as u64;
-        *counter_lower_bits = account_data.1 as u64;
-        template_addr.clone_from_slice(account_data.2.as_slice());
+        if !balance.is_null() {
+            *balance = account_data.0;
+        }
+        if !counter_upper_bits.is_null() {
+            *counter_upper_bits = (account_data.1 >> 64) as u64;
+        }
+        if !counter_lower_bits.is_null() {
+            *counter_lower_bits = account_data.1 as u64;
+        }
+        if !template_addr.is_null() {
+            let template_addr = std::slice::from_raw_parts_mut(template_addr, TemplateAddr::N);
+            template_addr.clone_from_slice(account_data.2.as_slice());
+        }
 
         svm_result_t::OK
     })
