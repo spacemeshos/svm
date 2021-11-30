@@ -6,7 +6,6 @@ use svm_runtime::testing;
 use svm_runtime_ffi as api;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
-use svm_state::{AccountStorage, GlobalState};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Receipt, TemplateAddr};
 
 use api::svm_init;
@@ -34,7 +33,7 @@ fn call_message(target: &Address, func_name: &str, calldata: &[u8]) -> Vec<u8> {
 #[test]
 fn svm_runtime_success() {
     unsafe {
-        let _ = svm_init(true, std::ptr::null(), 0);
+        svm_init(true, std::ptr::null(), 0).unwrap();
 
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
@@ -126,14 +125,14 @@ fn svm_runtime_success() {
         assert_eq!((a, b), (10, 15));
 
         // Destroy `Runtime`
-        let _ = api::svm_runtime_destroy(runtime);
+        api::svm_runtime_destroy(runtime).unwrap();
     }
 }
 
 #[test]
 fn svm_runtime_failure() {
     unsafe {
-        let _ = svm_init(true, std::ptr::null(), 0);
+        svm_init(true, std::ptr::null(), 0).unwrap();
 
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
@@ -212,7 +211,7 @@ fn svm_runtime_failure() {
         assert_eq!(receipt.success, false);
 
         // Destroy `Runtime`
-        let _ = api::svm_runtime_destroy(runtime);
+        api::svm_runtime_destroy(runtime).unwrap();
     }
 }
 

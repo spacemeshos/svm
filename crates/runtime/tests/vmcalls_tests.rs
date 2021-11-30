@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use wasmer::{imports, FromToNativeWasmType, NativeFunc, Value};
+use wasmer::{imports, FromToNativeWasmType, NativeFunc};
 
 use svm_layout::FixedLayout;
 use svm_runtime::testing::WasmFile;
