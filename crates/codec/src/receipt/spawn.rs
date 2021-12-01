@@ -26,6 +26,8 @@
 //!  On Error (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
+use std::collections::HashSet;
+
 use svm_types::{Address, Gas, ReceiptLog, RuntimeFailure, SpawnReceipt, State};
 
 use super::TY_SPAWN;
@@ -44,6 +46,7 @@ impl Codec for SpawnReceipt {
             self.init_state().encode(w);
             ReturnData::new(self.returndata().clone()).encode(w);
             self.gas_used().encode(w);
+            self.touched_accounts.encode(w);
             self.logs.encode(w);
         } else {
             RuntimeFailure::new(self.error().clone(), self.logs().clone()).encode(w);
@@ -64,6 +67,7 @@ impl Codec for SpawnReceipt {
             let init_state = State::decode(reader)?;
             let returndata = ReturnData::decode(reader)?.data;
             let gas_used = Gas::decode(reader)?;
+            let touched_accounts = <HashSet<Address>>::decode(reader)?;
             let logs = <Vec<ReceiptLog>>::decode(reader)?;
 
             Ok(SpawnReceipt {
@@ -74,6 +78,7 @@ impl Codec for SpawnReceipt {
                 init_state: Some(init_state),
                 returndata: Some(returndata),
                 gas_used,
+                touched_accounts,
                 logs,
             })
         } else {
@@ -85,6 +90,8 @@ impl Codec for SpawnReceipt {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use svm_types::{Address, BytesPrimitive, Gas, ReceiptLog, RuntimeError, State, TemplateAddr};
 
     use crate::codec::test_codec;
@@ -104,6 +111,7 @@ mod tests {
             init_state: None,
             returndata: None,
             gas_used: Gas::new(),
+            touched_accounts: HashSet::new(),
             logs: Vec::new(),
         });
     }
@@ -122,6 +130,7 @@ mod tests {
             init_state: Some(init_state),
             returndata: Some(Vec::new()),
             gas_used: Gas::with(100),
+            touched_accounts: HashSet::new(),
             logs: logs.clone(),
         });
     }
@@ -141,6 +150,7 @@ mod tests {
             init_state: Some(init_state),
             returndata: Some(returndata),
             gas_used: Gas::with(100),
+            touched_accounts: HashSet::new(),
             logs: logs.clone(),
         });
     }

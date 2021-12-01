@@ -4,6 +4,7 @@ mod call;
 mod deploy;
 mod error;
 mod spawn;
+mod touched_accounts;
 
 pub(crate) mod logs;
 

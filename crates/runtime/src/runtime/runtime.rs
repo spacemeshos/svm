@@ -3,7 +3,7 @@ use svm_codec::Codec;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use svm_gas::{FuncPrice, ProgramPricing};
@@ -813,6 +813,8 @@ fn commit_changes(env: &FuncEnv) -> State {
 }
 
 fn outcome_to_receipt(env: &FuncEnv, mut out: Outcome<Box<[wasmer::Val]>>) -> CallReceipt {
+    let mut touched_accounts = HashSet::new();
+    touched_accounts.insert(env.target_addr().clone());
     CallReceipt {
         version: 0,
         success: true,
@@ -820,6 +822,7 @@ fn outcome_to_receipt(env: &FuncEnv, mut out: Outcome<Box<[wasmer::Val]>>) -> Ca
         returndata: Some(take_returndata(env)),
         new_state: Some(commit_changes(&env)),
         gas_used: out.gas_used(),
+        touched_accounts,
         logs: out.take_logs(),
     }
 }

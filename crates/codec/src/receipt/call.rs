@@ -26,9 +26,9 @@
 //!  On Error (`is_success = 0`)
 //!  See [error.rs](./error.rs)
 
-use std::convert::TryFrom;
+use std::{collections::HashSet, convert::TryFrom};
 
-use svm_types::{CallReceipt, Gas, ReceiptLog, RuntimeFailure, State};
+use svm_types::{Address, CallReceipt, Gas, ReceiptLog, RuntimeFailure, State};
 
 use crate::{codec::ReturnData, Codec, ParseError, ReadExt, WriteExt};
 
@@ -44,6 +44,7 @@ impl Codec for CallReceipt {
             self.new_state().0.encode(w);
             ReturnData::new(self.returndata().clone()).encode(w);
             self.gas_used.encode(w);
+            self.touched_accounts.encode(w);
             self.logs.encode(w);
         } else {
             let logs = self.logs();
@@ -64,6 +65,7 @@ impl Codec for CallReceipt {
             let new_state = State::decode(reader)?;
             let returndata = ReturnData::decode(reader)?.data;
             let gas_used = Gas::decode(reader)?;
+            let touched_accounts = <HashSet<Address>>::decode(reader)?;
             let logs = <Vec<ReceiptLog>>::decode(reader)?;
 
             Ok(CallReceipt {
@@ -73,6 +75,7 @@ impl Codec for CallReceipt {
                 new_state: Some(new_state),
                 returndata: Some(returndata),
                 gas_used,
+                touched_accounts,
                 logs,
             })
         } else {
@@ -84,6 +87,8 @@ impl Codec for CallReceipt {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use svm_types::{Address, BytesPrimitive, Gas, ReceiptLog, RuntimeError, State};
 
     use crate::codec::test_codec;
@@ -103,6 +108,7 @@ mod tests {
             new_state: None,
             returndata: None,
             gas_used: Gas::new(),
+            touched_accounts: HashSet::new(),
             logs,
         });
     }
@@ -119,6 +125,7 @@ mod tests {
             new_state: Some(new_state),
             returndata: Some(Vec::new()),
             gas_used: Gas::with(100),
+            touched_accounts: HashSet::new(),
             logs: logs.clone(),
         });
     }
@@ -136,6 +143,7 @@ mod tests {
             new_state: Some(new_state),
             returndata: Some(returndata),
             gas_used: Gas::with(100),
+            touched_accounts: HashSet::new(),
             logs: logs.clone(),
         });
     }
