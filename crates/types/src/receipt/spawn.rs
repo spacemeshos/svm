@@ -130,7 +130,7 @@ pub fn into_spawn_receipt(mut ctor_receipt: CallReceipt, account_addr: &Address)
             init_state: None,
             returndata: None,
             gas_used: Gas::new(),
-            touched_accounts: ctor_receipt.touched_accounts,
+            touched_accounts: HashSet::new(),
             logs,
         }
     }
