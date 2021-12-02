@@ -9,9 +9,7 @@ where
     Rets: WasmTypeList,
 {
     func: &'a wasmer::Function,
-
     name: &'a str,
-
     phantom: PhantomData<(Args, Rets)>,
 }
 

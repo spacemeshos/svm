@@ -1,17 +1,16 @@
 extern crate svm_sdk_mock as svm_sdk;
 
-use svm_sdk as sdk;
-
-use svm_sdk::traits::Encoder;
-use svm_sdk::ReturnData;
-
 use svm_codec::ParseError;
 use svm_layout::FixedLayout;
 use svm_program::ProgramError;
-use svm_runtime::{testing, ValidateError};
+use svm_runtime::{compute_account_addr, testing, ValidateError};
+use svm_sdk as sdk;
+use svm_sdk::traits::Encoder;
+use svm_sdk::ReturnData;
 
 use svm_types::{
-    Address, BytesPrimitive, Context, DeployReceipt, Envelope, Gas, RuntimeError, SpawnReceipt,
+    Address, BytesPrimitive, Context, DeployReceipt, Envelope, Gas, RuntimeError, SpawnAccount,
+    SpawnReceipt,
 };
 
 #[test]
@@ -378,4 +377,43 @@ fn memory_runtime_call_success() {
 
     let addr: sdk::Address = returndata.next_1();
     assert_eq!(addr.as_slice(), &[0x10; 20]);
+}
+
+#[test]
+fn spawn_touched_accounts() {
+    let mut runtime = testing::create_memory_runtime();
+
+    // 1) `Deploy Template`
+    let layout = FixedLayout::from_byte_sizes(0, &[Address::N as u32]);
+    let message = testing::build_deploy(
+        0,
+        "My Template",
+        layout.clone(),
+        &["initialize".to_string()],
+        (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
+    );
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let receipt = runtime.deploy(&envelope, &message, &context);
+    assert!(receipt.success);
+
+    let template_addr = receipt.addr.unwrap();
+
+    // 2) `Spawn Account`
+    // Prepare the `calldata`
+    let param: sdk::Address = sdk::Address::repeat(0x10);
+    let mut calldata = svm_sdk::Vec::with_capacity(Address::N + 1 + 1);
+    param.encode(&mut calldata);
+    true.encode(&mut calldata);
+
+    let spawn = SpawnAccount::new(0, &template_addr, "My Account", "initialize", &calldata[..]);
+    let message = svm_codec::Codec::encode_to_vec(&spawn);
+    let receipt = runtime.spawn(&envelope, &message, &context);
+
+    assert!(receipt.success);
+    assert_eq!(receipt.touched_accounts.len(), 2);
+    assert!(receipt.touched_accounts.contains(envelope.principal()));
+    assert!(receipt
+        .touched_accounts
+        .contains(&compute_account_addr(&spawn)));
 }

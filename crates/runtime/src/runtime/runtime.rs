@@ -3,7 +3,7 @@ use svm_codec::Codec;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use svm_gas::{FuncPrice, ProgramPricing};
@@ -90,7 +90,11 @@ impl Runtime {
             context,
         };
 
-        let receipt = self.exec_call::<(), ()>(&call);
+        let mut receipt = self.exec_call::<(), ()>(&call);
+        receipt.touched_accounts.insert(target);
+        receipt
+            .touched_accounts
+            .insert(envelope.principal().clone());
 
         // TODO: move the `into_spawn_receipt` to a `From / TryFrom`
         svm_types::into_spawn_receipt(receipt, &target)
@@ -737,13 +741,15 @@ impl Runtime {
     }
 }
 
-fn compute_template_addr(template: &Template) -> TemplateAddr {
+/// Calculates the address of a newly deployed [`Template`].
+pub fn compute_template_addr(template: &Template) -> TemplateAddr {
     let hash = Blake3Hasher::hash(template.code());
 
     TemplateAddr::new(&hash[..TemplateAddr::N])
 }
 
-fn compute_account_addr(spawn: &SpawnAccount) -> Address {
+/// Calculates the address of a newly spawned account based on its template.
+pub fn compute_account_addr(spawn: &SpawnAccount) -> Address {
     let template_addr = spawn.template_addr();
     let hash = Blake3Hasher::hash(template_addr.as_slice());
 
