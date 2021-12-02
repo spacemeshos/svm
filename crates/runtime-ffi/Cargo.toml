@@ -22,20 +22,15 @@ svm-types = { path="../types" }
 svm-codec = { path="../codec" }
 svm-layout = { path="../layout" }
 svm-state = { path="../state", default-features=false }
-wasmer = { version = "2.0.0", default-features = false }
+wasmer = { version = "2.1.0", features = ["default-singlepass", "default-universal"], default-features = false }
 
 [dev-dependencies]
 wat = "1.0.40"
 serde_json = "1.0.69"
 maplit = "1.0.2"
-svm-sdk-mock = { path="../sdk-mock", features = ["dynamic-alloc"], default-features=false }
-svm-abi-encoder = { path="../abi-encoder", features = ["dynamic-alloc"], default-features=false }
-svm-types = { path="../types", default-features=false }
+svm-sdk-mock = { path="../sdk-mock", features = ["dynamic-alloc"], default-features = false }
+svm-abi-encoder = { path="../abi-encoder", features = ["dynamic-alloc"], default-features = false }
+svm-types = { path="../types", default-features = false }
 
 [build-dependencies]
 cbindgen = "0.20.0"
-
-[features]
-default = []
-default-singlepass = ["svm-runtime/default-singlepass"]
-default-cranelift = ["svm-runtime/default-cranelift"]

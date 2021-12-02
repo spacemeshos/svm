@@ -13,52 +13,50 @@ publish = false
 
 ### BEGIN HAKARI SECTION
 [dependencies]
-ahash = { version = "0.7.6", features = ["std"] }
-byteorder = { version = "1.4.3", features = ["std"] }
-crossbeam-utils = { version = "0.8.5", features = ["lazy_static", "std"] }
-futures = { version = "0.3.17", features = ["alloc", "async-await", "executor", "futures-executor", "std"] }
-futures-core = { version = "0.3.17", features = ["alloc", "std"] }
-futures-util = { version = "0.3.17", features = ["alloc", "async-await", "async-await-macro", "channel", "futures-channel", "futures-io", "futures-macro", "futures-sink", "io", "memchr", "proc-macro-hack", "proc-macro-nested", "sink", "slab", "std"] }
-getrandom = { version = "0.2.3", default-features = false, features = ["std"] }
-hashbrown = { version = "0.11.2", features = ["ahash", "inline-more", "raw"] }
-indexmap = { version = "1.7.0", default-features = false, features = ["serde", "serde-1"] }
-itoa = { version = "0.4.8", features = ["std"] }
-log = { version = "0.4.14", default-features = false, features = ["std"] }
-memchr = { version = "2.4.1", features = ["std", "use_std"] }
-num-traits = { version = "0.2.14", features = ["std"] }
-rand = { version = "0.8.4", features = ["alloc", "getrandom", "libc", "rand_chacha", "rand_hc", "small_rng", "std", "std_rng"] }
-rand_core = { version = "0.6.3", default-features = false, features = ["alloc", "getrandom", "std"] }
-regex = { version = "1.5.4", features = ["aho-corasick", "memchr", "perf", "perf-cache", "perf-dfa", "perf-inline", "perf-literal", "std", "unicode", "unicode-age", "unicode-bool", "unicode-case", "unicode-gencat", "unicode-perl", "unicode-script", "unicode-segment"] }
-regex-syntax = { version = "0.6.25", features = ["unicode", "unicode-age", "unicode-bool", "unicode-case", "unicode-gencat", "unicode-perl", "unicode-script", "unicode-segment"] }
-serde = { version = "1.0.130", features = ["derive", "rc", "serde_derive", "std"] }
-sha2 = { version = "0.9.8", features = ["std"] }
-target-lexicon = "0.12.2"
-tokio = { version = "1.13.0", features = ["bytes", "fs", "io-util", "libc", "macros", "memchr", "mio", "net", "num_cpus", "rt", "rt-multi-thread", "sync", "time", "tokio-macros", "winapi"] }
-wasmer-compiler = { version = "2.0.0", features = ["enable-rkyv", "enable-serde", "rkyv", "serde", "serde_bytes", "std", "translator", "wasmparser"] }
+ahash = { version = "0.7", features = ["std"] }
+byteorder = { version = "1", features = ["std"] }
+futures-channel = { version = "0.3", default-features = false, features = ["alloc", "futures-sink", "sink", "std"] }
+futures-core = { version = "0.3", features = ["alloc", "std"] }
+futures-sink = { version = "0.3", default-features = false, features = ["alloc", "std"] }
+futures-task = { version = "0.3", default-features = false, features = ["alloc", "std"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc", "async-await", "async-await-macro", "channel", "futures-channel", "futures-io", "futures-macro", "futures-sink", "io", "memchr", "proc-macro-hack", "proc-macro-nested", "sink", "slab", "std"] }
+getrandom = { version = "0.2", default-features = false, features = ["std"] }
+hashbrown = { version = "0.11", features = ["ahash", "inline-more", "raw"] }
+indexmap = { version = "1", default-features = false, features = ["serde", "serde-1"] }
+itoa = { version = "0.4", features = ["std"] }
+log = { version = "0.4", default-features = false, features = ["std"] }
+memchr = { version = "2", features = ["std", "use_std"] }
+num-traits = { version = "0.2", features = ["std"] }
+rand = { version = "0.8", features = ["alloc", "getrandom", "libc", "rand_chacha", "rand_hc", "small_rng", "std", "std_rng"] }
+rand_core = { version = "0.6", default-features = false, features = ["alloc", "getrandom", "std"] }
+regex = { version = "1", features = ["aho-corasick", "memchr", "perf", "perf-cache", "perf-dfa", "perf-inline", "perf-literal", "std", "unicode", "unicode-age", "unicode-bool", "unicode-case", "unicode-gencat", "unicode-perl", "unicode-script", "unicode-segment"] }
+regex-syntax = { version = "0.6", features = ["unicode", "unicode-age", "unicode-bool", "unicode-case", "unicode-gencat", "unicode-perl", "unicode-script", "unicode-segment"] }
+serde = { version = "1", features = ["derive", "serde_derive", "std"] }
+sha2 = { version = "0.9", features = ["std"] }
+tokio = { version = "1", features = ["bytes", "fs", "io-util", "libc", "macros", "memchr", "mio", "net", "num_cpus", "rt", "rt-multi-thread", "sync", "time", "tokio-macros", "winapi"] }
 
 [build-dependencies]
-ahash = { version = "0.7.6", features = ["std"] }
-byteorder = { version = "1.4.3", features = ["std"] }
-crossbeam-utils = { version = "0.8.5", features = ["lazy_static", "std"] }
-futures = { version = "0.3.17", features = ["alloc", "async-await", "executor", "futures-executor", "std"] }
-futures-core = { version = "0.3.17", features = ["alloc", "std"] }
-futures-util = { version = "0.3.17", features = ["alloc", "async-await", "async-await-macro", "channel", "futures-channel", "futures-io", "futures-macro", "futures-sink", "io", "memchr", "proc-macro-hack", "proc-macro-nested", "sink", "slab", "std"] }
-getrandom = { version = "0.2.3", default-features = false, features = ["std"] }
-hashbrown = { version = "0.11.2", features = ["ahash", "inline-more", "raw"] }
-indexmap = { version = "1.7.0", default-features = false, features = ["serde", "serde-1"] }
-itoa = { version = "0.4.8", features = ["std"] }
-log = { version = "0.4.14", default-features = false, features = ["std"] }
-memchr = { version = "2.4.1", features = ["std", "use_std"] }
-num-traits = { version = "0.2.14", features = ["std"] }
-rand = { version = "0.8.4", features = ["alloc", "getrandom", "libc", "rand_chacha", "rand_hc", "small_rng", "std", "std_rng"] }
-rand_core = { version = "0.6.3", default-features = false, features = ["alloc", "getrandom", "std"] }
-regex = { version = "1.5.4", features = ["aho-corasick", "memchr", "perf", "perf-cache", "perf-dfa", "perf-inline", "perf-literal", "std", "unicode", "unicode-age", "unicode-bool", "unicode-case", "unicode-gencat", "unicode-perl", "unicode-script", "unicode-segment"] }
-regex-syntax = { version = "0.6.25", features = ["unicode", "unicode-age", "unicode-bool", "unicode-case", "unicode-gencat", "unicode-perl", "unicode-script", "unicode-segment"] }
-serde = { version = "1.0.130", features = ["derive", "rc", "serde_derive", "std"] }
-sha2 = { version = "0.9.8", features = ["std"] }
-syn = { version = "1.0.81", features = ["clone-impls", "derive", "extra-traits", "full", "parsing", "printing", "proc-macro", "quote", "visit", "visit-mut"] }
-target-lexicon = "0.12.2"
-tokio = { version = "1.13.0", features = ["bytes", "fs", "io-util", "libc", "macros", "memchr", "mio", "net", "num_cpus", "rt", "rt-multi-thread", "sync", "time", "tokio-macros", "winapi"] }
-wasmer-compiler = { version = "2.0.0", features = ["enable-rkyv", "enable-serde", "rkyv", "serde", "serde_bytes", "std", "translator", "wasmparser"] }
+ahash = { version = "0.7", features = ["std"] }
+byteorder = { version = "1", features = ["std"] }
+futures-channel = { version = "0.3", default-features = false, features = ["alloc", "futures-sink", "sink", "std"] }
+futures-core = { version = "0.3", features = ["alloc", "std"] }
+futures-sink = { version = "0.3", default-features = false, features = ["alloc", "std"] }
+futures-task = { version = "0.3", default-features = false, features = ["alloc", "std"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc", "async-await", "async-await-macro", "channel", "futures-channel", "futures-io", "futures-macro", "futures-sink", "io", "memchr", "proc-macro-hack", "proc-macro-nested", "sink", "slab", "std"] }
+getrandom = { version = "0.2", default-features = false, features = ["std"] }
+hashbrown = { version = "0.11", features = ["ahash", "inline-more", "raw"] }
+indexmap = { version = "1", default-features = false, features = ["serde", "serde-1"] }
+itoa = { version = "0.4", features = ["std"] }
+log = { version = "0.4", default-features = false, features = ["std"] }
+memchr = { version = "2", features = ["std", "use_std"] }
+num-traits = { version = "0.2", features = ["std"] }
+rand = { version = "0.8", features = ["alloc", "getrandom", "libc", "rand_chacha", "rand_hc", "small_rng", "std", "std_rng"] }
+rand_core = { version = "0.6", default-features = false, features = ["alloc", "getrandom", "std"] }
+regex = { version = "1", features = ["aho-corasick", "memchr", "perf", "perf-cache", "perf-dfa", "perf-inline", "perf-literal", "std", "unicode", "unicode-age", "unicode-bool", "unicode-case", "unicode-gencat", "unicode-perl", "unicode-script", "unicode-segment"] }
+regex-syntax = { version = "0.6", features = ["unicode", "unicode-age", "unicode-bool", "unicode-case", "unicode-gencat", "unicode-perl", "unicode-script", "unicode-segment"] }
+serde = { version = "1", features = ["derive", "serde_derive", "std"] }
+sha2 = { version = "0.9", features = ["std"] }
+syn = { version = "1", features = ["clone-impls", "derive", "extra-traits", "full", "parsing", "printing", "proc-macro", "quote"] }
+tokio = { version = "1", features = ["bytes", "fs", "io-util", "libc", "macros", "memchr", "mio", "net", "num_cpus", "rt", "rt-multi-thread", "sync", "time", "tokio-macros", "winapi"] }
 
 ### END HAKARI SECTION

@@ -16,7 +16,7 @@ futures = "0.3.17"
 log = "0.4.14"
 lazy_static = "1.4.0"
 thiserror = "1.0.30"
-wasmer = { version = "2.0.0", default-features = false }
+wasmer = { version = "2.1.0", features = ["default-singlepass", "default-universal"], default-features = false }
 wat = "1.0.40"
 svm-hash = { path = "../hash" }
 svm-types = { path = "../types" }
@@ -29,14 +29,3 @@ svm-program = { path = "../program" }
 [dev-dependencies]
 maplit = "1.0.2"
 svm-sdk-mock = { path = "../sdk-mock", features = ["dynamic-alloc"], default-features = false }
-
-[features]
-default = []
-default-singlepass = [
-    "wasmer/default-singlepass", 
-    "wasmer/default-universal",
-]
-default-cranelift = [
-    "wasmer/default-cranelift",
-    "wasmer/default-universal"
-]

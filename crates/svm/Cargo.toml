@@ -27,14 +27,3 @@ svm-sdk-tests = { path = "../../tests/sdk" }
 svm-codec = { path = "../codec" }
 svm-runtime = { path = "../runtime", default-features = false }
 svm-runtime-ffi = { path = "../runtime-ffi", default-features = false }
-
-[features]
-default = ["default-singlepass"]
-default-singlepass = [
-  "svm-runtime/default-singlepass", 
-  "svm-runtime-ffi/default-singlepass",
-]
-default-cranelift = [
-  "svm-runtime/default-cranelift",
-  "svm-runtime-ffi/default-cranelift",
-]
