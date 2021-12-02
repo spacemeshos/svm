@@ -505,11 +505,11 @@ pub unsafe extern "C" fn svm_commit(runtime_ptr: RuntimePtr) -> svm_result_t {
 #[derive(Debug, Default, Copy, Clone)]
 #[repr(C)]
 pub struct svm_account {
-    pub address: [u8; Address::N],
+    pub address: [u8; 20],
     pub balance: u64,
     pub counter_upper_bits: u64,
     pub counter_lower_bits: u64,
-    pub template_addr: [u8; TemplateAddr::N],
+    pub template_addr: [u8; 20],
 }
 
 impl svm_account {
