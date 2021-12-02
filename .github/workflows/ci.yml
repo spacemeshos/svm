@@ -98,6 +98,7 @@ jobs:
         run: |
           rustup update nightly
           rustup default nightly
+          rustup target add wasm32-unknown-unknown --toolchain nightly
       - uses: actions/cache@v2
         with:
           path: |
