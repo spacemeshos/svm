@@ -10,7 +10,7 @@ use std::slice;
 use svm_codec::Codec;
 use svm_runtime::{PriceResolverRegistry, Runtime, ValidateError};
 use svm_state::GlobalState;
-use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State, TemplateAddr};
+use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State};
 
 use crate::resource_tracker::ResourceTracker;
 use crate::svm_result_t;
