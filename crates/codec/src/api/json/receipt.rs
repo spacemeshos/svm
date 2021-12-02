@@ -263,7 +263,7 @@ mod tests {
             ReceiptLog::new(b"Log entry #2".to_vec()),
         ];
 
-        let receipt = SpawnReceipt {
+        let mut receipt = SpawnReceipt {
             version: 0,
             success: true,
             error: None,
@@ -274,6 +274,7 @@ mod tests {
             touched_accounts: HashSet::new(),
             logs,
         };
+        receipt.touched_accounts.insert(account);
 
         let bytes = receipt.encode_to_vec();
         let data = HexBlob(&bytes);
@@ -288,7 +289,7 @@ mod tests {
                 "gas_used": 10,
                 "returndata": "102030",
                 "state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
-                "touched_accounts": [],
+                "touched_accounts": ["1010101010101010101010101010101010101010"],
                 "logs": [
                     {"data": "Log entry #1"},
                     {"data": "Log entry #2"}

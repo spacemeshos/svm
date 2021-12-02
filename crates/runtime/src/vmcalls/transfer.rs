@@ -16,15 +16,19 @@ fn read_addr(env: &FuncEnv, ptr: WasmPtr<Address>) -> Option<Address> {
 /// # Panics
 ///
 /// Panics when the destination account does not exist.
-pub fn svm_transfer(env: &FuncEnv, src_addr_offset: i32, dst_addr_offset: i32, amount: i64) {
+pub fn svm_transfer(env: &FuncEnv, src_addr_offset: i32, dst_addr_offset: i32, amount: u64) {
+    if amount == 0 {
+        return;
+    }
+
     let src_addr_ptr = WasmPtr::new(src_addr_offset as u32);
     let dst_addr_ptr = WasmPtr::new(dst_addr_offset as u32);
 
-    let borrow = env.borrow();
-    let gs = borrow.storage().gs.clone();
-
     let src_addr = read_addr(env, src_addr_ptr).expect(NOT_FOUND_ERR);
     let dst_addr = read_addr(env, dst_addr_ptr).expect(NOT_FOUND_ERR);
+
+    let mut borrow = env.borrow_mut();
+    let gs = borrow.storage().gs.clone();
 
     let mut src_account = AccountStorage::load(gs.clone(), &src_addr).unwrap();
     let mut dst_account = AccountStorage::load(gs, &dst_addr).unwrap();
@@ -41,4 +45,7 @@ pub fn svm_transfer(env: &FuncEnv, src_addr_offset: i32, dst_addr_offset: i32, a
     dst_account
         .set_balance(dst_balance.checked_add(amount).unwrap())
         .unwrap();
+
+    borrow.touch_account(src_addr);
+    borrow.touch_account(dst_addr);
 }

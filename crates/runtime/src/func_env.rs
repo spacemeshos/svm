@@ -2,7 +2,10 @@
 
 use wasmer::Memory;
 
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::{
+    collections::HashSet,
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 use svm_state::AccountStorage;
 use svm_types::{Address, Context, Envelope, ReceiptLog, TemplateAddr};
@@ -116,6 +119,8 @@ pub struct Inner {
     calldata: Option<(usize, usize)>,
 
     mode: ProtectedMode,
+
+    touched_accounts: HashSet<Address>,
 }
 
 /// Denotes the capabilities allowed to the executing Account at a given point in time.
@@ -131,6 +136,8 @@ pub enum ProtectedMode {
 impl Inner {
     fn new(storage: AccountStorage) -> Self {
         let logs = Vec::new();
+        let mut touched_accounts = HashSet::new();
+        touched_accounts.insert(storage.address);
 
         Self {
             storage,
@@ -140,7 +147,17 @@ impl Inner {
             returndata: None,
             used_memory: 0,
             mode: ProtectedMode::AccessDenied,
+            touched_accounts,
         }
+    }
+
+    /// Adds a given account [`Address`] to the list of touched accounts.
+    pub fn touch_account(&mut self, addr: Address) {
+        self.touched_accounts.insert(addr);
+    }
+
+    pub fn touched_accounts(&self) -> HashSet<Address> {
+        self.touched_accounts.clone()
     }
 
     pub fn set_protected_mode(&mut self, mode: ProtectedMode) {
