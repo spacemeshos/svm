@@ -32,13 +32,13 @@ fn call_message(target: &Address, func_name: &str, calldata: &[u8]) -> Vec<u8> {
 
 #[test]
 fn svm_runtime_success() {
+    svm_init().unwrap();
     unsafe {
-        svm_init(true, std::ptr::null(), 0).unwrap();
-
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
+        api::svm_runtime_create(&mut runtime, std::ptr::null(), 0).unwrap();
 
-        let res = api::svm_runtime_create(&mut runtime);
+        let res = api::svm_runtime_create(&mut runtime, std::ptr::null(), 0);
         assert!(res.is_ok());
 
         // 2) `Deploy Template`
@@ -131,14 +131,11 @@ fn svm_runtime_success() {
 
 #[test]
 fn svm_runtime_failure() {
+    svm_init().unwrap();
     unsafe {
-        svm_init(true, std::ptr::null(), 0).unwrap();
-
         // 1) `Init Runtime`
         let mut runtime = std::ptr::null_mut();
-
-        let res = api::svm_runtime_create(&mut runtime);
-        assert!(res.is_ok());
+        api::svm_runtime_create(&mut runtime, std::ptr::null(), 0).unwrap();
 
         // 2) `Deploy Template`
         let deploy_msg = deploy_message(
@@ -217,14 +214,14 @@ fn svm_runtime_failure() {
 
 #[test]
 fn svm_transfer_success() {
+    api::svm_init().unwrap();
     unsafe {
         let src_addr = Address::repeat(0xAB);
         let dst_addr = Address::repeat(0xCD);
 
         let mut runtime = std::ptr::null_mut();
 
-        api::svm_init(true, std::ptr::null(), 0).unwrap();
-        api::svm_runtime_create(&mut runtime).unwrap();
+        api::svm_runtime_create(&mut runtime, std::ptr::null(), 0).unwrap();
         api::svm_create_account(runtime, src_addr.as_slice().as_ptr(), 1000, 0, 0).unwrap();
         api::svm_create_account(runtime, dst_addr.as_slice().as_ptr(), 0, 0, 0).unwrap();
         api::svm_transfer(
