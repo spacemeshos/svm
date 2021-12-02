@@ -108,11 +108,6 @@ jobs:
           key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-${{ github.job }}
-      - name: Compile some .wasm
-        run: |
-          cd crates/runtime/tests/wasm/calldata
-          ./build.sh
-          cd ../../../../..
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
