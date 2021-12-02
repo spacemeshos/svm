@@ -1986,9 +1986,10 @@ version = "0.1.0"
 dependencies = [
  "ahash",
  "byteorder",
- "crossbeam-utils",
- "futures",
+ "futures-channel",
  "futures-core",
+ "futures-sink",
+ "futures-task",
  "futures-util",
  "getrandom",
  "hashbrown",
@@ -2004,9 +2005,7 @@ dependencies = [
  "serde",
  "sha2",
  "syn",
- "target-lexicon",
  "tokio",
- "wasmer-compiler",
 ]
 
 [[package]]
