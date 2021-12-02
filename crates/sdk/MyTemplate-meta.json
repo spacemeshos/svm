@@ -1,1 +1,0 @@
-{"api":[{"doc":"","is_ctor":false,"is_fundable":true,"name":"do_nothing","signature":{"params":[],"returns":{}},"wasm_name":"do_nothing"}],"schema":[{"byte_count":8,"id":0,"name":"coins","offset":0,"type":"Amount"}]}ype":"[u32]"}]}
