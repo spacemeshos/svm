@@ -1,58 +1,30 @@
 /// SVM C-API methods to access the runtime.
 use lazy_static::lazy_static;
 use log::{debug, error};
-use svm_state::GlobalState;
+use std::sync::Mutex;
 
 use std::ffi::c_void;
 use std::panic::UnwindSafe;
-use std::path::PathBuf;
 use std::slice;
 
 use svm_codec::Codec;
 use svm_runtime::{PriceResolverRegistry, Runtime, ValidateError};
-use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State, TemplateAddr};
+use svm_state::GlobalState;
+use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State};
 
-use crate::config::Config;
 use crate::resource_tracker::ResourceTracker;
 use crate::svm_result_t;
 
 lazy_static! {
     static ref RUNTIME_TRACKER: ResourceTracker<Runtime> = ResourceTracker::default();
+    static ref INITIALIZED: Mutex<bool> = Mutex::new(false);
 }
 
-type RuntimePtr = *mut c_void;
-
-fn new_runtime() -> Runtime {
-    let config = Config::get();
-    let imports = ("sm".to_string(), wasmer::Exports::new());
-    let global_state = if let Some(db_path) = config.db_path {
-        GlobalState::new(db_path.as_os_str().to_str().unwrap())
-    } else {
-        GlobalState::in_memory()
-    };
-
-    Runtime::new(
-        imports,
-        global_state,
-        PriceResolverRegistry::default(),
-        None,
-    )
-}
-
-/// Initializes the configuration options for all newly allocates SVM runtimes.
+/// Initializes the SVM library.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_init(in_memory: bool, path: *const u8, path_len: u32) -> svm_result_t {
-    Config::set(Config {
-        db_path: if in_memory {
-            None
-        } else {
-            let slice = std::slice::from_raw_parts(path, path_len as usize);
-            let s = std::str::from_utf8(slice).expect("Invalid UTF-8");
-            Some(PathBuf::from(s.to_string()))
-        },
-    });
-
+pub extern "C" fn svm_init() -> svm_result_t {
+    *INITIALIZED.lock().unwrap() = true;
     svm_result_t::OK
 }
 
@@ -60,43 +32,59 @@ pub unsafe extern "C" fn svm_init(in_memory: bool, path: *const u8, path_len: u3
 #[no_mangle]
 pub unsafe extern "C" fn svm_free_result(_result: svm_result_t) {}
 
-///
-/// Start of the Public C-API
-///
-/// * Each method is annotated with `#[no_mangle]`
-/// * Each method has `unsafe extern "C"` before `fn`
-///
+/// Start of the public C API.
 /// See `build.rs` for using `cbindgen` to generate `svm.h`
 ///
+/// Creates a new SVM runtime instance. The database for this runtime will be
+/// located by `path` and `path_len`. In case `path` is `NULL`, the runtime will
+/// not be persisted and will live entirely in-memory.
 ///
-/// Creates a new SVM Runtime instance backed-by an in-memory KV.
-///
-/// Returns it the created Runtime via the `runtime` parameter.
+/// The pointer to the runtime is written to `runtime_ptr`.
 ///
 /// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;
 ///
+/// svm_init().unwrap();
+///
 /// let mut runtime = std::ptr::null_mut();
 ///
-/// unsafe { svm_init(true, std::ptr::null(), 0); }
-/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, std::ptr::null(), 0) };
 /// assert!(res.is_ok());
 /// ```
 ///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_runtime_create(runtime_ptr: *mut RuntimePtr) -> svm_result_t {
+pub unsafe extern "C" fn svm_runtime_create(
+    runtime_ptr: *mut *mut c_void,
+    path: *const u8,
+    path_len: u32,
+) -> svm_result_t {
     catch_unwind_or_fail(|| {
-        if !Config::is_ready() {
+        let mut initialized = INITIALIZED.lock().unwrap();
+        if !*initialized {
             return svm_result_t::new_error(b"`svm_init` not called beforehand.");
         }
+        *initialized = true;
 
-        *runtime_ptr = RUNTIME_TRACKER.alloc(new_runtime());
+        let imports = ("sm".to_string(), wasmer::Exports::new());
+        let global_state = if path.is_null() {
+            GlobalState::in_memory()
+        } else {
+            let db_path = std::slice::from_raw_parts(path, path_len as usize);
+            GlobalState::new(std::str::from_utf8(db_path).expect("Invalid UTF-8 path."))
+        };
 
+        let runtime = Runtime::new(
+            imports,
+            global_state,
+            PriceResolverRegistry::default(),
+            None,
+        );
+
+        *runtime_ptr = RUNTIME_TRACKER.alloc(runtime);
         debug!("`svm_runtime_create` end");
-
         svm_result_t::OK
     })
 }
@@ -108,11 +96,11 @@ pub unsafe extern "C" fn svm_runtime_create(runtime_ptr: *mut RuntimePtr) -> svm
 /// ```rust
 /// use svm_runtime_ffi::*;
 ///
+/// svm_init().unwrap();
+///
 /// let mut runtime = std::ptr::null_mut();
 ///
-/// unsafe { svm_init(true, std::ptr::null(), 0); }
-///
-/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, std::ptr::null(), 0) };
 /// assert!(res.is_ok());
 ///
 /// // Destroys the Runtime
@@ -121,7 +109,7 @@ pub unsafe extern "C" fn svm_runtime_create(runtime_ptr: *mut RuntimePtr) -> svm
 ///
 #[must_use]
 #[no_mangle]
-pub extern "C" fn svm_runtime_destroy(runtime: RuntimePtr) -> svm_result_t {
+pub extern "C" fn svm_runtime_destroy(runtime: *mut c_void) -> svm_result_t {
     if RUNTIME_TRACKER.free(runtime).is_some() {
         svm_result_t::OK
     } else {
@@ -131,8 +119,8 @@ pub extern "C" fn svm_runtime_destroy(runtime: RuntimePtr) -> svm_result_t {
 
 /// Returns the number of currently allocated runtimes.
 #[no_mangle]
-pub unsafe extern "C" fn svm_runtimes_count(count: *mut u64) {
-    *count = RUNTIME_TRACKER.count();
+pub extern "C" fn svm_runtimes_count() -> u64 {
+    RUNTIME_TRACKER.count()
 }
 
 /// Validates syntactically a binary `Deploy Template` transaction.
@@ -146,11 +134,11 @@ pub unsafe extern "C" fn svm_runtimes_count(count: *mut u64) {
 /// ```rust
 /// use svm_runtime_ffi::*;
 ///
+/// svm_init().unwrap();
+///
 /// let mut runtime = std::ptr::null_mut();
 ///
-/// unsafe { svm_init(true, std::ptr::null(), 0); }
-///
-/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, std::ptr::null(), 0) };
 /// assert!(res.is_ok());
 ///
 /// let message = b"message data...";
@@ -160,7 +148,7 @@ pub unsafe extern "C" fn svm_runtimes_count(count: *mut u64) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_deploy(
-    runtime: RuntimePtr,
+    runtime: *mut c_void,
     message: *const u8,
     message_size: u32,
 ) -> svm_result_t {
@@ -184,11 +172,12 @@ pub unsafe extern "C" fn svm_validate_deploy(
 /// ```rust
 /// use svm_runtime_ffi::*;
 ///
+/// svm_init().unwrap();
+///
 /// let mut runtime = std::ptr::null_mut();
 ///
-/// unsafe { svm_init(true, std::ptr::null(), 0); }
-///
-/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// svm_init().unwrap();
+/// let res = unsafe { svm_runtime_create(&mut runtime, std::ptr::null(), 0) };
 /// assert!(res.is_ok());
 ///
 /// let message = b"message data...";
@@ -198,7 +187,7 @@ pub unsafe extern "C" fn svm_validate_deploy(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_spawn(
-    runtime: RuntimePtr,
+    runtime: *mut c_void,
     message: *const u8,
     message_size: u32,
 ) -> svm_result_t {
@@ -218,11 +207,10 @@ pub unsafe extern "C" fn svm_validate_spawn(
 /// ```rust
 /// use svm_runtime_ffi::*;
 ///
+/// svm_init().unwrap();
+///
 /// let mut runtime = std::ptr::null_mut();
-///
-/// unsafe { svm_init(true, std::ptr::null(), 0); }
-///
-/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, std::ptr::null(), 0) };
 /// assert!(res.is_ok());
 ///
 /// let message = b"message data...";
@@ -232,7 +220,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_call(
-    runtime: RuntimePtr,
+    runtime: *mut c_void,
     message: *const u8,
     message_size: u32,
 ) -> svm_result_t {
@@ -252,11 +240,10 @@ pub unsafe extern "C" fn svm_validate_call(
 /// ```rust
 /// use svm_runtime_ffi::*;
 ///
+/// svm_init().unwrap();
+///
 /// let mut runtime = std::ptr::null_mut();
-///
-/// unsafe { svm_init(true, std::ptr::null(), 0); }
-///
-/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, std::ptr::null(), 0) };
 /// assert!(res.is_ok());
 ///
 /// let envelope = b"envelope data...";
@@ -276,7 +263,7 @@ pub unsafe extern "C" fn svm_validate_call(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_deploy(
-    runtime: RuntimePtr,
+    runtime: *mut c_void,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
@@ -300,11 +287,10 @@ pub unsafe extern "C" fn svm_deploy(
 /// ```rust
 /// use svm_runtime_ffi::*;
 ///
+/// svm_init().unwrap();
+///
 /// let mut runtime = std::ptr::null_mut();
-///
-/// unsafe { svm_init(true, std::ptr::null(), 0); }
-///
-/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, std::ptr::null(), 0) };
 /// assert!(res.is_ok());
 ///
 /// let envelope = b"envelope data...";
@@ -324,7 +310,7 @@ pub unsafe extern "C" fn svm_deploy(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_spawn(
-    runtime: RuntimePtr,
+    runtime: *mut c_void,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
@@ -352,11 +338,10 @@ pub unsafe extern "C" fn svm_spawn(
 /// ```rust
 /// use svm_runtime_ffi::*;
 ///
+/// svm_init().unwrap();
+///
 /// let mut runtime = std::ptr::null_mut();
-///
-/// unsafe { svm_init(true, std::ptr::null(), 0); }
-///
-/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, std::ptr::null(), 0) };
 /// assert!(res.is_ok());
 ///
 /// let envelope = b"envelope data...";
@@ -376,7 +361,7 @@ pub unsafe extern "C" fn svm_spawn(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_verify(
-    runtime: RuntimePtr,
+    runtime: *mut c_void,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
@@ -401,11 +386,10 @@ pub unsafe extern "C" fn svm_verify(
 /// ```rust
 /// use svm_runtime_ffi::*;
 ///
+/// svm_init().unwrap();
+///
 /// let mut runtime = std::ptr::null_mut();
-///
-/// unsafe { svm_init(true, std::ptr::null(), 0); }
-///
-/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, std::ptr::null(), 0) };
 /// assert!(res.is_ok());
 ///
 /// let envelope = b"envelope data...";
@@ -425,7 +409,7 @@ pub unsafe extern "C" fn svm_verify(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_call(
-    runtime: RuntimePtr,
+    runtime: *mut c_void,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
@@ -450,11 +434,10 @@ pub unsafe extern "C" fn svm_call(
 /// ```rust
 /// use svm_runtime_ffi::*;
 ///
+/// svm_init().unwrap();
+///
 /// let mut runtime = std::ptr::null_mut();
-///
-/// unsafe { svm_init(true, std::ptr::null(), 0); }
-///
-/// let res = unsafe { svm_runtime_create(&mut runtime) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, std::ptr::null(), 0) };
 /// assert!(res.is_ok());
 ///
 /// let res = unsafe { svm_uncommitted_changes(runtime) };
@@ -463,7 +446,7 @@ pub unsafe extern "C" fn svm_call(
 ///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_uncommitted_changes(runtime_ptr: RuntimePtr) -> svm_result_t {
+pub unsafe extern "C" fn svm_uncommitted_changes(runtime_ptr: *mut c_void) -> svm_result_t {
     catch_unwind_or_fail(|| {
         let runtime = get_runtime(runtime_ptr);
         if runtime.has_uncommitted_changes()? {
@@ -478,7 +461,7 @@ pub unsafe extern "C" fn svm_uncommitted_changes(runtime_ptr: RuntimePtr) -> svm
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_layer_info(
-    runtime_ptr: RuntimePtr,
+    runtime_ptr: *mut c_void,
     hash: *mut u8,
     layer: *mut u64,
 ) -> svm_result_t {
@@ -496,7 +479,7 @@ pub unsafe extern "C" fn svm_layer_info(
 /// Undos all changes after the given layer.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_rewind(runtime_ptr: RuntimePtr, layer_id: u64) -> svm_result_t {
+pub unsafe extern "C" fn svm_rewind(runtime_ptr: *mut c_void, layer_id: u64) -> svm_result_t {
     catch_unwind_or_fail(|| {
         get_runtime(runtime_ptr).rewind(Layer(layer_id))?;
         svm_result_t::OK
@@ -506,7 +489,7 @@ pub unsafe extern "C" fn svm_rewind(runtime_ptr: RuntimePtr, layer_id: u64) -> s
 /// Commits all written data to persistent storage.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_commit(runtime_ptr: RuntimePtr) -> svm_result_t {
+pub unsafe extern "C" fn svm_commit(runtime_ptr: *mut c_void) -> svm_result_t {
     catch_unwind_or_fail(|| {
         get_runtime(runtime_ptr).commit()?;
         svm_result_t::OK
@@ -520,11 +503,11 @@ pub unsafe extern "C" fn svm_commit(runtime_ptr: RuntimePtr) -> svm_result_t {
 #[derive(Debug, Default, Copy, Clone)]
 #[repr(C)]
 pub struct svm_account {
-    pub address: [u8; Address::N],
+    pub address: [u8; 20],
     pub balance: u64,
     pub counter_upper_bits: u64,
     pub counter_lower_bits: u64,
-    pub template_addr: [u8; TemplateAddr::N],
+    pub template_addr: [u8; 20],
 }
 
 impl svm_account {
@@ -538,7 +521,7 @@ impl svm_account {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_get_account(
-    runtime_ptr: RuntimePtr,
+    runtime_ptr: *mut c_void,
     account_addr: *const u8,
     account: *mut svm_account,
 ) -> svm_result_t {
@@ -563,7 +546,7 @@ pub unsafe extern "C" fn svm_get_account(
 #[no_mangle]
 #[must_use]
 pub unsafe extern "C" fn svm_create_account(
-    runtime_ptr: RuntimePtr,
+    runtime_ptr: *mut c_void,
     addr: *const u8,
     balance: u64,
     counter_upper_bits: u64,
@@ -583,7 +566,7 @@ pub unsafe extern "C" fn svm_create_account(
 #[no_mangle]
 #[must_use]
 pub unsafe extern "C" fn svm_increase_balance(
-    runtime_ptr: RuntimePtr,
+    runtime_ptr: *mut c_void,
     addr: *const u8,
     additional_balance: u64,
 ) -> svm_result_t {
@@ -620,7 +603,7 @@ pub unsafe extern "C" fn svm_transfer(
 }
 
 unsafe fn svm_runtime_action<F, C>(
-    runtime_ptr: RuntimePtr,
+    runtime_ptr: *mut c_void,
     envelope: *const u8,
     message: *const u8,
     message_size: u32,
@@ -647,7 +630,7 @@ where
 }
 
 unsafe fn svm_validate<F>(
-    runtime_ptr: RuntimePtr,
+    runtime_ptr: *mut c_void,
     message: *const u8,
     message_size: u32,
     validate_f: F,
@@ -673,7 +656,7 @@ where
     })
 }
 
-unsafe fn get_runtime(runtime_ptr: RuntimePtr) -> &'static mut Runtime {
+unsafe fn get_runtime(runtime_ptr: *mut c_void) -> &'static mut Runtime {
     RUNTIME_TRACKER
         .get(runtime_ptr)
         .expect("The given runtime pointer doesn't point to a valid runtime.")
