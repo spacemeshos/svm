@@ -85,6 +85,9 @@ jobs:
           path: bins/
   test:
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: False
       matrix:
@@ -98,6 +101,7 @@ jobs:
         run: |
           rustup update nightly
           rustup default nightly
+          rustup target add wasm32-unknown-unknown --toolchain nightly
       - uses: actions/cache@v2
         with:
           path: |
@@ -108,6 +112,16 @@ jobs:
           key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-${{ github.job }}
+      - name: Compile some .wasm
+        run: |
+          cd crates/runtime/tests/wasm/calldata
+          ./build.sh
+          cd ../../../../..
+          cd crates/runtime-ffi/tests/wasm/counter
+          ./build.sh
+          cd ../../../../..
+          cd crates/runtime-ffi/tests/wasm/failure
+          ./build.sh
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:

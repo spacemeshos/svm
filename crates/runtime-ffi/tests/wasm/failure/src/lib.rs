@@ -1,4 +1,4 @@
-use svm_sdk::template;
+use svm_sdk::{panic, template};
 
 #[template]
 mod Template {
@@ -7,6 +7,6 @@ mod Template {
 
     #[endpoint]
     fn fail() {
-        panic!()
+        panic();
     }
 }
