@@ -1,30 +1,36 @@
-//!  ## `Call Account` Receipt Binary Format Version 0
+//! ## `Call Account` Receipt Binary Format Version 0
 //!
-//!  On success (`is_success = 1`)
+//! On success (`is_success = 1`)
 //!
-//!  ```text
-//!  +---------------------------------------------------+
-//!  |           |            |            |             |
-//!  |  tx type  |  version   | is_success |  new State  |
-//!  | (1 byte)  |  (2 bytes) |  (1 byte)  | (32 bytes)  |
-//!  |           |            |            |             |
-//!  +---------------------------------------------------+
-//!  |              |             |                      |
-//!  |  returndata  | returndata  |      gas_used        |
-//!  |   byte-size  |   (Blob)    |      (8 bytes)       |
-//!  |   (2 bytes)  |             |                      |
-//!  |              |             |                      |
-//!  +---------------------------------------------------+
-//!  |           |          |         |                  |
-//!  |  #logs    |  log #1  |  . . .  |     log #N       |
-//!  | (1 byte)  |  (Blob)  |         |     (Blob)       |
-//!  |           |          |         |                  |
-//!  +---------------------------------------------------+
-//!  ```
+//! ```text
+//! +---------------------------------------------------+
+//! |           |            |            |             |
+//! |  tx type  |  version   | is_success |  new State  |
+//! | (1 byte)  |  (2 bytes) |  (1 byte)  | (32 bytes)  |
+//! |           |            |            |             |
+//! +---------------------------------------------------+
+//! |              |             |                      |
+//! |  returndata  | returndata  |      gas_used        |
+//! |   byte-size  |   (Blob)    |      (8 bytes)       |
+//! |   (2 bytes)  |             |                      |
+//! |              |             |                      |
+//! +---------------------------------------------------+
+//! |           |            |       |                  |
+//! |  #touched |   t.a. #1  | . . . |     t.a. #N      |
+//! |  accounts |            |       |                  |
+//! | (2 bytes) | (20 bytes) |       |   (20 bytes)     |
+//! |           |            |       |                  |
+//! +---------------------------------------------------+
+//! |           |          |         |                  |
+//! |  #logs    |  log #1  |  . . .  |     log #N       |
+//! | (1 byte)  |  (Blob)  |         |     (Blob)       |
+//! |           |          |         |                  |
+//! +---------------------------------------------------+
+//! ```
 //!
 //!
-//!  On Error (`is_success = 0`)
-//!  See [error.rs](./error.rs)
+//! On Error (`is_success = 0`)
+//! See [error.rs](./error.rs)
 
 use std::{collections::HashSet, convert::TryFrom};
 
@@ -116,6 +122,8 @@ mod tests {
     #[test]
     fn encode_decode_call_receipt_success_without_returns() {
         let new_state = State::of("some-state");
+        let mut touched_accounts = HashSet::new();
+        touched_accounts.insert(Address::repeat(0x11));
         let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
         test_codec(CallReceipt {
@@ -125,7 +133,7 @@ mod tests {
             new_state: Some(new_state),
             returndata: Some(Vec::new()),
             gas_used: Gas::with(100),
-            touched_accounts: HashSet::new(),
+            touched_accounts,
             logs: logs.clone(),
         });
     }

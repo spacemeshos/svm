@@ -1,30 +1,36 @@
-//!  ## `Spawn Account` Receipt Binary Format Version 0
+//! ## `Spawn Account` Receipt Binary Format Version 0
 //!
-//!  On success (`is_success = 1`)
+//! On success (`is_success = 1`)
 //!
-//!  ```text
-//!  +---------------------------------------------------------+
-//!  |           |            |             |                  |
-//!  |  tx type  |  version   | is_success  |  Account Address |
-//!  | (1 byte)  | (2 bytes)  |  (1 byte)   |    (20 bytes)    |
-//!  |           |            |             |                  |
-//!  +---------------------------------------------------------+
-//!  |              |              |              |            |
-//!  |  init State  | returndata   |  returndata  |  gas_used  |
-//!  |  (32 bytes)  |  byte-size   |   (Blob)     | (8 bytes)  |
-//!  |              |  (2 bytes)   |              |            |
-//!  |              |              |              |            |
-//!  +---------------------------------------------------------+
-//!  |           |          |         |                        |
-//!  |  #logs    |  log #1  |  . . .  |       log #N           |
-//!  | (1 byte)  |  (Blob)  |         |       (Blob)           |
-//!  |           |          |         |                        |
-//!  +---------------------------------------------------------+
-//!  ```
+//! ```text
+//! +---------------------------------------------------------+
+//! |           |            |             |                  |
+//! |  tx type  |  version   | is_success  |  Account Address |
+//! | (1 byte)  | (2 bytes)  |  (1 byte)   |    (20 bytes)    |
+//! |           |            |             |                  |
+//! +---------------------------------------------------------+
+//! |              |              |              |            |
+//! |  init State  | returndata   |  returndata  |  gas_used  |
+//! |  (32 bytes)  |  byte-size   |   (Blob)     | (8 bytes)  |
+//! |              |  (2 bytes)   |              |            |
+//! |              |              |              |            |
+//! +---------------------------------------------------------+
+//! |           |              |           |                  |
+//! |  #touched |    t.a. #1   |   . . .   |     t.a. #N      |
+//! |  accounts |              |           |                  |
+//! | (2 bytes) |  (20 bytes)  |           |   (20 bytes)     |
+//! |           |              |           |                  |
+//! +---------------------------------------------------------+
+//! |           |          |         |                        |
+//! |  #logs    |  log #1  |  . . .  |       log #N           |
+//! | (1 byte)  |  (Blob)  |         |       (Blob)           |
+//! |           |          |         |                        |
+//! +---------------------------------------------------------+
+//! ```
 //!
 //!
-//!  On Error (`is_success = 0`)
-//!  See [error.rs][./error.rs]
+//! On Error (`is_success = 0`)
+//! See [error.rs][./error.rs]
 
 use std::collections::HashSet;
 
@@ -140,6 +146,10 @@ mod tests {
         let addr = Address::of("@Account");
         let init_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
+        let mut touched_accounts = HashSet::new();
+        touched_accounts.insert(addr.clone());
+        touched_accounts.insert(Address::repeat(0xff));
+        touched_accounts.insert(Address::zeros());
         let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
         test_codec(SpawnReceipt {
@@ -150,7 +160,7 @@ mod tests {
             init_state: Some(init_state),
             returndata: Some(returndata),
             gas_used: Gas::with(100),
-            touched_accounts: HashSet::new(),
+            touched_accounts,
             logs: logs.clone(),
         });
     }
