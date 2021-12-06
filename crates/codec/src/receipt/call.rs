@@ -122,6 +122,8 @@ mod tests {
     #[test]
     fn encode_decode_call_receipt_success_without_returns() {
         let new_state = State::of("some-state");
+        let mut touched_accounts = HashSet::new();
+        touched_accounts.insert(Address::repeat(0x11));
         let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
         test_codec(CallReceipt {
@@ -131,7 +133,7 @@ mod tests {
             new_state: Some(new_state),
             returndata: Some(Vec::new()),
             gas_used: Gas::with(100),
-            touched_accounts: HashSet::new(),
+            touched_accounts,
             logs: logs.clone(),
         });
     }

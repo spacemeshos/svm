@@ -146,6 +146,10 @@ mod tests {
         let addr = Address::of("@Account");
         let init_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
+        let mut touched_accounts = HashSet::new();
+        touched_accounts.insert(addr.clone());
+        touched_accounts.insert(Address::repeat(0xff));
+        touched_accounts.insert(Address::zeros());
         let logs = vec![ReceiptLog::new(b"something happened".to_vec())];
 
         test_codec(SpawnReceipt {
@@ -156,7 +160,7 @@ mod tests {
             init_state: Some(init_state),
             returndata: Some(returndata),
             gas_used: Gas::with(100),
-            touched_accounts: HashSet::new(),
+            touched_accounts,
             logs: logs.clone(),
         });
     }
