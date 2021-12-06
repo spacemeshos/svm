@@ -122,8 +122,6 @@ jobs:
           cd ../../../../..
           cd crates/runtime-ffi/tests/wasm/failure
           ./build.sh
-          cd ..
-          ls
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
