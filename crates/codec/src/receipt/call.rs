@@ -1,30 +1,36 @@
-//!  ## `Call Account` Receipt Binary Format Version 0
+//! ## `Call Account` Receipt Binary Format Version 0
 //!
-//!  On success (`is_success = 1`)
+//! On success (`is_success = 1`)
 //!
-//!  ```text
-//!  +---------------------------------------------------+
-//!  |           |            |            |             |
-//!  |  tx type  |  version   | is_success |  new State  |
-//!  | (1 byte)  |  (2 bytes) |  (1 byte)  | (32 bytes)  |
-//!  |           |            |            |             |
-//!  +---------------------------------------------------+
-//!  |              |             |                      |
-//!  |  returndata  | returndata  |      gas_used        |
-//!  |   byte-size  |   (Blob)    |      (8 bytes)       |
-//!  |   (2 bytes)  |             |                      |
-//!  |              |             |                      |
-//!  +---------------------------------------------------+
-//!  |           |          |         |                  |
-//!  |  #logs    |  log #1  |  . . .  |     log #N       |
-//!  | (1 byte)  |  (Blob)  |         |     (Blob)       |
-//!  |           |          |         |                  |
-//!  +---------------------------------------------------+
-//!  ```
+//! ```text
+//! +---------------------------------------------------+
+//! |           |            |            |             |
+//! |  tx type  |  version   | is_success |  new State  |
+//! | (1 byte)  |  (2 bytes) |  (1 byte)  | (32 bytes)  |
+//! |           |            |            |             |
+//! +---------------------------------------------------+
+//! |              |             |                      |
+//! |  returndata  | returndata  |      gas_used        |
+//! |   byte-size  |   (Blob)    |      (8 bytes)       |
+//! |   (2 bytes)  |             |                      |
+//! |              |             |                      |
+//! +---------------------------------------------------+
+//! |           |            |       |                  |
+//! |  #touched |   t.a. #1  | . . . |     t.a. #N      |
+//! |  accounts |            |       |                  |
+//! | (2 bytes) | (20 bytes) |       |   (20 bytes)     |
+//! |           |            |       |                  |
+//! +---------------------------------------------------+
+//! |           |          |         |                  |
+//! |  #logs    |  log #1  |  . . .  |     log #N       |
+//! | (1 byte)  |  (Blob)  |         |     (Blob)       |
+//! |           |          |         |                  |
+//! +---------------------------------------------------+
+//! ```
 //!
 //!
-//!  On Error (`is_success = 0`)
-//!  See [error.rs](./error.rs)
+//! On Error (`is_success = 0`)
+//! See [error.rs](./error.rs)
 
 use std::{collections::HashSet, convert::TryFrom};
 
