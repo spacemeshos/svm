@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+
 use crate::gas::Gas;
 use crate::receipt::{ReceiptLog, RuntimeError};
-use crate::State;
+use crate::{Address, State};
 
 /// Runtime transaction execution receipt
 #[derive(Debug, PartialEq, Clone)]
@@ -22,6 +24,9 @@ pub struct CallReceipt {
 
     /// The amount of gas used.
     pub gas_used: Gas,
+
+    /// A set of accounts that have changed balance, or *might* have.
+    pub touched_accounts: HashSet<Address>,
 
     /// Logs generated during execution of the transaction.
     pub logs: Vec<ReceiptLog>,
@@ -48,6 +53,7 @@ impl CallReceipt {
             new_state: None,
             returndata: None,
             gas_used: Gas::new(),
+            touched_accounts: HashSet::new(),
             logs,
         }
     }

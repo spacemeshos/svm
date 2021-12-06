@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{Address, Gas, State};
 use crate::{CallReceipt, ReceiptLog, RuntimeError};
 
@@ -25,6 +27,9 @@ pub struct SpawnReceipt {
     /// The amount of gas used.
     pub gas_used: Gas,
 
+    /// A set of accounts that have changed balance, or *might* have.
+    pub touched_accounts: HashSet<Address>,
+
     /// Logs collected during `Spawning` `ctor` running.
     pub logs: Vec<ReceiptLog>,
 }
@@ -45,6 +50,7 @@ impl SpawnReceipt {
             init_state: None,
             returndata: None,
             gas_used: Gas::new(),
+            touched_accounts: HashSet::new(),
             logs,
         }
     }
@@ -110,6 +116,7 @@ pub fn into_spawn_receipt(mut ctor_receipt: CallReceipt, account_addr: &Address)
             init_state: ctor_receipt.new_state,
             returndata: ctor_receipt.returndata,
             gas_used: ctor_receipt.gas_used,
+            touched_accounts: ctor_receipt.touched_accounts,
             logs,
         }
     } else {
@@ -123,6 +130,7 @@ pub fn into_spawn_receipt(mut ctor_receipt: CallReceipt, account_addr: &Address)
             init_state: None,
             returndata: None,
             gas_used: Gas::new(),
+            touched_accounts: HashSet::new(),
             logs,
         }
     }

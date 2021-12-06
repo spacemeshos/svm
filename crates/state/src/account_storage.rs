@@ -17,7 +17,8 @@ pub struct AccountStorage {
     /// The internal [`GlobalState`] instance used to access the database layer.
     pub gs: GlobalState,
 
-    address: Address,
+    /// The owner's [`Address`] of this [`AccountStorage`].
+    pub address: Address,
     template_addr: TemplateAddr,
     layout: FixedLayout,
 }

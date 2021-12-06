@@ -166,6 +166,7 @@ fn decode_spawn(receipt: &SpawnReceipt, ty: &'static str) -> Value {
         returndata,
         gas_used,
         logs,
+        touched_accounts,
         ..
     } = receipt;
 
@@ -176,6 +177,7 @@ fn decode_spawn(receipt: &SpawnReceipt, ty: &'static str) -> Value {
         "state": HexBlob(init_state.as_ref().unwrap().as_slice()),
         "returndata": HexBlob(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
+        "touched_accounts": touched_accounts.into_iter().map(|addr| AddressWrapper(*addr)).collect::<Vec<AddressWrapper>>(),
         "logs": json::logs_to_json(&logs),
     })
 }
@@ -189,6 +191,7 @@ fn decode_call(receipt: &CallReceipt, ty: &'static str) -> Value {
         returndata,
         gas_used,
         logs,
+        touched_accounts,
         ..
     } = receipt;
 
@@ -198,12 +201,15 @@ fn decode_call(receipt: &CallReceipt, ty: &'static str) -> Value {
         "new_state": HexBlob(new_state.as_ref().unwrap().as_slice()),
         "returndata": HexBlob(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
+        "touched_accounts": touched_accounts.into_iter().map(|addr| AddressWrapper(*addr)).collect::<Vec<AddressWrapper>>(),
         "logs": json::logs_to_json(&logs),
     })
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use crate::Codec;
 
     use super::*;
@@ -257,7 +263,7 @@ mod tests {
             ReceiptLog::new(b"Log entry #2".to_vec()),
         ];
 
-        let receipt = SpawnReceipt {
+        let mut receipt = SpawnReceipt {
             version: 0,
             success: true,
             error: None,
@@ -265,8 +271,10 @@ mod tests {
             init_state: Some(state),
             returndata: Some(vec![0x10, 0x20, 0x30]),
             gas_used: Gas::with(10),
+            touched_accounts: HashSet::new(),
             logs,
         };
+        receipt.touched_accounts.insert(account);
 
         let bytes = receipt.encode_to_vec();
         let data = HexBlob(&bytes);
@@ -281,6 +289,7 @@ mod tests {
                 "gas_used": 10,
                 "returndata": "102030",
                 "state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
+                "touched_accounts": ["1010101010101010101010101010101010101010"],
                 "logs": [
                     {"data": "Log entry #1"},
                     {"data": "Log entry #2"}
@@ -301,6 +310,7 @@ mod tests {
             init_state: None,
             returndata: None,
             gas_used: Gas::with(1000),
+            touched_accounts: HashSet::new(),
             logs,
         };
 
@@ -335,6 +345,7 @@ mod tests {
             new_state: Some(state),
             returndata: Some(vec![0x10, 0x20]),
             gas_used: Gas::with(10),
+            touched_accounts: HashSet::new(),
             logs,
         };
 
@@ -350,6 +361,7 @@ mod tests {
                 "gas_used": 10,
                 "returndata": "1020",
                 "new_state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
+                "touched_accounts": [],
                 "logs": [
                     {"data": "Log entry #1"},
                     {"data": "Log entry #2"}

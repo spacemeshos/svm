@@ -4,7 +4,7 @@ mod call;
 mod error;
 mod inputdata;
 mod receipt;
-mod serde_types;
+pub(crate) mod serde_types;
 mod spawn;
 
 pub use call::{decode_call, encode_call, encode_call_raw};
