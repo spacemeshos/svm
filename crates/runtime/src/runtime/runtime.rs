@@ -27,16 +27,14 @@ pub struct Runtime {
     /// The [`GlobalState`]
     gs: GlobalState,
 
+    /// A Cache for a [`Template`]'= functions prices.
     template_price: TemplatePriceCache,
 }
 
 impl Runtime {
     /// Initializes a new [`Runtime`].
-    pub fn new(global_state: GlobalState, template_price: TemplatePriceCache) -> Self {
-        Self {
-            gs: global_state,
-            template_price,
-        }
+    pub fn new(gs: GlobalState, template_price: TemplatePriceCache) -> Self {
+        Self { gs, template_price }
     }
 
     fn call_ctor(
@@ -188,7 +186,7 @@ impl Runtime {
         size: usize,
     ) -> OutcomeResult<WasmPtr<u8>> {
         // Backups the current [`ProtectedMode`].
-        let origin_mode = env.protected_mode();
+        let origin_mode = env.access_mode();
 
         // Sets `Access Denied` mode while running `svm_alloc`.
         env.set_protected_mode(AccessMode::AccessDenied);
@@ -303,9 +301,9 @@ impl Runtime {
         let mut import_object = wasmer::ImportObject::new();
 
         // Registering SVM host functions.
-        let mut vmcalls = wasmer::Exports::new();
-        vmcalls::wasmer_register(store, env, &mut vmcalls);
-        import_object.register("svm", vmcalls);
+        let mut exports = wasmer::Exports::new();
+        vmcalls::wasmer_register(store, env, &mut exports);
+        import_object.register("svm", exports);
         import_object
     }
 
@@ -346,24 +344,39 @@ impl Runtime {
         // * call
         // * other factors
 
-        let spawning = call.within_spawn;
-        let ctor = template.is_ctor(call.func_name);
-
-        if spawning && !ctor {
-            let msg = "expected function to be a constructor";
-            let err = err::func_not_allowed(env, call.func_name, msg);
-
-            return Err(err);
+        if call.within_spawn {
+            self.ensure_ctor(template, &call.func_name)
+        } else {
+            self.ensure_not_ctor(template, env, &call)
         }
+    }
 
-        if !spawning && ctor {
-            let msg = "expected function to be a non-constructor";
-            let err = err::func_not_allowed(env, call.func_name, msg);
-
-            return Err(err);
+    fn ensure_ctor(
+        &self,
+        template: &Template,
+        func_name: &str,
+    ) -> std::result::Result<(), RuntimeFailure> {
+        if template.is_ctor(func_name) {
+            Ok(())
+        } else {
+            let err = err::func_not_ctor(template.template_addr(), func_name);
+            Err(err)
         }
+    }
 
-        Ok(())
+    fn ensure_not_ctor(
+        &self,
+        template: &Template,
+        env: &FuncEnv,
+        call: &Call,
+    ) -> std::result::Result<(), RuntimeFailure> {
+        if template.is_ctor(call.func_name) {
+            let msg = "expected function not to be a constructor";
+            let err = err::func_not_allowed(env, call.func_name, msg);
+            Err(err)
+        } else {
+            Ok(())
+        }
     }
 
     fn build_call<'a>(
@@ -371,7 +384,7 @@ impl Runtime {
         tx: &'a Transaction,
         envelope: &'a Envelope,
         context: &'a Context,
-        protected_mode: AccessMode,
+        access_mode: AccessMode,
         func_name: &'a str,
         func_input: &'a [u8],
     ) -> Call<'a> {
@@ -386,7 +399,7 @@ impl Runtime {
             template,
             state: context.state(),
             gas_limit: envelope.gas_limit(),
-            access_mode: protected_mode,
+            access_mode,
             within_spawn: false,
             envelope,
             context,
@@ -501,9 +514,9 @@ impl Runtime {
         info!("Runtime `spawn`");
 
         let gas_limit = envelope.gas_limit();
-        let base = SpawnAccount::decode_bytes(message).expect(ERR_VALIDATE_SPAWN);
+        let spawn = SpawnAccount::decode_bytes(message).expect(ERR_VALIDATE_SPAWN);
 
-        let template_addr = base.account.template_addr();
+        let template_addr = spawn.account.template_addr();
 
         // TODO: load only the `Sections` relevant for spawning
         let template_storage = TemplateStorage::load(self.gs.clone(), template_addr).unwrap();
@@ -515,29 +528,14 @@ impl Runtime {
         let gas_mode = code_section.gas_mode();
         let program = Program::new(code, false).unwrap();
 
-        let func_price = self.template_price.template_price(&template_addr, &program);
-
-        let spawn = base;
-
-        if !template.is_ctor(spawn.ctor_name()) {
-            // The [`Template`] is faulty.
-            let account = spawn.account();
-            let account_addr = compute_account_addr(&spawn);
-
-            return SpawnReceipt::from_err(
-                RuntimeError::FuncNotAllowed {
-                    target: account_addr,
-                    template: account.template_addr().clone(),
-                    func: spawn.ctor_name().to_string(),
-                    msg: "The given function is not a `ctor`.".to_string(),
-                },
-                vec![],
-            );
+        if let Err(fail) = self.ensure_ctor(&template, spawn.ctor_name()) {
+            return SpawnReceipt::from_err(fail.err, fail.logs);
         }
 
         match gas_mode {
             GasMode::Fixed => {
                 let ctor_func_index = program.exports().get(spawn.ctor_name()).unwrap();
+                let func_price = self.template_price.price_of(&template_addr, &program);
                 let price = func_price.get(ctor_func_index) as u64;
                 if gas_limit <= price {
                     return SpawnReceipt::new_oog(vec![]);
@@ -809,6 +807,14 @@ mod err {
             target: env.target_addr().clone(),
             template: env.template_addr().clone(),
             msg: err.to_string(),
+        }
+        .into()
+    }
+
+    pub fn func_not_ctor(template_addr: &TemplateAddr, func_name: &str) -> RuntimeFailure {
+        RuntimeError::FuncNotCtor {
+            template: template_addr.clone(),
+            func: func_name.to_string(),
         }
         .into()
     }

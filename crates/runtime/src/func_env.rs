@@ -85,14 +85,14 @@ impl FuncEnv {
             .expect("Attempted write but RwLock is poisoned")
     }
 
-    /// Sets the [`ProtectedMode`] and overrides the existing value.
+    /// Sets the [`AccessMode`] and overrides the existing value.
     pub fn set_protected_mode(&self, mode: AccessMode) {
         let mut borrow = self.borrow_mut();
         borrow.set_access_mode(mode);
     }
 
-    /// Returns the current [`ProtectedMode`].
-    pub fn protected_mode(&self) -> AccessMode {
+    /// Returns the current [`AccessMode`].
+    pub fn access_mode(&self) -> AccessMode {
         let borrow = self.borrow();
         borrow.mode
     }

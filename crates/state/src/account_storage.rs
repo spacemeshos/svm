@@ -19,7 +19,11 @@ pub struct AccountStorage {
 
     /// The owner's [`Address`] of this [`AccountStorage`].
     pub address: Address,
+
+    /// The [`TemplateAddr`] associated with `Account`.
     template_addr: TemplateAddr,
+
+    /// The `Account`'s layout.
     layout: FixedLayout,
 }
 

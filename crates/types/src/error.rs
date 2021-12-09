@@ -29,6 +29,10 @@ pub enum RuntimeError {
         func: String,
         msg: String,
     },
+    FuncNotCtor {
+        template: TemplateAddr,
+        func: String,
+    },
     FuncNotAllowed {
         target: Address,
         template: TemplateAddr,

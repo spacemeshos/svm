@@ -29,7 +29,7 @@ impl TemplatePriceCache {
     /// We're using a naive memoization mechanism: we only ever add, never remove.
     /// This means there's no cache invalidation at all.
     /// We can easily afford to do this because the number of [`Template`]s upon Genesis is fixed and won't grow.
-    pub fn template_price(&self, template_addr: &TemplateAddr, program: &Program) -> FuncPrice {
+    pub fn price_of(&self, template_addr: &TemplateAddr, program: &Program) -> FuncPrice {
         let mut cache = self.cache.borrow_mut();
 
         if let Some(prices) = cache.get(&template_addr) {
