@@ -20,7 +20,7 @@ pub mod testing;
 pub mod vmcalls;
 
 pub use error::ValidateError;
-pub use func_env::{FuncEnv, AccessMode};
+pub use func_env::{AccessMode, FuncEnv};
 pub use price_registry::PriceResolverRegistry;
-pub use runtime::{compute_account_addr, compute_template_addr, Runtime};
+pub use runtime::{compute_account_addr, compute_template_addr, Runtime, TemplatePriceCache};
 pub use wasm_store::new_store;

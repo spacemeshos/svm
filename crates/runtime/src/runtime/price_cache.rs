@@ -18,6 +18,7 @@ pub struct TemplatePriceCache {
 }
 
 impl TemplatePriceCache {
+    /// New Cache
     pub fn new(registry: PriceResolverRegistry) -> Self {
         Self {
             registry,
@@ -25,22 +26,25 @@ impl TemplatePriceCache {
         }
     }
 
-    // We're using a naive memoization mechanism: we only ever add, never remove.
-    // This means there's no cache invalidation at all.
-    // We can easily afford to do this because the number of [`Template`]s upon Genesis is fixed and won't grow.
-    pub fn template_price(&self, template_addr: &TemplateAddr, program: &Program) -> &FuncPrice {
-        let cache = self.cache.borrow_mut();
+    /// We're using a naive memoization mechanism: we only ever add, never remove.
+    /// This means there's no cache invalidation at all.
+    /// We can easily afford to do this because the number of [`Template`]s upon Genesis is fixed and won't grow.
+    pub fn template_price(&self, template_addr: &TemplateAddr, program: &Program) -> FuncPrice {
+        let mut cache = self.cache.borrow_mut();
 
         if let Some(prices) = cache.get(&template_addr) {
-            prices
+            prices.clone()
         } else {
-            let resolver = self.registry.get(0).expect("Missing pricing utility.");
+            let resolver = self.registry.get(0).expect("Missing pricing resolver");
 
             let pp = ProgramPricing::new(resolver);
             let prices = pp.visit(&program).unwrap();
 
-            cache.insert(template_addr.clone(), prices);
-            cache.get(template_addr).unwrap()
+            {
+                cache.insert(template_addr.clone(), prices);
+            }
+
+            cache.get(template_addr).unwrap().clone()
         }
     }
 }

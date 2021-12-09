@@ -8,7 +8,7 @@ use std::panic::UnwindSafe;
 use std::slice;
 
 use svm_codec::Codec;
-use svm_runtime::{PriceResolverRegistry, Runtime, ValidateError};
+use svm_runtime::{PriceResolverRegistry, Runtime, TemplatePriceCache, ValidateError};
 use svm_state::GlobalState;
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State};
 
@@ -68,7 +68,8 @@ pub unsafe extern "C" fn svm_runtime_create(
         }
         *initialized = true;
 
-        let imports = ("sm".to_string(), wasmer::Exports::new());
+        // TODO: move both `GlobalState` and `TemplatePriceCache` to sit under `Env`.
+        // `Env` be a singleton living throughout the process' lifetime.
         let global_state = if path.is_null() {
             GlobalState::in_memory()
         } else {
@@ -76,7 +77,8 @@ pub unsafe extern "C" fn svm_runtime_create(
             GlobalState::new(std::str::from_utf8(db_path).expect("Invalid UTF-8 path."))
         };
 
-        let runtime = Runtime::new(imports, global_state, PriceResolverRegistry::default());
+        let registry = PriceResolverRegistry::default();
+        let runtime = Runtime::new(global_state, TemplatePriceCache::new(registry));
 
         *runtime_ptr = RUNTIME_TRACKER.alloc(runtime);
         debug!("`svm_runtime_create` end");

@@ -8,7 +8,7 @@ use svm_types::{
     TemplateAddr, Transaction,
 };
 
-use crate::Runtime;
+use crate::{PriceResolverRegistry, Runtime, TemplatePriceCache};
 
 /// Hold a Wasm file in textual or binary form
 pub enum WasmFile<'a> {
@@ -41,14 +41,16 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
     }
 }
 
-/// Creates an in-memory `Runtime` backed by a `state_kv`.
+/// Creates an [`Runtime`] backed by an in-memory [`GlobalState`].
 pub fn create_memory_runtime() -> Runtime {
-    Runtime::new(GlobalState::in_memory())
+    let registry = PriceResolverRegistry::default();
+    Runtime::new(GlobalState::in_memory(), TemplatePriceCache::new(registry))
 }
 
-/// Creates an in-memory `Runtime` backed by a `state_kv`.
+/// Creates an [`Runtime`] backed by the [`GlobalState`].
 pub fn create_db_runtime(path: &str) -> Runtime {
-    Runtime::new(GlobalState::new(path))
+    let registry = PriceResolverRegistry::default();
+    Runtime::new(GlobalState::new(path), TemplatePriceCache::new(registry))
 }
 
 /// Builds a binary `Deploy Template` transaction.
