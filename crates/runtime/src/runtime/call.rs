@@ -1,6 +1,6 @@
 use svm_types::{Address, Context, Envelope, Gas, State, TemplateAddr};
 
-use crate::ProtectedMode;
+use crate::AccessMode;
 
 /// Information regarding a Wasm function call.
 #[doc(hidden)]
@@ -15,5 +15,5 @@ pub struct Call<'a> {
     pub within_spawn: bool,
     pub context: &'a Context,
     pub envelope: &'a Envelope,
-    pub protected_mode: ProtectedMode,
+    pub protected_mode: AccessMode,
 }

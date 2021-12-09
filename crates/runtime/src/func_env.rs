@@ -28,7 +28,7 @@ impl FuncEnv {
         context: &Context,
         template_addr: TemplateAddr,
         target_addr: Address,
-        mode: ProtectedMode,
+        mode: AccessMode,
     ) -> Self {
         let inner = Inner::new(storage);
 
@@ -52,11 +52,10 @@ impl FuncEnv {
         context: &Context,
         template_addr: TemplateAddr,
         target_addr: Address,
-        mode: ProtectedMode,
+        mode: AccessMode,
     ) -> Self {
         let env = Self::new(storage, envelope, context, template_addr, target_addr, mode);
         env.borrow_mut().set_memory(memory);
-
         env
     }
 
@@ -87,13 +86,13 @@ impl FuncEnv {
     }
 
     /// Sets the [`ProtectedMode`] and overrides the existing value.
-    pub fn set_protected_mode(&self, mode: ProtectedMode) {
+    pub fn set_protected_mode(&self, mode: AccessMode) {
         let mut borrow = self.borrow_mut();
-        borrow.set_protected_mode(mode);
+        borrow.set_access_mode(mode);
     }
 
     /// Returns the current [`ProtectedMode`].
-    pub fn protected_mode(&self) -> ProtectedMode {
+    pub fn protected_mode(&self) -> AccessMode {
         let borrow = self.borrow();
         borrow.mode
     }
@@ -118,16 +117,21 @@ pub struct Inner {
     /// Pointer to `calldata`. Tuple stores `(offset, len)`.
     calldata: Option<(usize, usize)>,
 
-    mode: ProtectedMode,
+    /// The current [`AccessMode`] of the running transaction.
+    mode: AccessMode,
 
+    /// Set of [`Address`] that have been part of at least once `Coins Transfer` during transaction execution.
     touched_accounts: HashSet<Address>,
 }
 
 /// Denotes the capabilities allowed to the executing Account at a given point in time.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum ProtectedMode {
+pub enum AccessMode {
     /// Access to [`AccountStorage`] is not allowed.
     AccessDenied,
+
+    /// Only `Read Access` to [AccountStorage]'s `Immutable Storage` is allowed.
+    ImmutableOnly,
 
     /// Full-Access to [`AccountStorage`] is allowed.
     FullAccess,
@@ -146,7 +150,7 @@ impl Inner {
             calldata: None,
             returndata: None,
             used_memory: 0,
-            mode: ProtectedMode::AccessDenied,
+            mode: AccessMode::AccessDenied,
             touched_accounts,
         }
     }
@@ -160,19 +164,17 @@ impl Inner {
         self.touched_accounts.clone()
     }
 
-    pub fn set_protected_mode(&mut self, mode: ProtectedMode) {
+    pub fn set_access_mode(&mut self, mode: AccessMode) {
         self.mode = mode;
     }
 
     pub fn storage(&self) -> &AccountStorage {
         assert!(self.can_read());
-
         &self.storage
     }
 
     pub fn storage_mut(&mut self) -> &mut AccountStorage {
         assert!(self.can_write());
-
         &mut self.storage
     }
 
@@ -202,7 +204,6 @@ impl Inner {
         );
 
         debug_assert!(self.returndata.is_none());
-
         self.returndata = Some((offset, len));
     }
 
@@ -238,11 +239,11 @@ impl Inner {
 
     #[inline]
     fn can_read(&self) -> bool {
-        self.mode != ProtectedMode::AccessDenied
+        self.mode != AccessMode::AccessDenied
     }
 
     #[inline]
     fn can_write(&self) -> bool {
-        matches!(self.mode, ProtectedMode::FullAccess)
+        matches!(self.mode, AccessMode::FullAccess)
     }
 }

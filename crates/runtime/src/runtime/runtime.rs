@@ -19,7 +19,7 @@ use svm_types::{
 use super::{Call, Function, Outcome};
 use crate::error::ValidateError;
 use crate::price_registry::PriceResolverRegistry;
-use crate::{vmcalls, FuncEnv, ProtectedMode};
+use crate::{vmcalls, FuncEnv, AccessMode};
 
 type OutcomeResult<T> = std::result::Result<Outcome<T>, RuntimeFailure>;
 type Result<T> = std::result::Result<T, RuntimeFailure>;
@@ -63,10 +63,6 @@ impl Runtime {
         }
     }
 
-    fn failure_to_receipt(&self, fail: RuntimeFailure) -> CallReceipt {
-        CallReceipt::from_err(fail.err, fail.logs)
-    }
-
     fn call_ctor(
         &mut self,
         spawn: &SpawnAccount,
@@ -85,7 +81,7 @@ impl Runtime {
             target: target.clone(),
             within_spawn: true,
             gas_limit: gas_left,
-            protected_mode: ProtectedMode::FullAccess,
+            protected_mode: AccessMode::FullAccess,
             envelope,
             context,
         };
@@ -102,8 +98,7 @@ impl Runtime {
 
     fn exec_call<'a, Args, Rets>(&'a mut self, call: &Call<'a>) -> CallReceipt {
         let result = self.exec::<(), (), _, _>(&call, |env, out| outcome_to_receipt(env, out));
-
-        result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
+        result.unwrap_or_else(|fail| CallReceipt::from_err(fail.err, fail.logs))
     }
 
     fn exec<Args, Rets, F, R>(&self, call: &Call, f: F) -> Result<R>
@@ -152,7 +147,7 @@ impl Runtime {
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
-        self.validate_call_contents(call, template, func_env)?;
+        self.validate_func_usage(call, template, func_env)?;
 
         let module = self.compile_template(store, func_env, &template, call.gas_limit)?;
         let instance = self.instantiate(func_env, &module, import_object)?;
@@ -220,7 +215,7 @@ impl Runtime {
         let origin_mode = env.protected_mode();
 
         // Sets `Access Denied` mode while running `svm_alloc`.
-        env.set_protected_mode(ProtectedMode::AccessDenied);
+        env.set_protected_mode(AccessMode::AccessDenied);
 
         let func_name = "svm_alloc";
 
@@ -371,7 +366,7 @@ impl Runtime {
         module_res.map_err(|err| err::compilation_failed(env, err))
     }
 
-    fn validate_call_contents(
+    fn validate_func_usage(
         &self,
         call: &Call,
         template: &Template,
@@ -407,7 +402,7 @@ impl Runtime {
         tx: &'a Transaction,
         envelope: &'a Envelope,
         context: &'a Context,
-        protected_mode: ProtectedMode,
+        protected_mode: AccessMode,
         func_name: &'a str,
         func_input: &'a [u8],
     ) -> Call<'a> {
@@ -648,7 +643,7 @@ impl Runtime {
             &tx,
             envelope,
             context,
-            ProtectedMode::AccessDenied,
+            AccessMode::AccessDenied,
             "svm_verify",
             tx.verifydata(),
         );
@@ -667,7 +662,7 @@ impl Runtime {
             &tx,
             envelope,
             context,
-            ProtectedMode::FullAccess,
+            AccessMode::FullAccess,
             tx.func_name(),
             tx.calldata(),
         );
