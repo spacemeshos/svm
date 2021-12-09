@@ -2,7 +2,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use svm_gas::FuncPrice;
+use svm_gas::{FuncPrice, ProgramPricing};
+use svm_program::{Program, ProgramVisitor};
 use svm_types::TemplateAddr;
 
 use crate::PriceResolverRegistry;
@@ -21,6 +22,25 @@ impl TemplatePriceCache {
         Self {
             registry,
             cache: Rc::new(RefCell::new(HashMap::new())),
+        }
+    }
+
+    // We're using a naive memoization mechanism: we only ever add, never remove.
+    // This means there's no cache invalidation at all.
+    // We can easily afford to do this because the number of [`Template`]s upon Genesis is fixed and won't grow.
+    pub fn template_price(&self, template_addr: &TemplateAddr, program: &Program) -> &FuncPrice {
+        let cache = self.cache.borrow_mut();
+
+        if let Some(prices) = cache.get(&template_addr) {
+            prices
+        } else {
+            let resolver = self.registry.get(0).expect("Missing pricing utility.");
+
+            let pp = ProgramPricing::new(resolver);
+            let prices = pp.visit(&program).unwrap();
+
+            cache.insert(template_addr.clone(), prices);
+            cache.get(template_addr).unwrap()
         }
     }
 }

@@ -8,7 +8,6 @@ use svm_types::{
     TemplateAddr, Transaction,
 };
 
-use crate::price_registry::PriceResolverRegistry;
 use crate::Runtime;
 
 /// Hold a Wasm file in textual or binary form

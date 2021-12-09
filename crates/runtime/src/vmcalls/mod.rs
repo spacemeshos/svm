@@ -46,7 +46,6 @@ pub fn wasmer_register(store: &Store, env: &FuncEnv, ns: &mut Exports) {
     ns.insert("svm_store160", func!(store, env, store160));
 
     ns.insert("svm_log", func!(store, env, log));
-
     ns.insert("svm_transfer", func!(store, env, svm_transfer));
 }
 

@@ -2,13 +2,8 @@ use log::info;
 use svm_codec::Codec;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
-
-use svm_gas::{FuncPrice, ProgramPricing};
 use svm_hash::{Blake3Hasher, Hasher};
-use svm_program::{Program, ProgramVisitor};
+use svm_program::Program;
 use svm_state::{AccountStorage, GlobalState, TemplateStorage};
 use svm_types::{
     Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, Layer,
@@ -18,7 +13,6 @@ use svm_types::{
 
 use super::{Call, Function, Outcome, TemplatePriceCache};
 use crate::error::ValidateError;
-use crate::price_registry::PriceResolverRegistry;
 use crate::{vmcalls, AccessMode, FuncEnv};
 
 type OutcomeResult<T> = std::result::Result<Outcome<T>, RuntimeFailure>;
@@ -309,15 +303,9 @@ impl Runtime {
         let mut import_object = wasmer::ImportObject::new();
 
         // Registering SVM host functions.
-        let mut internals = wasmer::Exports::new();
-        vmcalls::wasmer_register(store, env, &mut internals);
-        import_object.register("svm", internals);
-
-        // Registering the externals provided to the [`Runtime`].
-        let (name, exports) = &self.imports;
-        debug_assert_ne!(name, "svm");
-
-        import_object.register(name, exports.clone());
+        let mut vmcalls = wasmer::Exports::new();
+        vmcalls::wasmer_register(store, env, &mut vmcalls);
+        import_object.register("svm", vmcalls);
         import_object
     }
 
@@ -510,8 +498,6 @@ impl Runtime {
         message: &[u8],
         context: &Context,
     ) -> SpawnReceipt {
-        // TODO: refactor this function (it has got a bit lengthy...)
-
         info!("Runtime `spawn`");
 
         let gas_limit = envelope.gas_limit();
@@ -529,24 +515,7 @@ impl Runtime {
         let gas_mode = code_section.gas_mode();
         let program = Program::new(code, false).unwrap();
 
-        // We're using a naive memoization mechanism: we only ever add, never
-        // remove. This means there's no cache invalidation at all. We can
-        // easily afford to do this because the number of templates that exist
-        // at genesis is fixed and won't grow.
-        let mut template_prices = self.template_prices.borrow_mut();
-        let func_price = if let Some(prices) = template_prices.get(&template_addr) {
-            prices
-        } else {
-            let pricer = self
-                .price_registry
-                .get(0)
-                .expect("Missing pricing utility.");
-            let program_pricing = ProgramPricing::new(pricer);
-            let prices = program_pricing.visit(&program).unwrap();
-
-            template_prices.insert(template_addr.clone(), prices);
-            template_prices.get(template_addr).unwrap()
-        };
+        let func_price = self.template_price.template_price(&template_addr, &program);
 
         let spawn = base;
 
@@ -576,9 +545,6 @@ impl Runtime {
             }
             GasMode::Metering => unreachable!("Not supported yet... (TODO)"),
         }
-
-        // We don't need this anymore!
-        drop(template_prices);
 
         let payload_price = svm_gas::transaction::spawn(message);
         let gas_left = gas_limit - payload_price;
