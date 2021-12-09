@@ -217,7 +217,6 @@ impl Inner {
 
     pub fn memory(&self) -> &Memory {
         debug_assert!(self.memory.is_some());
-
         self.memory.as_ref().unwrap()
     }
 

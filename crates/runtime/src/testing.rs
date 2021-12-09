@@ -44,26 +44,12 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
 
 /// Creates an in-memory `Runtime` backed by a `state_kv`.
 pub fn create_memory_runtime() -> Runtime {
-    let imports = ("sm".to_string(), wasmer::Exports::new());
-
-    Runtime::new(
-        imports,
-        GlobalState::in_memory(),
-        PriceResolverRegistry::default(),
-        None,
-    )
+    Runtime::new(GlobalState::in_memory())
 }
 
 /// Creates an in-memory `Runtime` backed by a `state_kv`.
 pub fn create_db_runtime(path: &str) -> Runtime {
-    let imports = ("sm".to_string(), wasmer::Exports::new());
-
-    Runtime::new(
-        imports,
-        GlobalState::new(path),
-        PriceResolverRegistry::default(),
-        None,
-    )
+    Runtime::new(GlobalState::new(path))
 }
 
 /// Builds a binary `Deploy Template` transaction.
@@ -87,7 +73,6 @@ pub fn build_deploy(
 /// Builds a binary `Spawn Account` transaction.
 pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
     let spawn = SpawnAccount::new(0, template, name, ctor, calldata);
-
     spawn.encode_to_vec()
 }
 

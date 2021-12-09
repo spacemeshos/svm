@@ -26,8 +26,7 @@ impl PriceResolverRegistry {
         self.price_resolvers.insert(version, price_resolver);
     }
 
-    /// Retrieves the [`PriceResolver`] associated with a certain SVM version
-    /// within `self`.
+    /// Retrieves the [`PriceResolver`] associated with a certain SVM version within `self`.
     pub fn get(&self, version: u16) -> Option<Rc<dyn PriceResolver>> {
         self.price_resolvers.get(&version).cloned()
     }

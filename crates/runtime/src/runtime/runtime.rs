@@ -16,10 +16,10 @@ use svm_types::{
     State, Template, TemplateAddr, Transaction,
 };
 
-use super::{Call, Function, Outcome};
+use super::{Call, Function, Outcome, TemplatePriceCache};
 use crate::error::ValidateError;
 use crate::price_registry::PriceResolverRegistry;
-use crate::{vmcalls, FuncEnv, AccessMode};
+use crate::{vmcalls, AccessMode, FuncEnv};
 
 type OutcomeResult<T> = std::result::Result<Outcome<T>, RuntimeFailure>;
 type Result<T> = std::result::Result<T, RuntimeFailure>;
@@ -30,36 +30,18 @@ const ERR_VALIDATE_DEPLOY: &str = "Should have called `validate_deploy` first";
 
 /// An SVM runtime implementation based on [`Wasmer`](https://wasmer.io).
 pub struct Runtime {
-    /// Provided host functions to be consumed by running transactions.
-    imports: (String, wasmer::Exports),
+    /// The [`GlobalState`]
     gs: GlobalState,
-    price_registry: PriceResolverRegistry,
-    /// A naive cache for [`Template`]s' [`FuncPrice`]s. The cache key will, in
-    /// the future, also include an identifier for which
-    /// [`PriceResolver`](svm_gas::PriceResolver) should be used (possibly an
-    /// `u16`?).
-    template_prices: Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>,
+
+    template_price: TemplatePriceCache,
 }
 
 impl Runtime {
     /// Initializes a new [`Runtime`].
-    ///
-    /// `template_prices` offers an easy way to inject an append-only, naive caching mechanism to
-    /// the [`Template`] pricing logic; using a `None` will result in a new
-    /// empty cache and on-the-fly calculation for all [`Template`]s.
-    pub fn new(
-        imports: (String, wasmer::Exports),
-        global_state: GlobalState,
-        price_registry: PriceResolverRegistry,
-        template_prices: Option<Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>>,
-    ) -> Self {
-        let template_prices = template_prices.unwrap_or_default();
-
+    pub fn new(global_state: GlobalState, template_price: TemplatePriceCache) -> Self {
         Self {
-            imports,
             gs: global_state,
-            template_prices,
-            price_registry,
+            template_price,
         }
     }
 
@@ -81,7 +63,7 @@ impl Runtime {
             target: target.clone(),
             within_spawn: true,
             gas_limit: gas_left,
-            protected_mode: AccessMode::FullAccess,
+            access_mode: AccessMode::FullAccess,
             envelope,
             context,
         };
@@ -125,7 +107,7 @@ impl Runtime {
             call.context,
             call.template.clone(),
             call.target.clone(),
-            call.protected_mode,
+            call.access_mode,
         );
 
         let store = crate::wasm_store::new_store();
@@ -175,7 +157,7 @@ impl Runtime {
 
                 Ok(out)
             }
-            Err(..) => Err(RuntimeFailure::new(RuntimeError::OOG, out.logs)),
+            Err(_) => Err(RuntimeFailure::new(RuntimeError::OOG, out.logs)),
         }
     }
 
@@ -326,17 +308,16 @@ impl Runtime {
     ) -> wasmer::ImportObject {
         let mut import_object = wasmer::ImportObject::new();
 
-        // Registering SVM internals
+        // Registering SVM host functions.
         let mut internals = wasmer::Exports::new();
         vmcalls::wasmer_register(store, env, &mut internals);
         import_object.register("svm", internals);
 
-        // Registering the externals provided to the Runtime
+        // Registering the externals provided to the [`Runtime`].
         let (name, exports) = &self.imports;
         debug_assert_ne!(name, "svm");
 
         import_object.register(name, exports.clone());
-
         import_object
     }
 
@@ -417,7 +398,7 @@ impl Runtime {
             template,
             state: context.state(),
             gas_limit: envelope.gas_limit(),
-            protected_mode,
+            access_mode: protected_mode,
             within_spawn: false,
             envelope,
             context,

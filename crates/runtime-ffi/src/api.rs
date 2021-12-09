@@ -76,12 +76,7 @@ pub unsafe extern "C" fn svm_runtime_create(
             GlobalState::new(std::str::from_utf8(db_path).expect("Invalid UTF-8 path."))
         };
 
-        let runtime = Runtime::new(
-            imports,
-            global_state,
-            PriceResolverRegistry::default(),
-            None,
-        );
+        let runtime = Runtime::new(imports, global_state, PriceResolverRegistry::default());
 
         *runtime_ptr = RUNTIME_TRACKER.alloc(runtime);
         debug!("`svm_runtime_create` end");

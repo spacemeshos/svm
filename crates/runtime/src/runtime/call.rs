@@ -15,5 +15,5 @@ pub struct Call<'a> {
     pub within_spawn: bool,
     pub context: &'a Context,
     pub envelope: &'a Envelope,
-    pub protected_mode: AccessMode,
+    pub access_mode: AccessMode,
 }
