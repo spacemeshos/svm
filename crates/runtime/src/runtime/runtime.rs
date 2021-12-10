@@ -442,7 +442,7 @@ impl Runtime {
         name: String,
         balance: u64,
         counter: u128,
-    ) -> Result<()> {
+    ) {
         AccountStorage::create(
             self.gs.clone(),
             account_addr,
@@ -452,8 +452,6 @@ impl Runtime {
             counter,
         )
         .unwrap();
-
-        Ok(())
     }
 
     /// Validates syntactically a binary `Deploy Template` message prior to executing it.
@@ -564,17 +562,7 @@ impl Runtime {
             Ok(gas_left) => {
                 let account = spawn.account();
                 let target = compute_account_addr(&spawn);
-
-                AccountStorage::create(
-                    self.gs.clone(),
-                    &target,
-                    account.name().to_string(),
-                    account.template_addr().clone(),
-                    0,
-                    0,
-                )
-                .unwrap();
-
+                self.create_account(&target, account.name().to_string(), 0, 0);
                 self.call_ctor(&spawn, target, gas_left, envelope, context)
             }
             Err(..) => SpawnReceipt::new_oog(Vec::new()),
