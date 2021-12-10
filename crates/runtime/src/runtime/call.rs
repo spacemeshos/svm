@@ -11,7 +11,7 @@ pub struct Call<'a> {
     pub func_name: &'a str,
     pub func_input: &'a [u8],
     pub target: Address,
-    pub template: TemplateAddr,
+    pub template_addr: TemplateAddr,
     pub state: &'a State,
     pub gas_left: GasTank,
     pub within_spawn: bool,

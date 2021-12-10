@@ -262,6 +262,11 @@ impl Sections {
         self.inner.contains_key(&kind)
     }
 
+    /// Returns the [`Section`]s kinds held.
+    pub fn kinds(&self) -> indexmap::map::Keys<SectionKind, Section> {
+        self.inner.keys()
+    }
+
     /// Returns the [`Section`] of the requested `kind`.
     ///
     /// # Panics

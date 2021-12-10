@@ -7,8 +7,8 @@ use svm_program::Program;
 use svm_state::{AccountStorage, GlobalState, TemplateStorage};
 use svm_types::{
     Address, BytesPrimitive, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, Layer,
-    OOGError, ReceiptLog, RuntimeError, RuntimeFailure, Sections, SpawnAccount, SpawnReceipt,
-    State, Template, TemplateAddr, Transaction,
+    OOGError, ReceiptLog, RuntimeError, RuntimeFailure, SectionKind, Sections, SpawnAccount,
+    SpawnReceipt, State, Template, TemplateAddr, Transaction,
 };
 
 use super::gas_tank::GasTank;
@@ -52,7 +52,7 @@ impl Runtime {
             func_name: spawn.ctor_name(),
             func_input: spawn.ctor_data(),
             state: &State::zeros(),
-            template,
+            template_addr: template,
             target: target.clone(),
             within_spawn: true,
             gas_left,
@@ -89,7 +89,7 @@ impl Runtime {
             storage,
             call.envelope,
             call.context,
-            call.template.clone(),
+            call.template_addr.clone(),
             call.target.clone(),
             call.access_mode,
         );
@@ -318,11 +318,18 @@ impl Runtime {
         let template_storage = TemplateStorage::load(self.gs.clone(), &template_addr).unwrap();
         let sections = template_storage.sections().unwrap();
 
+        for kind in sections.kinds() {
+            dbg!(kind);
+        }
+
+        let template = Template::from_sections(sections);
+
         // TODO:
         //
         // * Return a `RuntimeFailure` when `Template` doesn't exist.
         // * Fetch only the `Core Sections`.
-        Ok(Template::from_sections(sections))
+        // * Add `non_core` sections to be fetched as a param (optional)
+        Ok(template)
     }
 
     fn compile_template(
@@ -333,7 +340,6 @@ impl Runtime {
         _gas_left: GasTank,
     ) -> std::result::Result<Module, RuntimeFailure> {
         let module_res = Module::from_binary(store, template.code());
-
         module_res.map_err(|err| err::compilation_failed(env, err))
     }
 
@@ -349,21 +355,24 @@ impl Runtime {
         // * other factors
 
         if call.within_spawn {
-            self.ensure_ctor(template, &call.func_name)
+            self.ensure_ctor(&call.template_addr, template, &call.func_name)
         } else {
-            self.ensure_not_ctor(template, env, &call)
+            self.ensure_not_ctor(template, env, call)
         }
     }
 
     fn ensure_ctor(
         &self,
+        template_addr: &TemplateAddr,
         template: &Template,
         func_name: &str,
     ) -> std::result::Result<(), RuntimeFailure> {
+        debug_assert!(template.contains(SectionKind::Ctors));
+
         if template.is_ctor(func_name) {
             Ok(())
         } else {
-            let err = err::func_not_ctor(template.template_addr(), func_name);
+            let err = err::func_not_ctor(template_addr, func_name);
             Err(err)
         }
     }
@@ -444,7 +453,7 @@ impl Runtime {
             func_name,
             func_input,
             target: target.clone(),
-            template,
+            template_addr: template,
             state: context.state(),
             gas_left,
             access_mode,
@@ -533,15 +542,20 @@ impl Runtime {
         let template = Template::from_sections(sections);
 
         let gas_left = envelope.gas_limit();
-        let install_price = svm_gas::transaction::deploy(message);
+        let deploy_price = svm_gas::transaction::deploy(message);
 
-        if gas_left < install_price {
+        if gas_left < deploy_price {
             return DeployReceipt::new_oog();
         }
 
-        let gas_used = Gas::with(install_price);
+        let gas_used = Gas::with(deploy_price);
         let addr = compute_template_addr(&template);
 
+        // TODO:
+        //
+        // * Create a `Deploy Section` to be added to `TemplateStorage`
+        // * Have `template.core_sections() and `template.noncore_sections()`
+        // * Pass to `TemplateStorage` `core sections` and `non-core sections`
         TemplateStorage::create(
             self.gs.clone(),
             &addr,
@@ -574,7 +588,7 @@ impl Runtime {
         let template = template.unwrap();
         let ctor = spawn.ctor_name();
 
-        if let Err(fail) = self.ensure_ctor(&template, ctor) {
+        if let Err(fail) = self.ensure_ctor(&template_addr, &template, ctor) {
             return SpawnReceipt::from_err(fail.err, fail.logs);
         }
 
