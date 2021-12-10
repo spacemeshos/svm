@@ -475,6 +475,7 @@ impl Runtime {
     pub fn create_account(
         &mut self,
         account_addr: &Address,
+        template_addr: &TemplateAddr,
         name: String,
         balance: u64,
         counter: u128,
@@ -483,7 +484,7 @@ impl Runtime {
             self.gs.clone(),
             account_addr,
             name,
-            TemplateAddr::god_template(),
+            template_addr.clone(),
             balance,
             counter,
         )
@@ -584,7 +585,7 @@ impl Runtime {
 
         let account = spawn.account();
         let target = compute_account_addr(&spawn);
-        self.create_account(&target, account.name().to_string(), 0, 0);
+        self.create_account(&target, &template_addr, account.name().to_string(), 0, 0);
         self.call_ctor(&spawn, target, envelope, context, gas_left)
     }
 
