@@ -11,6 +11,7 @@ use svm_types::{
     State, Template, TemplateAddr, Transaction,
 };
 
+use super::gas_tank::GasTank;
 use super::{Call, Function, Outcome, TemplatePriceCache};
 use crate::error::ValidateError;
 use crate::{vmcalls, AccessMode, FuncEnv};
@@ -41,9 +42,9 @@ impl Runtime {
         &mut self,
         spawn: &SpawnAccount,
         target: Address,
-        gas_left: Gas,
         envelope: &Envelope,
         context: &Context,
+        gas_left: GasTank,
     ) -> SpawnReceipt {
         let template = spawn.template_addr().clone();
 
@@ -82,16 +83,7 @@ impl Runtime {
         F: Fn(&FuncEnv, Outcome<Box<[wasmer::Val]>>) -> R,
     {
         let template = self.account_template(&call.target)?;
-
-        let storage = AccountStorage::create(
-            self.gs.clone(),
-            &call.target,
-            "NAME_TODO".to_string(),
-            call.template,
-            0,
-            0,
-        )
-        .unwrap();
+        let storage = AccountStorage::load(self.gs.clone(), &call.target).unwrap();
 
         let mut env = FuncEnv::new(
             storage,
@@ -185,11 +177,11 @@ impl Runtime {
         env: &FuncEnv,
         size: usize,
     ) -> OutcomeResult<WasmPtr<u8>> {
-        // Backups the current [`ProtectedMode`].
+        // Backups the current [`AccessMode`].
         let origin_mode = env.access_mode();
 
         // Sets `Access Denied` mode while running `svm_alloc`.
-        env.set_protected_mode(AccessMode::AccessDenied);
+        env.set_access_mode(AccessMode::AccessDenied);
 
         let func_name = "svm_alloc";
 
@@ -197,7 +189,7 @@ impl Runtime {
         if func.is_err() {
             // ### Notes:
             //
-            // We don't restore the original [`ProtectedMode`]
+            // We don't restore the original [`AccessMode`]
             // since `svm_alloc` has failed and the transaction will halt.
             let err = err::func_not_found(env, func_name);
             return Err(err);
@@ -215,8 +207,8 @@ impl Runtime {
                 WasmPtr::new(offset)
             });
 
-        // Restores the original [`ProtectedMode`].
-        env.set_protected_mode(origin_mode);
+        // Restores the original [`AccessMode`].
+        env.set_access_mode(origin_mode);
 
         Ok(out)
     }
@@ -313,7 +305,7 @@ impl Runtime {
     ) -> std::result::Result<Template, RuntimeFailure> {
         // TODO:
         //
-        // * Return an `RuntimeFailure` when `account_addr` doesn't exist.
+        // * Return a `RuntimeFailure` when `account_addr` doesn't exist.
         let account = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
         let template_addr = account.template_addr().unwrap();
         self.load_template(&template_addr)
@@ -327,7 +319,8 @@ impl Runtime {
         let sections = template_storage.sections().unwrap();
 
         // TODO:
-        // * Return a `RuntimeFailure` when `Template` doesn't exist
+        //
+        // * Return a `RuntimeFailure` when `Template` doesn't exist.
         // * Fetch only the `Core Sections`.
         Ok(Template::from_sections(sections))
     }
@@ -337,10 +330,9 @@ impl Runtime {
         store: &wasmer::Store,
         env: &FuncEnv,
         template: &Template,
-        gas_left: Gas,
+        _gas_left: GasTank,
     ) -> std::result::Result<Module, RuntimeFailure> {
         let module_res = Module::from_binary(store, template.code());
-        let _gas_left = gas_left.unwrap_or(0);
 
         module_res.map_err(|err| err::compilation_failed(env, err))
     }
@@ -391,6 +383,49 @@ impl Runtime {
         }
     }
 
+    fn check_gas_for_payload(
+        &self,
+        _envelope: &Envelope,
+        message: &[u8],
+        gas_left: GasTank,
+    ) -> GasTank {
+        if gas_left.is_empty() {
+            return GasTank::Empty;
+        }
+
+        // TODO: take into account the `Envelope` as well (not only the `Message`)
+        let payload_price = svm_gas::transaction::spawn(message);
+        gas_left.consume(payload_price)
+    }
+
+    fn check_gas_for_func(
+        &self,
+        template_addr: &TemplateAddr,
+        template: &Template,
+        func_name: &str,
+        gas_left: GasTank,
+    ) -> GasTank {
+        if gas_left.is_empty() {
+            return GasTank::Empty;
+        }
+
+        let code_section = template.code_section();
+        let code = code_section.code();
+        let gas_mode = code_section.gas_mode();
+        let program = Program::new(code, false).unwrap();
+
+        match gas_mode {
+            GasMode::Fixed => {
+                let func_index = program.exports().get(func_name).unwrap();
+                let func_price = self.template_price.price_of(&template_addr, &program);
+
+                let price = func_price.get(func_index) as u64;
+                gas_left.consume(price)
+            }
+            GasMode::Metering => unreachable!("Not supported yet... (TODO)"),
+        }
+    }
+
     fn build_call<'a>(
         &self,
         tx: &'a Transaction,
@@ -399,6 +434,7 @@ impl Runtime {
         access_mode: AccessMode,
         func_name: &'a str,
         func_input: &'a [u8],
+        gas_left: GasTank,
     ) -> Call<'a> {
         let target = tx.target();
         let account_storage = AccountStorage::load(self.gs.clone(), target).unwrap();
@@ -410,7 +446,7 @@ impl Runtime {
             target: target.clone(),
             template,
             state: context.state(),
-            gas_limit: envelope.gas_limit(),
+            gas_limit: gas_left,
             access_mode,
             within_spawn: false,
             envelope,
@@ -523,9 +559,8 @@ impl Runtime {
     ) -> SpawnReceipt {
         info!("Runtime `spawn`");
 
-        let gas_limit = envelope.gas_limit();
+        let gas_left = GasTank::new(envelope.gas_limit());
         let spawn = SpawnAccount::decode_bytes(message).expect(ERR_VALIDATE_SPAWN);
-
         let template_addr = spawn.account.template_addr();
         let template = self.load_template(&template_addr);
 
@@ -534,39 +569,23 @@ impl Runtime {
         }
 
         let template = template.unwrap();
-        let code_section = template.code_section();
-        let code = code_section.code();
-        let gas_mode = code_section.gas_mode();
-        let program = Program::new(code, false).unwrap();
+        let ctor = spawn.ctor_name();
 
-        if let Err(fail) = self.ensure_ctor(&template, spawn.ctor_name()) {
+        if let Err(fail) = self.ensure_ctor(&template, ctor) {
             return SpawnReceipt::from_err(fail.err, fail.logs);
         }
 
-        match gas_mode {
-            GasMode::Fixed => {
-                let ctor_func_index = program.exports().get(spawn.ctor_name()).unwrap();
-                let func_price = self.template_price.price_of(&template_addr, &program);
-                let price = func_price.get(ctor_func_index) as u64;
-                if gas_limit <= price {
-                    return SpawnReceipt::new_oog(vec![]);
-                }
-            }
-            GasMode::Metering => unreachable!("Not supported yet... (TODO)"),
+        let gas_left = self.check_gas_for_payload(envelope, message, gas_left);
+        let gas_left = self.check_gas_for_func(&template_addr, &template, ctor, gas_left);
+
+        if gas_left.is_empty() {
+            return SpawnReceipt::new_oog(Vec::new());
         }
 
-        let payload_price = svm_gas::transaction::spawn(message);
-        let gas_left = gas_limit - payload_price;
-
-        match gas_left {
-            Ok(gas_left) => {
-                let account = spawn.account();
-                let target = compute_account_addr(&spawn);
-                self.create_account(&target, account.name().to_string(), 0, 0);
-                self.call_ctor(&spawn, target, gas_left, envelope, context)
-            }
-            Err(..) => SpawnReceipt::new_oog(Vec::new()),
-        }
+        let account = spawn.account();
+        let target = compute_account_addr(&spawn);
+        self.create_account(&target, account.name().to_string(), 0, 0);
+        self.call_ctor(&spawn, target, envelope, context, gas_left)
     }
 
     /// Verifies a [`Transaction`](svm_types::Transaction) before execution.
@@ -577,6 +596,7 @@ impl Runtime {
         context: &Context,
     ) -> CallReceipt {
         let tx = Transaction::decode_bytes(message).expect(ERR_VALIDATE_CALL);
+        let gas_left = GasTank::new(envelope.gas_limit());
 
         // ### Important:
         //
@@ -592,6 +612,7 @@ impl Runtime {
             AccessMode::AccessDenied,
             "svm_verify",
             tx.verifydata(),
+            gas_left,
         );
 
         // TODO: override the `call.gas_limit` with `VERIFY_MAX_GAS`
@@ -603,6 +624,7 @@ impl Runtime {
     /// This function should be called only if the `verify` stage has passed.
     pub fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
         let tx = Transaction::decode_bytes(message).expect(ERR_VALIDATE_CALL);
+        let gas_left = GasTank::new(envelope.gas_limit());
 
         let call = self.build_call(
             &tx,
@@ -611,6 +633,7 @@ impl Runtime {
             AccessMode::FullAccess,
             tx.func_name(),
             tx.calldata(),
+            gas_left,
         );
 
         self.exec_call::<(), ()>(&call)

@@ -1,6 +1,8 @@
-use svm_types::{Address, Context, Envelope, Gas, State, TemplateAddr};
+use svm_types::{Address, Context, Envelope, State, TemplateAddr};
 
 use crate::AccessMode;
+
+use super::gas_tank::GasTank;
 
 /// Information regarding a Wasm function call.
 #[doc(hidden)]
@@ -11,7 +13,7 @@ pub struct Call<'a> {
     pub target: Address,
     pub template: TemplateAddr,
     pub state: &'a State,
-    pub gas_limit: Gas,
+    pub gas_limit: GasTank,
     pub within_spawn: bool,
     pub context: &'a Context,
     pub envelope: &'a Envelope,

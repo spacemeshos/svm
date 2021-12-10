@@ -6,6 +6,8 @@ mod outcome;
 mod price_cache;
 mod runtime;
 
+mod gas_tank;
+
 pub use call::Call;
 pub use function::Function;
 pub use outcome::Outcome;

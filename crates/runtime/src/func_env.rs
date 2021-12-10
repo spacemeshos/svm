@@ -39,7 +39,7 @@ impl FuncEnv {
             envelope: envelope.clone(),
             context: context.clone(),
         };
-        env.set_protected_mode(mode);
+        env.set_access_mode(mode);
 
         env
     }
@@ -86,7 +86,7 @@ impl FuncEnv {
     }
 
     /// Sets the [`AccessMode`] and overrides the existing value.
-    pub fn set_protected_mode(&self, mode: AccessMode) {
+    pub fn set_access_mode(&self, mode: AccessMode) {
         let mut borrow = self.borrow_mut();
         borrow.set_access_mode(mode);
     }
