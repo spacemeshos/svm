@@ -4,7 +4,7 @@ use wasmer::{imports, FromToNativeWasmType, NativeFunc};
 
 use svm_layout::FixedLayout;
 use svm_runtime::testing::WasmFile;
-use svm_runtime::{vmcalls, FuncEnv, AccessMode};
+use svm_runtime::{vmcalls, AccessMode, FuncEnv};
 use svm_state::{AccountStorage, GlobalState};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, ReceiptLog, TemplateAddr};
 
