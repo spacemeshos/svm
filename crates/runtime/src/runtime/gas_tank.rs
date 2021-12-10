@@ -33,4 +33,11 @@ impl GasTank {
             }
         }
     }
+
+    pub fn unwrap(self) -> u64 {
+        match self {
+            GasTank::Empty => 0,
+            GasTank::NonEmpty(gas) => gas,
+        }
+    }
 }
