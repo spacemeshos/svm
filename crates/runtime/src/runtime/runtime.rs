@@ -317,11 +317,6 @@ impl Runtime {
     ) -> std::result::Result<Template, RuntimeFailure> {
         let template_storage = TemplateStorage::load(self.gs.clone(), &template_addr).unwrap();
         let sections = template_storage.sections().unwrap();
-
-        for kind in sections.kinds() {
-            dbg!(kind);
-        }
-
         let template = Template::from_sections(sections);
 
         // TODO:
