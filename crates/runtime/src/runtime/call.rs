@@ -13,7 +13,7 @@ pub struct Call<'a> {
     pub target: Address,
     pub template: TemplateAddr,
     pub state: &'a State,
-    pub gas_limit: GasTank,
+    pub gas_left: GasTank,
     pub within_spawn: bool,
     pub context: &'a Context,
     pub envelope: &'a Envelope,

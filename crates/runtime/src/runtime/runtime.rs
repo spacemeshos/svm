@@ -55,7 +55,7 @@ impl Runtime {
             template,
             target: target.clone(),
             within_spawn: true,
-            gas_limit: gas_left,
+            gas_left,
             access_mode: AccessMode::FullAccess,
             envelope,
             context,
@@ -115,7 +115,7 @@ impl Runtime {
     {
         self.validate_func_usage(call, template, func_env)?;
 
-        let module = self.compile_template(store, func_env, &template, call.gas_limit)?;
+        let module = self.compile_template(store, func_env, &template, call.gas_left)?;
         let instance = self.instantiate(func_env, &module, import_object)?;
 
         set_memory(func_env, &instance);
@@ -446,7 +446,7 @@ impl Runtime {
             target: target.clone(),
             template,
             state: context.state(),
-            gas_limit: gas_left,
+            gas_left,
             access_mode,
             within_spawn: false,
             envelope,
@@ -529,10 +529,10 @@ impl Runtime {
         let sections = Sections::decode_bytes(message).expect(ERR_VALIDATE_DEPLOY);
         let template = Template::from_sections(sections);
 
-        let gas_limit = envelope.gas_limit();
+        let gas_left = envelope.gas_limit();
         let install_price = svm_gas::transaction::deploy(message);
 
-        if gas_limit < install_price {
+        if gas_left < install_price {
             return DeployReceipt::new_oog();
         }
 
