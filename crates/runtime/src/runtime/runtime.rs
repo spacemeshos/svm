@@ -479,7 +479,7 @@ impl Runtime {
         name: String,
         balance: u64,
         counter: u128,
-    ) {
+    ) -> Result<()> {
         AccountStorage::create(
             self.gs.clone(),
             account_addr,
@@ -489,6 +489,8 @@ impl Runtime {
             counter,
         )
         .unwrap();
+
+        Ok(())
     }
 
     /// Validates syntactically a binary `Deploy Template` message prior to executing it.
@@ -585,7 +587,10 @@ impl Runtime {
 
         let account = spawn.account();
         let target = compute_account_addr(&spawn);
-        self.create_account(&target, &template_addr, account.name().to_string(), 0, 0);
+
+        self.create_account(&target, &template_addr, account.name().to_string(), 0, 0)
+            .unwrap();
+
         self.call_ctor(&spawn, target, envelope, context, gas_left)
     }
 

@@ -10,7 +10,7 @@ use std::slice;
 use svm_codec::Codec;
 use svm_runtime::{PriceResolverRegistry, Runtime, TemplatePriceCache, ValidateError};
 use svm_state::GlobalState;
-use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State};
+use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State, TemplateAddr};
 
 use crate::resource_tracker::ResourceTracker;
 use crate::svm_result_t;
@@ -552,8 +552,16 @@ pub unsafe extern "C" fn svm_create_account(
     catch_unwind_or_fail(|| {
         let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
         let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
+        let template_addr = TemplateAddr::god_template();
         let counter = ((counter_upper_bits as u128) << 64) | (counter_lower_bits as u128);
-        runtime.create_account(&account_addr, "".to_string(), balance, counter)?;
+
+        runtime.create_account(
+            &account_addr,
+            &template_addr,
+            "".to_string(),
+            balance,
+            counter,
+        )?;
 
         svm_result_t::OK
     })
