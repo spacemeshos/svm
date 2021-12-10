@@ -40,10 +40,7 @@ impl TemplatePriceCache {
             let pp = ProgramPricing::new(resolver);
             let prices = pp.visit(&program).unwrap();
 
-            {
-                cache.insert(template_addr.clone(), prices);
-            }
-
+            cache.insert(template_addr.clone(), prices);
             cache.get(template_addr).unwrap().clone()
         }
     }

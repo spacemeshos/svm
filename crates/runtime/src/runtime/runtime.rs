@@ -310,13 +310,25 @@ impl Runtime {
     fn account_template(
         &self,
         account_addr: &Address,
-    ) -> std::result::Result<Template, RuntimeError> {
-        let accounts = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
-        let template_addr = accounts.template_addr().unwrap();
+    ) -> std::result::Result<Template, RuntimeFailure> {
+        // TODO:
+        //
+        // * Return an `RuntimeFailure` when `account_addr` doesn't exist.
+        let account = AccountStorage::load(self.gs.clone(), account_addr).unwrap();
+        let template_addr = account.template_addr().unwrap();
+        self.load_template(&template_addr)
+    }
+
+    fn load_template(
+        &self,
+        template_addr: &TemplateAddr,
+    ) -> std::result::Result<Template, RuntimeFailure> {
         let template_storage = TemplateStorage::load(self.gs.clone(), &template_addr).unwrap();
         let sections = template_storage.sections().unwrap();
 
-        // TODO: Only fetch core sections.
+        // TODO:
+        // * Return a `RuntimeFailure` when `Template` doesn't exist
+        // * Fetch only the `Core Sections`.
         Ok(Template::from_sections(sections))
     }
 
@@ -406,7 +418,7 @@ impl Runtime {
         }
     }
 
-    /// Returns the state root hash and layer ID of the last layer.
+    /// Returns the [`State`] root hash and [`Layer`] of the last layer.
     pub fn current_layer(&mut self) -> (Layer, State) {
         self.gs.current_layer().unwrap()
     }
@@ -517,12 +529,13 @@ impl Runtime {
         let spawn = SpawnAccount::decode_bytes(message).expect(ERR_VALIDATE_SPAWN);
 
         let template_addr = spawn.account.template_addr();
+        let template = self.load_template(&template_addr);
 
-        // TODO: load only the `Sections` relevant for spawning
-        let template_storage = TemplateStorage::load(self.gs.clone(), template_addr).unwrap();
-        let sections = template_storage.sections().unwrap();
-        let template = Template::from_sections(sections);
+        if let Err(fail) = template {
+            return SpawnReceipt::from_err(fail.err, fail.logs);
+        }
 
+        let template = template.unwrap();
         let code_section = template.code_section();
         let code = code_section.code();
         let gas_mode = code_section.gas_mode();
