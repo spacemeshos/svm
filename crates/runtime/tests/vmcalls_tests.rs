@@ -4,7 +4,7 @@ use wasmer::{imports, FromToNativeWasmType, NativeFunc};
 
 use svm_layout::FixedLayout;
 use svm_runtime::testing::WasmFile;
-use svm_runtime::{vmcalls, FuncEnv, ProtectedMode};
+use svm_runtime::{vmcalls, AccessMode, FuncEnv};
 use svm_state::{AccountStorage, GlobalState};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, ReceiptLog, TemplateAddr};
 
@@ -134,7 +134,7 @@ fn vmcalls_get32_set32() {
         &context,
         template_addr,
         target_addr,
-        ProtectedMode::FullAccess,
+        AccessMode::FullAccess,
     );
 
     let import_object = imports! {
@@ -180,7 +180,7 @@ fn vmcalls_get64_set64() {
         &context,
         template_addr,
         target_addr,
-        ProtectedMode::FullAccess,
+        AccessMode::FullAccess,
     );
 
     let import_object = imports! {
@@ -228,7 +228,7 @@ fn vmcalls_load160() {
         &context,
         template_addr,
         target_addr.clone(),
-        ProtectedMode::FullAccess,
+        AccessMode::FullAccess,
     );
 
     let import_object = imports! {
@@ -282,7 +282,7 @@ fn vmcalls_store160() {
         &context,
         template_addr,
         target_addr.clone(),
-        ProtectedMode::FullAccess,
+        AccessMode::FullAccess,
     );
 
     let import_object = imports! {
@@ -331,7 +331,7 @@ fn vmcalls_log() {
         &context,
         template_addr,
         target_addr,
-        ProtectedMode::AccessDenied,
+        AccessMode::AccessDenied,
     );
 
     let import_object = imports! {
@@ -390,7 +390,7 @@ fn setup_svm_transfer_test() -> (
         &context,
         template,
         src_addr.clone(),
-        ProtectedMode::FullAccess,
+        AccessMode::FullAccess,
     );
 
     let import_object = imports! {

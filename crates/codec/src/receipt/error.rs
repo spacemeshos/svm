@@ -65,6 +65,12 @@
 //!   |   (20 bytes)      |   (20 bytes)     |  (String)  | (UTF-8 String) |
 //!   +-------------------+------------------+------------+----------------+
 //!
+//!  * Function Not Ctor
+//!   +-------------------+-------------------+----------------+
+//!   |  Template Address |     Function      |    Message     |
+//!   |   (20 bytes)      |     (String)      | (UTF-8 String) |
+//!   +-------------------+-------------------+----------------+
+//!
 //!  * Function Not Allowed
 //!   +-------------------+-------------------+------------+----------------+
 //!   |  Template Address |  Account Address  |  Function  |    Message     |
@@ -128,6 +134,10 @@ impl Codec for RuntimeFailure {
                 func.encode(w);
                 encode_msg(&msg, w);
             }
+            RuntimeError::FuncNotCtor { template, func } => {
+                template.encode(w);
+                func.encode(w);
+            }
             RuntimeError::FuncNotAllowed {
                 target,
                 template,
@@ -164,8 +174,9 @@ impl Codec for RuntimeFailure {
                 4 => instantiation_error(cursor),
                 5 => func_not_found(cursor),
                 6 => func_failed(cursor),
-                7 => func_not_allowed(cursor),
-                8 => func_invalid_sig(cursor),
+                7 => func_not_ctor(cursor),
+                8 => func_not_allowed(cursor),
+                9 => func_invalid_sig(cursor),
                 _ => unreachable!(),
             }
         };
@@ -193,8 +204,9 @@ fn encode_err_type(err: &RuntimeError, w: &mut impl WriteExt) {
         RuntimeError::InstantiationFailed { .. } => 4,
         RuntimeError::FuncNotFound { .. } => 5,
         RuntimeError::FuncFailed { .. } => 6,
-        RuntimeError::FuncNotAllowed { .. } => 7,
-        RuntimeError::FuncInvalidSignature { .. } => 8,
+        RuntimeError::FuncNotCtor { .. } => 7,
+        RuntimeError::FuncNotAllowed { .. } => 8,
+        RuntimeError::FuncInvalidSignature { .. } => 9,
     };
 
     w.write_byte(ty);
@@ -261,6 +273,16 @@ fn func_failed(cursor: &mut impl ReadExt) -> RuntimeError {
         target: account_addr,
         func,
         msg,
+    }
+}
+
+fn func_not_ctor(cursor: &mut impl ReadExt) -> RuntimeError {
+    let template_addr = TemplateAddr::decode(cursor).unwrap();
+    let func = String::decode(cursor).unwrap();
+
+    RuntimeError::FuncNotCtor {
+        template: template_addr,
+        func,
     }
 }
 

@@ -227,7 +227,7 @@ fn memory_runtime_spawn_invoking_non_ctor_fails() {
 
     assert!(matches!(
         receipt.error.unwrap(),
-        RuntimeError::FuncNotAllowed { .. }
+        RuntimeError::FuncNotCtor { .. }
     ));
 }
 

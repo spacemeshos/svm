@@ -8,7 +8,7 @@ use std::panic::UnwindSafe;
 use std::slice;
 
 use svm_codec::Codec;
-use svm_runtime::{PriceResolverRegistry, Runtime, ValidateError};
+use svm_runtime::{PriceResolverRegistry, Runtime, TemplatePriceCache, ValidateError};
 use svm_state::GlobalState;
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State};
 
@@ -68,7 +68,8 @@ pub unsafe extern "C" fn svm_runtime_create(
         }
         *initialized = true;
 
-        let imports = ("sm".to_string(), wasmer::Exports::new());
+        // TODO: move both `GlobalState` and `TemplatePriceCache` to sit under `Env`.
+        // `Env` be a singleton living throughout the process' lifetime.
         let global_state = if path.is_null() {
             GlobalState::in_memory()
         } else {
@@ -76,12 +77,8 @@ pub unsafe extern "C" fn svm_runtime_create(
             GlobalState::new(std::str::from_utf8(db_path).expect("Invalid UTF-8 path."))
         };
 
-        let runtime = Runtime::new(
-            imports,
-            global_state,
-            PriceResolverRegistry::default(),
-            None,
-        );
+        let registry = PriceResolverRegistry::default();
+        let runtime = Runtime::new(global_state, TemplatePriceCache::new(registry));
 
         *runtime_ptr = RUNTIME_TRACKER.alloc(runtime);
         debug!("`svm_runtime_create` end");
@@ -545,7 +542,7 @@ pub unsafe extern "C" fn svm_get_account(
 /// Creates an account at genesis with a given balance and nonce counter.
 #[no_mangle]
 #[must_use]
-pub unsafe extern "C" fn svm_create_account(
+pub unsafe extern "C" fn svm_create_genesis_account(
     runtime_ptr: *mut c_void,
     addr: *const u8,
     balance: u64,
@@ -556,7 +553,7 @@ pub unsafe extern "C" fn svm_create_account(
         let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
         let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
         let counter = ((counter_upper_bits as u128) << 64) | (counter_lower_bits as u128);
-        runtime.create_account(&account_addr, "".to_string(), balance, counter)?;
+        runtime.create_genesis_account(&account_addr, "".to_string(), balance, counter)?;
 
         svm_result_t::OK
     })

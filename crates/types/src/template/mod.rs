@@ -105,7 +105,6 @@ impl Template {
     /// Panics if there is no `Header Section`
     pub fn header_section(&self) -> &HeaderSection {
         let section = self.get(SectionKind::Header);
-
         section.as_header()
     }
 
@@ -116,7 +115,6 @@ impl Template {
     /// Panics if there is no `Code Section`
     pub fn code_section(&self) -> &CodeSection {
         let section = self.get(SectionKind::Code);
-
         section.as_code()
     }
 
@@ -127,7 +125,6 @@ impl Template {
     /// Panics if there is no `Code Section`
     pub fn code(&self) -> &[u8] {
         let section = self.code_section();
-
         section.code()
     }
 
@@ -138,7 +135,6 @@ impl Template {
     /// Panics if there is no `Data Section`
     pub fn data_section(&self) -> &DataSection {
         let section = self.get(SectionKind::Data);
-
         section.as_data()
     }
 
@@ -149,7 +145,6 @@ impl Template {
         let layouts = data.layouts();
 
         let layout = layouts.first().unwrap();
-
         layout.as_fixed()
     }
 
@@ -160,7 +155,6 @@ impl Template {
     /// Panics if there is no `Ctors Section`
     pub fn ctors_section(&self) -> &CtorsSection {
         let section = self.get(SectionKind::Ctors);
-
         section.as_ctors()
     }
 
@@ -171,7 +165,6 @@ impl Template {
     /// Panics if there is no `Ctors Section`
     pub fn ctors(&self) -> &[String] {
         let section = self.ctors_section();
-
         section.ctors()
     }
 
@@ -182,11 +175,7 @@ impl Template {
     /// Panics if there is no `Ctors Section`
     pub fn is_ctor(&self, func_name: &str) -> bool {
         let ctors = self.ctors();
-
-        ctors
-            .iter()
-            .find(|ctor| ctor.as_str() == func_name)
-            .is_some()
+        ctors.iter().any(|ctor| ctor.as_str() == func_name)
     }
 
     /// Borrows the `Schema Section`
@@ -196,7 +185,6 @@ impl Template {
     /// Panics if there is no `Schema Section`
     pub fn schema_section(&self) -> &SchemaSection {
         let section = self.get(SectionKind::Schema);
-
         section.as_schema()
     }
 
@@ -214,7 +202,6 @@ impl Template {
     /// Panics if there is no `Deploy Section`
     pub fn deploy_section(&self) -> &DeploySection {
         let section = self.get(SectionKind::Deploy);
-
         section.as_deploy()
     }
 
@@ -225,7 +212,6 @@ impl Template {
     /// Panics if there is no `Deploy Section`
     pub fn template_addr(&self) -> &TemplateAddr {
         let section = self.deploy_section();
-
         section.template()
     }
 
@@ -243,5 +229,10 @@ impl Template {
     /// Returns `None` when there is no `Section` of the specified `SectionKind`
     pub fn try_get(&self, kind: SectionKind) -> Option<&Section> {
         self.sections.try_get(kind)
+    }
+
+    /// Returns whether Section exists
+    pub fn contains(&self, kind: SectionKind) -> bool {
+        self.sections.try_get(kind).is_some()
     }
 }

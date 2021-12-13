@@ -99,6 +99,14 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "func": func,
                 "message": msg,
             }),
+            RuntimeError::FuncNotCtor {
+                template: template_addr,
+                func,
+            } => json!({
+                "err_type": "function-not-ctor",
+                "template_addr": TemplateAddrWrapper::from(*template_addr),
+                "func": func,
+            }),
             RuntimeError::FuncNotAllowed {
                 target: account_addr,
                 template: template_addr,

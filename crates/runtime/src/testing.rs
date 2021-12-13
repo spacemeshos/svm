@@ -8,8 +8,7 @@ use svm_types::{
     TemplateAddr, Transaction,
 };
 
-use crate::price_registry::PriceResolverRegistry;
-use crate::Runtime;
+use crate::{PriceResolverRegistry, Runtime, TemplatePriceCache};
 
 /// Hold a Wasm file in textual or binary form
 pub enum WasmFile<'a> {
@@ -42,28 +41,16 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
     }
 }
 
-/// Creates an in-memory `Runtime` backed by a `state_kv`.
+/// Creates an [`Runtime`] backed by an in-memory [`GlobalState`].
 pub fn create_memory_runtime() -> Runtime {
-    let imports = ("sm".to_string(), wasmer::Exports::new());
-
-    Runtime::new(
-        imports,
-        GlobalState::in_memory(),
-        PriceResolverRegistry::default(),
-        None,
-    )
+    let registry = PriceResolverRegistry::default();
+    Runtime::new(GlobalState::in_memory(), TemplatePriceCache::new(registry))
 }
 
-/// Creates an in-memory `Runtime` backed by a `state_kv`.
+/// Creates an [`Runtime`] backed by the [`GlobalState`].
 pub fn create_db_runtime(path: &str) -> Runtime {
-    let imports = ("sm".to_string(), wasmer::Exports::new());
-
-    Runtime::new(
-        imports,
-        GlobalState::new(path),
-        PriceResolverRegistry::default(),
-        None,
-    )
+    let registry = PriceResolverRegistry::default();
+    Runtime::new(GlobalState::new(path), TemplatePriceCache::new(registry))
 }
 
 /// Builds a binary `Deploy Template` transaction.
@@ -87,7 +74,6 @@ pub fn build_deploy(
 /// Builds a binary `Spawn Account` transaction.
 pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
     let spawn = SpawnAccount::new(0, template, name, ctor, calldata);
-
     spawn.encode_to_vec()
 }
 
