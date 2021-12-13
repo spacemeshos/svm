@@ -475,11 +475,31 @@ impl Runtime {
         Ok(())
     }
 
-    /// Creates a new account at genesis with the given information.
+    /// Creates a new `Genesis Account`.
+    pub fn create_genesis_account(
+        &mut self,
+        account_addr: &Address,
+        name: String,
+        balance: u64,
+        counter: u128,
+    ) -> Result<()> {
+        self.create_account(
+            account_addr,
+            TemplateAddr::god_template(),
+            name,
+            balance,
+            counter,
+        )
+        .unwrap();
+
+        Ok(())
+    }
+
+    /// Creates a new `Account` with the given params.
     pub fn create_account(
         &mut self,
         account_addr: &Address,
-        template_addr: &TemplateAddr,
+        template_addr: TemplateAddr,
         name: String,
         balance: u64,
         counter: u128,
@@ -488,7 +508,7 @@ impl Runtime {
             self.gs.clone(),
             account_addr,
             name,
-            template_addr.clone(),
+            template_addr,
             balance,
             counter,
         )
@@ -597,8 +617,14 @@ impl Runtime {
         let account = spawn.account();
         let target = compute_account_addr(&spawn);
 
-        self.create_account(&target, &template_addr, account.name().to_string(), 0, 0)
-            .unwrap();
+        self.create_account(
+            &target,
+            template_addr.clone(),
+            account.name().to_string(),
+            0,
+            0,
+        )
+        .unwrap();
 
         self.call_ctor(&spawn, target, envelope, context, gas_left)
     }

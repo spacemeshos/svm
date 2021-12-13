@@ -10,7 +10,7 @@ use std::slice;
 use svm_codec::Codec;
 use svm_runtime::{PriceResolverRegistry, Runtime, TemplatePriceCache, ValidateError};
 use svm_state::GlobalState;
-use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State, TemplateAddr};
+use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State};
 
 use crate::resource_tracker::ResourceTracker;
 use crate::svm_result_t;
@@ -542,7 +542,7 @@ pub unsafe extern "C" fn svm_get_account(
 /// Creates an account at genesis with a given balance and nonce counter.
 #[no_mangle]
 #[must_use]
-pub unsafe extern "C" fn svm_create_account(
+pub unsafe extern "C" fn svm_create_genesis_account(
     runtime_ptr: *mut c_void,
     addr: *const u8,
     balance: u64,
@@ -552,16 +552,8 @@ pub unsafe extern "C" fn svm_create_account(
     catch_unwind_or_fail(|| {
         let runtime = RUNTIME_TRACKER.get(runtime_ptr).unwrap();
         let account_addr = Address::new(slice::from_raw_parts(addr, Address::N));
-        let template_addr = TemplateAddr::god_template();
         let counter = ((counter_upper_bits as u128) << 64) | (counter_lower_bits as u128);
-
-        runtime.create_account(
-            &account_addr,
-            &template_addr,
-            "".to_string(),
-            balance,
-            counter,
-        )?;
+        runtime.create_genesis_account(&account_addr, "".to_string(), balance, counter)?;
 
         svm_result_t::OK
     })

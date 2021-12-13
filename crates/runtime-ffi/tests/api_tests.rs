@@ -222,8 +222,8 @@ fn svm_transfer_success() {
         let mut runtime = std::ptr::null_mut();
 
         api::svm_runtime_create(&mut runtime, std::ptr::null(), 0).unwrap();
-        api::svm_create_account(runtime, src_addr.as_slice().as_ptr(), 1000, 0, 0).unwrap();
-        api::svm_create_account(runtime, dst_addr.as_slice().as_ptr(), 0, 0, 0).unwrap();
+        api::svm_create_genesis_account(runtime, src_addr.as_slice().as_ptr(), 1000, 0, 0).unwrap();
+        api::svm_create_genesis_account(runtime, dst_addr.as_slice().as_ptr(), 0, 0, 0).unwrap();
         api::svm_transfer(
             runtime,
             src_addr.as_slice().as_ptr(),
