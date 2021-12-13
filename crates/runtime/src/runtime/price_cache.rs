@@ -28,7 +28,7 @@ impl TemplatePriceCache {
 
     /// We're using a naive memoization mechanism: we only ever add, never remove.
     /// This means there's no cache invalidation at all.
-    /// We can easily afford to do this because the number of [`Template`]s upon Genesis is fixed and won't grow.
+    /// We can easily afford to do this because the number of [`Template`](svm_types::Template)s upon Genesis is fixed and won't grow.
     pub fn price_of(&self, template_addr: &TemplateAddr, program: &Program) -> FuncPrice {
         let mut cache = self.cache.borrow_mut();
 
