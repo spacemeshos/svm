@@ -767,11 +767,7 @@ fn read_memory(env: &FuncEnv, offset: usize, length: usize) -> Vec<u8> {
     let borrow = env.borrow();
     let memory = borrow.memory();
 
-    let view = memory.view::<u8>();
-    assert!(view.len() > offset + length - 1);
-
-    let cells = &view[offset..(offset + length)];
-    cells.iter().map(|c| c.get()).collect()
+    memory.bytes()
 }
 
 fn set_memory(env: &FuncEnv, instance: &Instance) {
@@ -782,7 +778,7 @@ fn set_memory(env: &FuncEnv, instance: &Instance) {
 }
 
 fn set_calldata(env: &FuncEnv, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
-    debug_assert!(calldata.is_empty() == false);
+    debug_assert!(!calldata.is_empty());
 
     let (offset, len) = {
         let borrow = env.borrow();

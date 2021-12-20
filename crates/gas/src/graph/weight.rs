@@ -170,11 +170,8 @@ where
     L: NodeLabel,
 {
     label: Cell<Option<L>>,
-
     weight: Cell<Option<usize>>,
-
     dep_label: Cell<Option<L>>,
-
     dep_weight: Cell<Option<usize>>,
 }
 
