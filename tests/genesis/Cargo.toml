@@ -1,5 +1,5 @@
 [package]
-name = "svm-types"
+name = "svm-genesis-tests"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
@@ -11,9 +11,9 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-derive_more = "0.99.16"
-hex = "0.4.3"
-indexmap = "1.7.0"
-svm-hash = { path = "../hash" }
-svm-layout = { path = "../layout" }
-thiserror = "1.0.30"
+svm-codec = { path = "../../crates/codec" }
+svm-runtime = { path = "../../crates/runtime" }
+svm-state = { path = "../../crates/state" }
+svm-types = { path = "../../crates/types" }
+
+[features]

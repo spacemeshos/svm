@@ -7,7 +7,7 @@ use svm_hash::{Blake3Hasher, Hasher};
 use svm_types::{Layer, State};
 
 use crate::storage::Storage;
-use crate::{StorageError, StorageResult as Result};
+use crate::{GenesisConfig, StorageError, StorageResult as Result};
 
 /// A key-value store with a non-falsifiable state signature, historical data
 /// querying and other features which make it suitable for storing Spacemesh'
@@ -18,30 +18,33 @@ use crate::{StorageError, StorageResult as Result};
 pub struct GlobalState {
     pub(crate) storage: Arc<Mutex<Storage>>,
     runtime: Arc<Mutex<Runtime>>,
-    historical_query_context: Option<Layer>,
+    layer_query_parameter: Option<Layer>,
 }
 
 impl GlobalState {
-    /// Recovers a [`GlobalState`] from a SQLite instance at `sqlite_uri`.
-    ///
-    /// # Warning
-    ///
-    /// This method assumes that the given SQLite instance is in a "good" state;
-    /// "good" means that only SVM has ever accessed and modified its contents.
-    pub fn new(sqlite_uri: &str) -> Self {
+    pub fn new(sqlite_uri: &str, genesis: GenesisConfig) -> Self {
         let runtime = Runtime::new().unwrap();
-        let storage = runtime.block_on(Storage::new(sqlite_uri)).unwrap();
+        let storage = runtime.block_on(Storage::new(sqlite_uri, genesis)).unwrap();
         Self {
             storage: Arc::new(Mutex::new(storage)),
             runtime: Arc::new(Mutex::new(runtime)),
-            historical_query_context: None,
+            layer_query_parameter: None,
         }
     }
 
     /// Creates a pristine [`GlobalState`] backed by an in-memory SQLite
     /// instance. No disk operations at all will be done.
-    pub fn in_memory() -> Self {
-        Self::new(":memory:")
+    pub fn in_memory(genesis: GenesisConfig) -> Self {
+        Self::new(":memory:", genesis)
+    }
+
+    pub(crate) fn from_storage(storage: Storage) -> Self {
+        let runtime = Runtime::new().unwrap();
+        Self {
+            storage: Arc::new(Mutex::new(storage)),
+            runtime: Arc::new(Mutex::new(runtime)),
+            layer_query_parameter: None,
+        }
     }
 
     /// Returns a mutable reference to the [`Option<Layer>`] that controls the
@@ -49,8 +52,8 @@ impl GlobalState {
     /// [`None`], the most recent value is always read; when set to
     /// [`Some<some_layer>`], only the value present at the time of `some_layer`
     /// is read.
-    pub fn historical_query(&mut self) -> &mut Option<Layer> {
-        &mut self.historical_query_context
+    pub fn layer_query_parameter_mut(&mut self) -> &mut Option<Layer> {
+        &mut self.layer_query_parameter
     }
 
     // VERSIONING
@@ -130,7 +133,7 @@ impl GlobalState {
         let bytes = self
             .block_on(
                 self.storage()
-                    .get(key.as_bytes(), self.historical_query_context),
+                    .get(key.as_bytes(), self.layer_query_parameter),
             )?
             .ok_or(StorageError::NotFound {
                 key_hash: State(Blake3Hasher::hash(key.as_bytes())),

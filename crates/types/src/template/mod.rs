@@ -39,9 +39,10 @@ pub use header::HeaderSection;
 pub use schema::SchemaSection;
 pub use section::{Section, SectionKind, SectionLike, Sections, SectionsIter};
 
+use svm_hash::{Blake3Hasher, Hasher};
 use svm_layout::FixedLayout;
 
-use crate::TemplateAddr;
+use crate::{BytesPrimitive, TemplateAddr};
 
 /// An in-memory representation of a `Template`
 #[allow(missing_docs)]
@@ -235,4 +236,11 @@ impl Template {
     pub fn contains(&self, kind: SectionKind) -> bool {
         self.sections.try_get(kind).is_some()
     }
+}
+
+/// Calculates the address of a newly deployed [`Template`].
+pub fn compute_template_addr(code_section: &CodeSection) -> TemplateAddr {
+    let hash = Blake3Hasher::hash(code_section.code());
+
+    TemplateAddr::new(&hash[..TemplateAddr::N])
 }

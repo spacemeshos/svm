@@ -305,6 +305,17 @@ impl Sections {
 
         SectionsIter::new(sections)
     }
+
+    /// Removes all noncore sections from `self` and then returns them in a
+    /// separate [`Sections`] instance.
+    pub fn remove_noncore(&mut self) -> Sections {
+        let mut core = Sections::with_capacity(3);
+        core.insert(self.take(SectionKind::Code));
+        core.insert(self.take(SectionKind::Ctors));
+        core.insert(self.take(SectionKind::Data));
+
+        std::mem::replace(self, core)
+    }
 }
 
 /// An iterator over a collection of [`Section`]s.

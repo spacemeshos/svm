@@ -1727,6 +1727,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "svm-genesis-templates"
+version = "0.0.0"
+dependencies = [
+ "svm-types",
+]
+
+[[package]]
+name = "svm-genesis-tests"
+version = "0.0.0"
+dependencies = [
+ "svm-codec",
+ "svm-runtime",
+ "svm-state",
+ "svm-types",
+]
+
+[[package]]
 name = "svm-hash"
 version = "0.0.0"
 dependencies = [
@@ -1962,6 +1979,7 @@ dependencies = [
  "quickcheck_macros",
  "sqlx",
  "svm-codec",
+ "svm-genesis-templates",
  "svm-hash",
  "svm-layout",
  "svm-types",
@@ -1976,6 +1994,7 @@ dependencies = [
  "derive_more",
  "hex",
  "indexmap",
+ "svm-hash",
  "svm-layout",
  "thiserror",
 ]

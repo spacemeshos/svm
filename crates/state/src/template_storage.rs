@@ -86,6 +86,8 @@ mod test {
     use svm_layout::{FixedLayout, Layout};
     use svm_types::{CodeSection, CtorsSection, DataSection, SectionKind, Sections, Template};
 
+    use crate::GenesisConfig;
+
     use super::*;
 
     fn fixed_layout() -> FixedLayout {
@@ -118,7 +120,7 @@ mod test {
 
     #[test]
     fn create_then_load() {
-        let gs = GlobalState::in_memory();
+        let gs = GlobalState::in_memory(GenesisConfig::mainnet());
 
         let template_addr = new_template(&gs);
 

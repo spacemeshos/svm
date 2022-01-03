@@ -479,14 +479,14 @@ impl Runtime {
     pub fn create_genesis_account(
         &mut self,
         account_addr: &Address,
-        name: String,
+        name: impl ToString,
         balance: u64,
         counter: u128,
     ) -> Result<()> {
         self.create_account(
             account_addr,
             TemplateAddr::god_template(),
-            name,
+            name.to_string(),
             balance,
             counter,
         )
@@ -564,7 +564,7 @@ impl Runtime {
         }
 
         let gas_used = Gas::with(deploy_price);
-        let addr = compute_template_addr(&template);
+        let addr = svm_types::compute_template_addr(template.code_section());
 
         // TODO:
         //
@@ -744,13 +744,6 @@ impl Runtime {
             .set_balance(dst_bal.checked_add(amount).unwrap())
             .unwrap();
     }
-}
-
-/// Calculates the address of a newly deployed [`Template`].
-pub fn compute_template_addr(template: &Template) -> TemplateAddr {
-    let hash = Blake3Hasher::hash(template.code());
-
-    TemplateAddr::new(&hash[..TemplateAddr::N])
 }
 
 /// Calculates the address of a newly spawned account based on its template.

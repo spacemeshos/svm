@@ -17,6 +17,7 @@ futures = "0.3.17"
 # https://github.com/launchbadge/sqlx/issues/713
 sqlx = { version = "0.5.9", features = ["runtime-tokio-rustls", "sqlite", "macros"] }
 svm-codec = { path = "../codec" }
+svm-genesis-templates = { path = "../genesis-templates" }
 svm-hash = { path = "../hash" }
 svm-layout = { path = "../layout" }
 svm-types = { path = "../types" }

@@ -1,4 +1,4 @@
-//! Storage data structure that back the Spacemesh Global State.
+//! Storage data structure that back the Spacemesh [`GlobalState`].
 //!
 //! At the time of writing, [`Storage`] is a "LinkedHashX", as explained in
 //! <https://eprint.iacr.org/2021/773.pdf>, pg. 5-6. This enables fast root
@@ -19,6 +19,7 @@ use svm_hash::{Blake3Hasher, Hasher};
 use svm_types::{Layer, State};
 
 pub use crate::error::{StorageError, StorageResult as Result};
+use crate::{GenesisConfig, GlobalState, TemplateStorage};
 
 type Changes = HashMap<State, Vec<u8>>;
 
@@ -55,13 +56,13 @@ impl Storage {
     /// Creates a new [`Storage`] persisted by the given SQLite database.
     /// The SQLite database may or may not be an empty database. If it's empty,
     /// then it will be initialized with the appropriate schema.
-    pub async fn new(sqlite_uri: &str) -> Result<Self> {
+    pub async fn new(sqlite_uri: &str, genesis_setup: GenesisConfig) -> Result<Self> {
         let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await?;
         sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
 
         let next_layer_id = max_layer_id(&sqlite).await?;
 
-        let storage = Self {
+        let mut storage = Self {
             sqlite,
             dirty_changes: HashMap::new(),
             next_layer: NextLayer {
@@ -71,7 +72,10 @@ impl Storage {
             },
         };
 
+        // `next_layer_id` tells us whether there is any layers' data at all in
+        // the database. If there's not, we must initialize the state.
         if next_layer_id.is_none() {
+            storage = storage.init_genesis(genesis_setup).await?;
             storage
                 .insert_layer(INITIAL_LAYER_ID, STATE_ZEROS, true)
                 .await?;
@@ -80,6 +84,17 @@ impl Storage {
         storage.delete_bad_layers().await?;
 
         Ok(storage)
+    }
+
+    async fn init_genesis(self, genesis: GenesisConfig) -> Result<Self> {
+        let gs = GlobalState::from_storage(self);
+        for (template_addr, template) in genesis.templates {
+            let mut core_sections = template.sections().clone();
+            let noncore_sections = core_sections.remove_noncore();
+
+            TemplateStorage::create(gs.clone(), &template_addr, core_sections, noncore_sections)?;
+        }
+        Ok(gs.storage())
     }
 
     async fn delete_bad_layers(&self) -> Result<u64> {
@@ -103,8 +118,8 @@ impl Storage {
     /// Creates a new, empty [`Storage`] with no persisted state at all. All
     /// state will be kept in an in-memory SQLite instance.
     #[cfg(test)]
-    async fn in_memory() -> Result<Self> {
-        Self::new(":memory:").await
+    async fn in_memory(genesis: GenesisConfig) -> Result<Self> {
+        Self::new(":memory:", genesis).await
     }
 
     /// Returns the [`Layer`] and [`State`] of the last ever committed
@@ -387,9 +402,13 @@ fn xor_fingerprint(sig_1: &mut State, sig_2: &State) {
 mod test {
     use super::*;
 
+    async fn new_storage() -> Storage {
+        Storage::in_memory(GenesisConfig::mainnet()).await.unwrap()
+    }
+
     #[quickcheck_async::tokio]
     async fn get_after_dirty_changes(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         for (key, value) in items.iter() {
             storage.upsert(&key[..], &value[..]).await;
@@ -407,7 +426,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_after_checkpoint(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         for (key, value) in items.iter() {
             storage.upsert(&key[..], &value[..]).await;
@@ -427,7 +446,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_after_commit(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         for (key, value) in items.iter() {
             storage.upsert(&key[..], &value[..]).await;
@@ -448,7 +467,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_historical_after_dirty_changes(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         for (key, value) in items.iter() {
             storage.upsert(&key[..], &value[..]).await;
@@ -466,7 +485,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_historical_after_checkpoint(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         for (key, value) in items.iter() {
             storage.upsert(&key[..], &value[..]).await;
@@ -486,7 +505,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_and_get_historical_might_be_the_same(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         for (key, value) in items.iter() {
             storage.upsert(&key[..], &value[..]).await;
@@ -508,7 +527,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn consistent_layer_information_after_commits() -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         storage.upsert(b"foo", "bar").await;
         storage.checkpoint().await.unwrap();
@@ -532,13 +551,13 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_immediately_after_new(key: Vec<u8>) -> bool {
-        let storage = Storage::in_memory().await.unwrap();
+        let storage = new_storage().await;
         matches!(storage.get(&key, None).await, Ok(None))
     }
 
     #[quickcheck_async::tokio]
     async fn rollback_succeeds_when_empty() -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         storage.rollback().await.is_ok()
     }
@@ -546,13 +565,13 @@ mod test {
     #[tokio::test(flavor = "multi_thread")]
     #[should_panic]
     async fn rewind_panics_without_commits() {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
         storage.rewind(Layer(INITIAL_LAYER_ID.0 + 1)).await.unwrap();
     }
 
     #[quickcheck_async::tokio]
     async fn rewind_succeeds_after_commit() -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         storage.upsert(b"foo", "bar").await;
         storage.checkpoint().await.unwrap();
@@ -563,7 +582,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn rewind_fails_with_dirty_changes() -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         storage.upsert(b"foo", "bar").await;
         storage.checkpoint().await.unwrap();
@@ -576,7 +595,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn rewind_succeeds_with_saved_changes() -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         storage.upsert(b"foo", "bar").await;
         storage.checkpoint().await.unwrap();
@@ -590,7 +609,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn rewind_effectively_deletes_data(key: Vec<u8>, value: Vec<u8>) -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         let layer_id = storage.commit().await.unwrap().0;
 
@@ -603,7 +622,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn rewind_then_overwrite_keys_then_get() -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         storage.upsert(b"foo", "1").await;
         storage.upsert(b"bar", "2").await;
@@ -630,7 +649,7 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn checkpoint_ordering_doesnt_change_fingerprint() -> bool {
-        let mut storage = Storage::in_memory().await.unwrap();
+        let mut storage = new_storage().await;
 
         let layer_id = storage.commit().await.unwrap().0;
 

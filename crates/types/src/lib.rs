@@ -34,8 +34,9 @@ pub use receipt::{
 pub use spawn_account::SpawnAccount;
 pub use state::State;
 pub use template::{
-    ApiSection, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
-    SchemaSection, Section, SectionKind, SectionLike, Sections, SectionsIter, Template,
+    compute_template_addr, ApiSection, CodeKind, CodeSection, CtorsSection, DataSection,
+    DeploySection, HeaderSection, SchemaSection, Section, SectionKind, SectionLike, Sections,
+    SectionsIter, Template,
 };
 pub use transaction::{Context, Envelope, Layer, Transaction, TransactionId};
 pub use wasm_type::{WasmType, WasmTypeError};

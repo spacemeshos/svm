@@ -20,10 +20,7 @@ pub struct AccountStorage {
     /// The owner's [`Address`] of this [`AccountStorage`].
     pub address: Address,
 
-    /// The [`TemplateAddr`] associated with `Account`.
     template_addr: TemplateAddr,
-
-    /// The `Account`'s layout.
     layout: FixedLayout,
 }
 
@@ -421,10 +418,16 @@ mod test {
     use svm_layout::Layout;
     use svm_types::{CodeSection, CtorsSection, DataSection, Sections, Template};
 
+    use crate::GenesisConfig;
+
     use super::*;
 
     fn fixed_layout() -> FixedLayout {
         FixedLayout::from_byte_sizes(0, &[10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
+    }
+
+    fn new_gs() -> GlobalState {
+        GlobalState::in_memory(GenesisConfig::mainnet())
     }
 
     fn new_template(gs: &GlobalState) -> TemplateAddr {
@@ -453,7 +456,7 @@ mod test {
 
     #[test]
     fn immutable_metadata() {
-        let gs = GlobalState::in_memory();
+        let gs = new_gs();
 
         let address = Address::repeat(0xff);
         let template_addr = new_template(&gs);
@@ -479,7 +482,7 @@ mod test {
 
     #[test]
     fn mutable_metadata() {
-        let gs = GlobalState::in_memory();
+        let gs = new_gs();
 
         let address = Address::repeat(0xff);
         let template_addr = new_template(&gs);
@@ -516,7 +519,7 @@ mod test {
 
     #[test]
     fn account_byte_vars() {
-        let gs = GlobalState::in_memory();
+        let gs = new_gs();
 
         let address = Address::repeat(0xff);
         let template_addr = new_template(&gs);
@@ -553,7 +556,7 @@ mod test {
 
     #[test]
     fn account_numeric_vars() {
-        let gs = GlobalState::in_memory();
+        let gs = new_gs();
 
         let address = Address::repeat(0xff);
         let template_addr = new_template(&gs);
@@ -582,7 +585,7 @@ mod test {
 
     #[test]
     fn create_then_load() {
-        let gs = GlobalState::in_memory();
+        let gs = new_gs();
 
         let address = Address::repeat(0xff);
         let template_addr = new_template(&gs);
