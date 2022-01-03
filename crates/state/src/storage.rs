@@ -351,6 +351,10 @@ impl Storage {
         self.dirty_changes.clear();
         Ok(())
     }
+
+    pub(crate) async fn last_layer_id(&self) -> Result<Option<i64>> {
+        max_layer_id(&self.sqlite).await
+    }
 }
 
 async fn max_layer_id(pool: &SqlitePool) -> Result<Option<i64>> {

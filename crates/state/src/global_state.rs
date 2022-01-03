@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use svm_codec::Codec;
 use svm_hash::{Blake3Hasher, Hasher};
-use svm_types::{Layer, State};
+use svm_types::{BytesPrimitive, Layer, State};
 
 use crate::storage::Storage;
 use crate::{GenesisConfig, StorageError, StorageResult as Result, TemplateStorage};
@@ -19,6 +19,7 @@ pub struct GlobalState {
     pub(crate) storage: Arc<Mutex<Storage>>,
     runtime: Arc<Mutex<Runtime>>,
     layer_query_parameter: Option<Layer>,
+    genesis_state: State,
 }
 
 impl GlobalState {
@@ -31,6 +32,7 @@ impl GlobalState {
             storage: Arc::new(Mutex::new(storage)),
             runtime: Arc::new(Mutex::new(runtime)),
             layer_query_parameter: None,
+            genesis_state: State::zeros(),
         };
         gs.init_genesis(genesis)
             .expect("Genesis initialization failed.");
@@ -44,6 +46,12 @@ impl GlobalState {
     }
 
     fn init_genesis(&mut self, genesis: GenesisConfig) -> Result<()> {
+        let last_layer_id = self.block_on(self.storage().last_layer_id())?;
+
+        if last_layer_id.is_some() {
+            return Ok(());
+        }
+
         for (template_addr, template) in genesis.templates {
             let mut core_sections = template.sections().clone();
             let noncore_sections = core_sections.remove_noncore();
@@ -56,7 +64,12 @@ impl GlobalState {
             )?;
         }
 
-        // TODO: commit.
+        self.block_on(self.storage().checkpoint())?;
+        let (layer_id, state) = self.block_on(self.storage().commit())?;
+
+        assert_eq!(layer_id, -1);
+        self.genesis_state = state;
+
         Ok(())
     }
 
@@ -85,14 +98,14 @@ impl GlobalState {
     /// before this call.
     pub fn commit(&mut self) -> Result<(Layer, State)> {
         let (layer_id, state) = self.block_on(self.storage().commit())?;
-        Ok((Layer(layer_id as u64), state))
+        Ok((Layer(layer_id.try_into().unwrap()), state))
     }
 
     /// Returns the [`Layer`] and [`State`] of the last ever committed
     /// layer; i.e. persisted changes without dirty and saved changes.
     pub fn current_layer(&mut self) -> Result<(Layer, State)> {
         let (layer_id, state) = self.block_on(self.storage().last_layer())?;
-        Ok((Layer(layer_id as u64), state))
+        Ok((Layer(layer_id.try_into().unwrap()), state))
     }
 
     /// Erases all dirty changes from memory. Persisted and saved data are left
@@ -112,7 +125,7 @@ impl GlobalState {
     ///
     /// Panics if `layer_id` is invalid.
     pub fn rewind(&mut self, layer_id: Layer) -> Result<()> {
-        self.block_on(self.storage().rewind(layer_id.0 as i64))?;
+        self.block_on(self.storage().rewind(layer_id.0.try_into().unwrap()))?;
         Ok(())
     }
 
