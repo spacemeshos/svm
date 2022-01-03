@@ -16,10 +16,9 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 
 use svm_hash::{Blake3Hasher, Hasher};
-use svm_types::{Layer, State};
+use svm_types::State;
 
 pub use crate::error::{StorageError, StorageResult as Result};
-use crate::GenesisConfig;
 
 type Changes = HashMap<State, Vec<u8>>;
 
@@ -30,11 +29,13 @@ const STATE_ZEROS: State = State([0; 32]);
 const STATE_ONES: State = State([std::u8::MAX; 32]);
 
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
-const INITIAL_LAYER_ID: Layer = Layer(0);
+
+// The first ever [`Layer`] is 0, but genesis data sits at -1.
+const INITIAL_LAYER_ID: i64 = -1;
 
 #[derive(Debug)]
 struct NextLayer {
-    id: Layer,
+    id: i64,
     changes: Changes,
     changes_xor_fingerprint: State,
 }
@@ -56,17 +57,17 @@ impl Storage {
     /// Creates a new [`Storage`] persisted by the given SQLite database.
     /// The SQLite database may or may not be an empty database. If it's empty,
     /// then it will be initialized with the appropriate schema.
-    pub async fn new(sqlite_uri: &str, genesis_setup: GenesisConfig) -> Result<Self> {
+    pub async fn new(sqlite_uri: &str) -> Result<Self> {
         let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await?;
         sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
 
         let next_layer_id = max_layer_id(&sqlite).await?;
 
-        let mut storage = Self {
+        let storage = Self {
             sqlite,
             dirty_changes: HashMap::new(),
             next_layer: NextLayer {
-                id: next_layer_id.unwrap_or(Layer(INITIAL_LAYER_ID.0 + 1)),
+                id: next_layer_id.unwrap_or(0),
                 changes: HashMap::new(),
                 changes_xor_fingerprint: STATE_ONES,
             },
@@ -75,27 +76,12 @@ impl Storage {
         // `next_layer_id` tells us whether there is any layers' data at all in
         // the database. If there's not, we must initialize the state.
         if next_layer_id.is_none() {
-            storage.init_genesis(genesis_setup).await?;
-            storage
-                .insert_layer(INITIAL_LAYER_ID, STATE_ZEROS, true)
-                .await?;
+            storage.insert_layer(-1, STATE_ZEROS, true).await?;
         }
 
         storage.delete_bad_layers().await?;
 
         Ok(storage)
-    }
-
-    async fn init_genesis(&mut self, _genesis: GenesisConfig) -> Result<()> {
-        //let gs = GlobalState::from_storage(self);
-        //for (template_addr, template) in genesis.templates {
-        //    let mut core_sections = template.sections().clone();
-        //    let noncore_sections = core_sections.remove_noncore();
-
-        //    TemplateStorage::create(gs.clone(), &template_addr, core_sections, noncore_sections)?;
-        //}
-        //Ok(gs.storage())
-        Ok(())
     }
 
     async fn delete_bad_layers(&self) -> Result<u64> {
@@ -119,22 +105,22 @@ impl Storage {
     /// Creates a new, empty [`Storage`] with no persisted state at all. All
     /// state will be kept in an in-memory SQLite instance.
     #[cfg(test)]
-    async fn in_memory(genesis: GenesisConfig) -> Result<Self> {
-        Self::new(":memory:", genesis).await
+    async fn in_memory() -> Result<Self> {
+        Self::new(":memory:").await
     }
 
     /// Returns the [`Layer`] and [`State`] of the last ever committed
     /// layer; i.e. persisted changes without dirty and saved changes.
-    pub async fn last_layer(&self) -> Result<(Layer, State)> {
+    pub async fn last_layer(&self) -> Result<(i64, State)> {
         assert!(self.next_layer.id > INITIAL_LAYER_ID);
 
-        let layer_id = Layer(self.next_layer.id.0 - 1);
+        let layer_id = self.next_layer.id - 1;
         let fingerprint = self.layer_fingerprint(layer_id, true).await?;
 
         Ok((layer_id, fingerprint))
     }
 
-    fn assert_layer_id_is_ready(&self, layer_id: Layer) {
+    fn assert_layer_id_is_ready(&self, layer_id: i64) {
         assert!(layer_id < self.next_layer.id);
     }
 
@@ -148,7 +134,7 @@ impl Storage {
     /// # Panics
     ///
     /// Panics if `layer_id` is invalid.
-    pub async fn get(&self, key: &[u8], layer_id: Option<Layer>) -> Result<Option<Vec<u8>>> {
+    pub async fn get(&self, key: &[u8], layer_id: Option<i64>) -> Result<Option<Vec<u8>>> {
         let hash = Blake3Hasher::hash(key);
         self.get_by_hash(&State(hash), layer_id).await
     }
@@ -163,7 +149,7 @@ impl Storage {
     pub async fn get_by_hash(
         &self,
         hash: &State,
-        layer_id: Option<Layer>,
+        layer_id: Option<i64>,
     ) -> Result<Option<Vec<u8>>> {
         if let Some(layer_id) = layer_id {
             self.assert_layer_id_is_ready(layer_id);
@@ -193,11 +179,7 @@ impl Storage {
         }
     }
 
-    async fn get_by_hash_historical(
-        &self,
-        hash: &State,
-        layer_id: Layer,
-    ) -> Result<Option<Vec<u8>>> {
+    async fn get_by_hash_historical(&self, hash: &State, layer_id: i64) -> Result<Option<Vec<u8>>> {
         let value: Option<(Vec<u8>,)> = sqlx::query_as(
             r#"
             SELECT "value"
@@ -212,7 +194,7 @@ impl Storage {
             LIMIT 1
             "#,
         )
-        .bind(layer_id.0 as i64)
+        .bind(layer_id)
         .bind(&hash.0[..])
         .fetch_optional(&self.sqlite)
         .await?;
@@ -253,7 +235,7 @@ impl Storage {
         Ok(())
     }
 
-    pub async fn commit(&mut self) -> Result<(Layer, State)> {
+    pub async fn commit(&mut self) -> Result<(i64, State)> {
         if !self.dirty_changes.is_empty() {
             return Err(StorageError::DirtyChanges);
         }
@@ -267,7 +249,7 @@ impl Storage {
         let mut inserts = vec![];
         let layer_changes = std::mem::take(&mut self.next_layer.changes);
 
-        let mut fingerprint = self.layer_fingerprint(Layer(layer_id.0 - 1), true).await?;
+        let mut fingerprint = self.layer_fingerprint(layer_id, true).await?;
         xor_fingerprint(&mut fingerprint, &self.next_layer.changes_xor_fingerprint);
 
         self.insert_layer(layer_id, fingerprint, false).await?;
@@ -282,7 +264,7 @@ impl Storage {
                 )
                 .bind(key_hash.0.to_vec())
                 .bind(value)
-                .bind(layer_id.0 as i64)
+                .bind(layer_id)
                 .execute(&self.sqlite),
             )
         }
@@ -297,26 +279,26 @@ impl Storage {
             "#,
         )
         .bind(&fingerprint.0[..])
-        .bind(layer_id.0 as i64)
+        .bind(layer_id)
         .execute(&self.sqlite)
         .await?;
 
         // Reset layer-specific information to default values.
         self.next_layer.changes_xor_fingerprint = STATE_ONES;
-        self.next_layer.id.0 += 1;
+        self.next_layer.id += 1;
 
         Ok((layer_id, fingerprint))
     }
 
     /// Creates a new [`State`]-ed layer with the given `id`.
-    async fn insert_layer(&self, id: Layer, fingerprint: State, ready: bool) -> Result<()> {
+    async fn insert_layer(&self, id: i64, fingerprint: State, ready: bool) -> Result<()> {
         sqlx::query(
             r#"
             INSERT INTO "layers" ("id", "fingerprint", "ready")
             VALUES (?1, ?2, ?3)
             "#,
         )
-        .bind(id.0 as i64)
+        .bind(id)
         .bind(&fingerprint.0[..])
         .bind(if ready { 1 } else { 0 })
         .execute(&self.sqlite)
@@ -325,7 +307,7 @@ impl Storage {
     }
 
     /// Queries the current [`State`] value of `layer_id`.
-    async fn layer_fingerprint(&self, layer_id: Layer, ready: bool) -> Result<State> {
+    async fn layer_fingerprint(&self, layer_id: i64, ready: bool) -> Result<State> {
         let bytes: (Vec<u8>,) = sqlx::query_as(
             r#"
             SELECT "fingerprint"
@@ -333,14 +315,14 @@ impl Storage {
             WHERE "id" = ?1 AND "ready" = ?2
             "#,
         )
-        .bind(layer_id.0 as i64)
+        .bind(layer_id)
         .bind(if ready { 1 } else { 0 })
         .fetch_one(&self.sqlite)
         .await?;
         Ok(State(bytes.0.try_into().unwrap()))
     }
 
-    pub async fn rewind(&mut self, layer_id: Layer) -> Result<()> {
+    pub async fn rewind(&mut self, layer_id: i64) -> Result<()> {
         self.assert_layer_id_is_ready(layer_id);
 
         if !self.dirty_changes.is_empty() {
@@ -353,12 +335,12 @@ impl Storage {
             WHERE "id" > ?1
             "#,
         )
-        .bind(layer_id.0 as i64)
+        .bind(layer_id)
         .execute(&self.sqlite)
         .await?;
 
         // We must now bring `self.next_layer` in a good state.
-        self.next_layer.id.0 = layer_id.0 + 1;
+        self.next_layer.id = layer_id + 1;
         self.next_layer.changes.clear();
         self.next_layer.changes_xor_fingerprint = STATE_ONES;
 
@@ -371,7 +353,7 @@ impl Storage {
     }
 }
 
-async fn max_layer_id(pool: &SqlitePool) -> Result<Option<Layer>> {
+async fn max_layer_id(pool: &SqlitePool) -> Result<Option<i64>> {
     let max_layer_id: Option<(i64,)> = sqlx::query_as(
         r#"
         SELECT "id"
@@ -383,7 +365,7 @@ async fn max_layer_id(pool: &SqlitePool) -> Result<Option<Layer>> {
     .fetch_optional(pool)
     .await?;
 
-    Ok(max_layer_id.map(|x| Layer(x.0.try_into().expect("Negative layer ID!"))))
+    Ok(max_layer_id.map(|row| row.0))
 }
 
 fn hash_key_value_pair(key_hash: &State, value: &[u8]) -> State {
@@ -404,7 +386,7 @@ mod test {
     use super::*;
 
     async fn new_storage() -> Storage {
-        Storage::in_memory(GenesisConfig::mainnet()).await.unwrap()
+        Storage::in_memory().await.unwrap()
     }
 
     #[quickcheck_async::tokio]
@@ -567,7 +549,7 @@ mod test {
     #[should_panic]
     async fn rewind_panics_without_commits() {
         let mut storage = new_storage().await;
-        storage.rewind(Layer(INITIAL_LAYER_ID.0 + 1)).await.unwrap();
+        storage.rewind(1).await.unwrap();
     }
 
     #[quickcheck_async::tokio]

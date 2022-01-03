@@ -368,7 +368,7 @@ fn setup_svm_transfer_test() -> (
 ) {
     let src_addr = Address::repeat(0xCD);
     let dst_addr = Address::repeat(0x11);
-    let template = TemplateAddr::god_template();
+    let template = TemplateAddr::stub();
 
     let layout = FixedLayout::from_byte_sizes(0, &[20]);
     let store = wasmer_store();

@@ -14,10 +14,10 @@ impl BytesPrimitive<20> for Address {}
 pub struct TemplateAddr(pub [u8; 20]);
 
 impl TemplateAddr {
-    /// Returns a special-designated [`TemplateAddr`] for accounts created at
-    /// genesis.
-    pub fn god_template() -> Self {
-        Self::repeat(0xE3)
+    /// Returns a special-designated [`TemplateAddr`] for accounts that don't
+    /// have a [`Template`](crate::Template).
+    pub fn stub() -> Self {
+        Self::zeros()
     }
 }
 

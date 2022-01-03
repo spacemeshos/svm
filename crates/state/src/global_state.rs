@@ -7,7 +7,7 @@ use svm_hash::{Blake3Hasher, Hasher};
 use svm_types::{Layer, State};
 
 use crate::storage::Storage;
-use crate::{GenesisConfig, StorageError, StorageResult as Result};
+use crate::{GenesisConfig, StorageError, StorageResult as Result, TemplateStorage};
 
 /// A key-value store with a non-falsifiable state signature, historical data
 /// querying and other features which make it suitable for storing Spacemesh'
@@ -26,18 +26,38 @@ impl GlobalState {
     /// `sqlite_uri` and with the given [`GenesisConfig`].
     pub fn new(sqlite_uri: &str, genesis: GenesisConfig) -> Self {
         let runtime = Runtime::new().unwrap();
-        let storage = runtime.block_on(Storage::new(sqlite_uri, genesis)).unwrap();
-        Self {
+        let storage = runtime.block_on(Storage::new(sqlite_uri)).unwrap();
+        let mut gs = Self {
             storage: Arc::new(Mutex::new(storage)),
             runtime: Arc::new(Mutex::new(runtime)),
             layer_query_parameter: None,
-        }
+        };
+        gs.init_genesis(genesis)
+            .expect("Genesis initialization failed.");
+        gs
     }
 
     /// Creates a pristine [`GlobalState`] backed by an in-memory SQLite
     /// instance. No disk operations at all will be done.
     pub fn in_memory(genesis: GenesisConfig) -> Self {
         Self::new(":memory:", genesis)
+    }
+
+    fn init_genesis(&mut self, genesis: GenesisConfig) -> Result<()> {
+        for (template_addr, template) in genesis.templates {
+            let mut core_sections = template.sections().clone();
+            let noncore_sections = core_sections.remove_noncore();
+
+            TemplateStorage::create(
+                self.clone(),
+                &template_addr,
+                core_sections,
+                noncore_sections,
+            )?;
+        }
+
+        // TODO: commit.
+        Ok(())
     }
 
     /// Returns a mutable reference to the [`Option<Layer>`] that controls the
@@ -64,13 +84,15 @@ impl GlobalState {
     /// dirty changes that haven't been saved via [`GlobalState::checkpoint`]
     /// before this call.
     pub fn commit(&mut self) -> Result<(Layer, State)> {
-        Ok(self.block_on(self.storage().commit())?)
+        let (layer_id, state) = self.block_on(self.storage().commit())?;
+        Ok((Layer(layer_id as u64), state))
     }
 
     /// Returns the [`Layer`] and [`State`] of the last ever committed
     /// layer; i.e. persisted changes without dirty and saved changes.
     pub fn current_layer(&mut self) -> Result<(Layer, State)> {
-        Ok(self.block_on(self.storage().last_layer())?)
+        let (layer_id, state) = self.block_on(self.storage().last_layer())?;
+        Ok((Layer(layer_id as u64), state))
     }
 
     /// Erases all dirty changes from memory. Persisted and saved data are left
@@ -90,7 +112,7 @@ impl GlobalState {
     ///
     /// Panics if `layer_id` is invalid.
     pub fn rewind(&mut self, layer_id: Layer) -> Result<()> {
-        self.block_on(self.storage().rewind(layer_id))?;
+        self.block_on(self.storage().rewind(layer_id.0 as i64))?;
         Ok(())
     }
 
@@ -124,10 +146,10 @@ impl GlobalState {
         T: Codec,
     {
         let bytes = self
-            .block_on(
-                self.storage()
-                    .get(key.as_bytes(), self.layer_query_parameter),
-            )?
+            .block_on(self.storage().get(
+                key.as_bytes(),
+                self.layer_query_parameter.map(|layer| layer.0 as i64),
+            ))?
             .ok_or(StorageError::NotFound {
                 key_hash: State(Blake3Hasher::hash(key.as_bytes())),
             })?;

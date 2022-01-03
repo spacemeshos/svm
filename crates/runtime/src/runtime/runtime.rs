@@ -485,7 +485,7 @@ impl Runtime {
     ) -> Result<()> {
         self.create_account(
             account_addr,
-            TemplateAddr::god_template(),
+            TemplateAddr::stub(),
             name.to_string(),
             balance,
             counter,

@@ -25,6 +25,37 @@ pub struct AccountStorage {
 }
 
 impl AccountStorage {
+    /// Like [`AccountStorage::create`], but it doesn't store a
+    /// [`Template`](svm_types::Template) associated with the newly stored
+    /// account data.
+    pub fn create_stub(
+        mut gs: GlobalState,
+        address: &Address,
+        name: String,
+        balance: u64,
+        counter: u128,
+    ) -> StorageResult<Self> {
+        let template_addr = TemplateAddr::stub();
+        let layout = FixedLayout::default();
+
+        gs.encode_and_write(
+            &AccountData {
+                name,
+                template_addr,
+            },
+            &AccountData::key(address),
+        );
+
+        gs.encode_and_write(&AccountMut { balance, counter }, &AccountMut::key(address));
+
+        Ok(Self {
+            gs,
+            address: address.clone(),
+            template_addr,
+            layout,
+        })
+    }
+
     /// Saves `self` to the associated [`GlobalState`].
     pub fn create(
         mut gs: GlobalState,
@@ -213,7 +244,7 @@ impl AccountStorage {
     ///
     /// Panics if `self` was originated from a God template.
     pub fn template_storage(&self) -> StorageResult<TemplateStorage> {
-        if self.template_addr == TemplateAddr::god_template() {
+        if self.template_addr == TemplateAddr::stub() {
             panic!("Can't get template data associated with a God template!");
         }
         TemplateStorage::load(self.gs.clone(), &self.template_addr)
@@ -276,15 +307,11 @@ fn key_account_var_segment(account_addr: &Address, segment: u32) -> String {
 }
 
 fn template_layout(gs: GlobalState, template_addr: &TemplateAddr) -> StorageResult<FixedLayout> {
-    if *template_addr == TemplateAddr::god_template() {
-        Ok(FixedLayout::default())
-    } else {
-        let template_storage = TemplateStorage::load(gs, &template_addr)?;
-        let sections = template_storage.sections()?;
-        let data_section = sections.get(SectionKind::Data).as_data();
-        let layout = data_section.layouts()[0].as_fixed().clone();
-        Ok(layout)
-    }
+    let template_storage = TemplateStorage::load(gs, &template_addr)?;
+    let sections = template_storage.sections()?;
+    let data_section = sections.get(SectionKind::Data).as_data();
+    let layout = data_section.layouts()[0].as_fixed().clone();
+    Ok(layout)
 }
 
 #[derive(Debug)]
