@@ -2,7 +2,7 @@
 
 use svm_codec::{template, Codec};
 use svm_layout::{FixedLayout, Layout};
-use svm_state::GlobalState;
+use svm_state::{GenesisConfig, GlobalState};
 use svm_types::{
     Address, CodeSection, CtorsSection, DataSection, HeaderSection, SpawnAccount, Template,
     TemplateAddr, Transaction,
@@ -43,14 +43,22 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
 
 /// Creates an [`Runtime`] backed by an in-memory [`GlobalState`].
 pub fn create_memory_runtime() -> Runtime {
+    let genesis = GenesisConfig::mainnet();
     let registry = PriceResolverRegistry::default();
-    Runtime::new(GlobalState::in_memory(), TemplatePriceCache::new(registry))
+    Runtime::new(
+        GlobalState::in_memory(genesis),
+        TemplatePriceCache::new(registry),
+    )
 }
 
 /// Creates an [`Runtime`] backed by the [`GlobalState`].
 pub fn create_db_runtime(path: &str) -> Runtime {
+    let genesis = GenesisConfig::mainnet();
     let registry = PriceResolverRegistry::default();
-    Runtime::new(GlobalState::new(path), TemplatePriceCache::new(registry))
+    Runtime::new(
+        GlobalState::new(path, genesis),
+        TemplatePriceCache::new(registry),
+    )
 }
 
 /// Builds a binary `Deploy Template` transaction.

@@ -22,6 +22,8 @@ pub struct GlobalState {
 }
 
 impl GlobalState {
+    /// Creates a new [`GlobalState`] from the database instance sitting at
+    /// `sqlite_uri` and with the given [`GenesisConfig`].
     pub fn new(sqlite_uri: &str, genesis: GenesisConfig) -> Self {
         let runtime = Runtime::new().unwrap();
         let storage = runtime.block_on(Storage::new(sqlite_uri, genesis)).unwrap();
@@ -36,15 +38,6 @@ impl GlobalState {
     /// instance. No disk operations at all will be done.
     pub fn in_memory(genesis: GenesisConfig) -> Self {
         Self::new(":memory:", genesis)
-    }
-
-    pub(crate) fn from_storage(storage: Storage) -> Self {
-        let runtime = Runtime::new().unwrap();
-        Self {
-            storage: Arc::new(Mutex::new(storage)),
-            runtime: Arc::new(Mutex::new(runtime)),
-            layer_query_parameter: None,
-        }
     }
 
     /// Returns a mutable reference to the [`Option<Layer>`] that controls the

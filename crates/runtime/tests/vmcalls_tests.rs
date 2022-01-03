@@ -5,7 +5,7 @@ use wasmer::{imports, FromToNativeWasmType, NativeFunc};
 use svm_layout::FixedLayout;
 use svm_runtime::testing::WasmFile;
 use svm_runtime::{vmcalls, AccessMode, FuncEnv};
-use svm_state::{AccountStorage, GlobalState};
+use svm_state::{AccountStorage, GenesisConfig, GlobalState};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, ReceiptLog, TemplateAddr};
 
 fn create_account(
@@ -123,7 +123,7 @@ fn vmcalls_get32_set32() {
     let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::from_byte_sizes(0, &[4, 2]);
 
-    let gs = GlobalState::in_memory();
+    let gs = GlobalState::in_memory(GenesisConfig::mainnet());
     let store = wasmer_store();
     let storage = create_account(gs, &target_addr, &template_addr, layout);
     let envelope = Envelope::default();
@@ -169,7 +169,7 @@ fn vmcalls_get64_set64() {
     let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::from_byte_sizes(0, &[4, 2]);
 
-    let gs = GlobalState::in_memory();
+    let gs = GlobalState::in_memory(GenesisConfig::mainnet());
     let store = wasmer_store();
     let storage = create_account(gs, &target_addr, &template_addr, layout);
     let envelope = Envelope::default();
@@ -215,7 +215,7 @@ fn vmcalls_load160() {
     let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::from_byte_sizes(0, &[20]);
 
-    let gs = GlobalState::in_memory();
+    let gs = GlobalState::in_memory(GenesisConfig::mainnet());
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
     let storage = create_account(gs, &target_addr, &template_addr, layout);
@@ -269,7 +269,7 @@ fn vmcalls_store160() {
     let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::from_byte_sizes(0, &[20]);
 
-    let gs = GlobalState::in_memory();
+    let gs = GlobalState::in_memory(GenesisConfig::mainnet());
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
     let storage = create_account(gs, &target_addr, &template_addr, layout);
@@ -318,7 +318,7 @@ fn vmcalls_log() {
     let target_addr = Address::repeat(0xCD);
     let layout = FixedLayout::default();
 
-    let gs = GlobalState::in_memory();
+    let gs = GlobalState::in_memory(GenesisConfig::mainnet());
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
     let storage = create_account(gs, &target_addr, &template_addr, layout);
@@ -373,7 +373,7 @@ fn setup_svm_transfer_test() -> (
     let layout = FixedLayout::from_byte_sizes(0, &[20]);
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let gs = GlobalState::in_memory();
+    let gs = GlobalState::in_memory(GenesisConfig::mainnet());
 
     let mut src_account = create_account(gs.clone(), &src_addr, &template, layout.clone());
     src_account.set_balance(1000).unwrap();

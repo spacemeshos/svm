@@ -2,8 +2,11 @@ use std::collections::HashMap;
 
 use svm_types::{Template, TemplateAddr};
 
+/// Information about templates already deployed at genesis.
 #[derive(Debug)]
 pub struct GenesisConfig {
+    /// A list of [`Template`]'s to deploy at genesis, together with their
+    /// respective addresses.
     pub templates: HashMap<TemplateAddr, Template>,
 }
 

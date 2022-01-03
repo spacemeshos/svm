@@ -2,7 +2,7 @@
 mod test {
     use svm_codec::Codec;
     use svm_runtime::{PriceResolverRegistry, Runtime, TemplatePriceCache};
-    use svm_state::GlobalState;
+    use svm_state::{GenesisConfig, GlobalState};
     use svm_types::{
         Address, BytesPrimitive, CodeKind, CodeSection, Context, CtorsSection, DataSection,
         Envelope, Gas, GasMode, Layer, Section, Sections, State, TemplateAddr, Transaction,
@@ -48,7 +48,7 @@ mod test {
 
     #[test]
     fn deploy_sct_template() {
-        let gs = GlobalState::in_memory();
+        let gs = GlobalState::in_memory(GenesisConfig::mainnet());
         let pricing_registry = PriceResolverRegistry::default();
         let pricing_cache = TemplatePriceCache::new(pricing_registry);
         let mut runtime = Runtime::new(gs, pricing_cache);

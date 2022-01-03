@@ -9,7 +9,7 @@ use std::slice;
 
 use svm_codec::Codec;
 use svm_runtime::{PriceResolverRegistry, Runtime, TemplatePriceCache, ValidateError};
-use svm_state::GlobalState;
+use svm_state::{GenesisConfig, GlobalState};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State};
 
 use crate::resource_tracker::ResourceTracker;
@@ -68,13 +68,13 @@ pub unsafe extern "C" fn svm_runtime_create(
         }
         *initialized = true;
 
-        // TODO: move both `GlobalState` and `TemplatePriceCache` to sit under `Env`.
-        // `Env` be a singleton living throughout the process' lifetime.
+        let genesis = GenesisConfig::mainnet();
         let global_state = if path.is_null() {
-            GlobalState::in_memory()
+            GlobalState::in_memory(genesis)
         } else {
-            let db_path = std::slice::from_raw_parts(path, path_len as usize);
-            GlobalState::new(std::str::from_utf8(db_path).expect("Invalid UTF-8 path."))
+            let db_path_bytes = std::slice::from_raw_parts(path, path_len as usize);
+            let db_path = std::str::from_utf8(db_path_bytes).expect("Invalid UTF-8 path.");
+            GlobalState::new(db_path, genesis)
         };
 
         let registry = PriceResolverRegistry::default();

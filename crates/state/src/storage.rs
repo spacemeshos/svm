@@ -19,7 +19,7 @@ use svm_hash::{Blake3Hasher, Hasher};
 use svm_types::{Layer, State};
 
 pub use crate::error::{StorageError, StorageResult as Result};
-use crate::{GenesisConfig, GlobalState, TemplateStorage};
+use crate::GenesisConfig;
 
 type Changes = HashMap<State, Vec<u8>>;
 
@@ -75,7 +75,7 @@ impl Storage {
         // `next_layer_id` tells us whether there is any layers' data at all in
         // the database. If there's not, we must initialize the state.
         if next_layer_id.is_none() {
-            storage = storage.init_genesis(genesis_setup).await?;
+            storage.init_genesis(genesis_setup).await?;
             storage
                 .insert_layer(INITIAL_LAYER_ID, STATE_ZEROS, true)
                 .await?;
@@ -86,15 +86,16 @@ impl Storage {
         Ok(storage)
     }
 
-    async fn init_genesis(self, genesis: GenesisConfig) -> Result<Self> {
-        let gs = GlobalState::from_storage(self);
-        for (template_addr, template) in genesis.templates {
-            let mut core_sections = template.sections().clone();
-            let noncore_sections = core_sections.remove_noncore();
+    async fn init_genesis(&mut self, _genesis: GenesisConfig) -> Result<()> {
+        //let gs = GlobalState::from_storage(self);
+        //for (template_addr, template) in genesis.templates {
+        //    let mut core_sections = template.sections().clone();
+        //    let noncore_sections = core_sections.remove_noncore();
 
-            TemplateStorage::create(gs.clone(), &template_addr, core_sections, noncore_sections)?;
-        }
-        Ok(gs.storage())
+        //    TemplateStorage::create(gs.clone(), &template_addr, core_sections, noncore_sections)?;
+        //}
+        //Ok(gs.storage())
+        Ok(())
     }
 
     async fn delete_bad_layers(&self) -> Result<u64> {
