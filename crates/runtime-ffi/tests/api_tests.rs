@@ -2,8 +2,8 @@ extern crate svm_sdk_mock as svm_sdk;
 
 use svm_codec::Codec;
 use svm_layout::FixedLayout;
-use svm_runtime::testing;
 use svm_runtime_ffi as api;
+use svm_runtime_testing as testing;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Receipt, TemplateAddr};

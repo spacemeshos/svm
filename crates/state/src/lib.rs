@@ -8,13 +8,11 @@
 
 mod account_storage;
 mod error;
-mod genesis_config;
 mod global_state;
 mod storage;
 mod template_storage;
 
 pub use account_storage::AccountStorage;
 pub use error::{StorageError, StorageResult};
-pub use genesis_config::GenesisConfig;
 pub use global_state::GlobalState;
 pub use template_storage::TemplateStorage;

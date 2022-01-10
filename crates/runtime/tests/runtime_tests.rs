@@ -3,11 +3,11 @@ extern crate svm_sdk_mock as svm_sdk;
 use svm_codec::ParseError;
 use svm_layout::FixedLayout;
 use svm_program::ProgramError;
-use svm_runtime::{compute_account_addr, testing, ValidateError};
+use svm_runtime::{compute_account_addr, ValidateError};
+use svm_runtime_testing as testing;
 use svm_sdk as sdk;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
-
 use svm_types::{
     Address, BytesPrimitive, Context, DeployReceipt, Envelope, Gas, RuntimeError, SpawnAccount,
     SpawnReceipt,

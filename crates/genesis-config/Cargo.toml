@@ -1,5 +1,5 @@
 [package]
-name = "svm-genesis-templates"
+name = "svm-genesis-config"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"

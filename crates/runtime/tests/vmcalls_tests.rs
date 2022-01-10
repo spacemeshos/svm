@@ -2,10 +2,11 @@ use std::ops::AddAssign;
 
 use wasmer::{imports, FromToNativeWasmType, NativeFunc};
 
+use svm_genesis_config::GenesisConfig;
 use svm_layout::FixedLayout;
-use svm_runtime::testing::WasmFile;
 use svm_runtime::{vmcalls, AccessMode, FuncEnv};
-use svm_state::{AccountStorage, GenesisConfig, GlobalState};
+use svm_runtime_testing::WasmFile;
+use svm_state::{AccountStorage, GlobalState};
 use svm_types::{Address, BytesPrimitive, Context, Envelope, ReceiptLog, TemplateAddr};
 
 fn create_account(

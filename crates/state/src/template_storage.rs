@@ -83,10 +83,9 @@ fn read_sections(gs: &GlobalState, addr: &TemplateAddr) -> StorageResult<Section
 
 #[cfg(test)]
 mod test {
+    use svm_genesis_config::GenesisConfig;
     use svm_layout::{FixedLayout, Layout};
     use svm_types::{CodeSection, CtorsSection, DataSection, SectionKind, Sections, Template};
-
-    use crate::GenesisConfig;
 
     use super::*;
 

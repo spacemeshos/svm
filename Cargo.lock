@@ -1717,7 +1717,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "svm-genesis-templates"
+name = "svm-genesis-config"
 version = "0.0.0"
 dependencies = [
  "svm-types",
@@ -1728,6 +1728,7 @@ name = "svm-genesis-tests"
 version = "0.0.0"
 dependencies = [
  "svm-codec",
+ "svm-genesis-config",
  "svm-runtime",
  "svm-state",
  "svm-types",
@@ -1774,9 +1775,11 @@ dependencies = [
  "maplit",
  "svm-codec",
  "svm-gas",
+ "svm-genesis-config",
  "svm-hash",
  "svm-layout",
  "svm-program",
+ "svm-runtime-testing",
  "svm-sdk-mock",
  "svm-state",
  "svm-types",
@@ -1797,12 +1800,27 @@ dependencies = [
  "svm-abi-encoder",
  "svm-codec",
  "svm-gas",
+ "svm-genesis-config",
  "svm-layout",
  "svm-runtime",
+ "svm-runtime-testing",
  "svm-sdk-mock",
  "svm-state",
  "svm-types",
  "wasmer",
+ "wat",
+]
+
+[[package]]
+name = "svm-runtime-testing"
+version = "0.0.0"
+dependencies = [
+ "svm-codec",
+ "svm-genesis-config",
+ "svm-layout",
+ "svm-runtime",
+ "svm-state",
+ "svm-types",
  "wat",
 ]
 
@@ -1969,7 +1987,7 @@ dependencies = [
  "quickcheck_macros",
  "sqlx",
  "svm-codec",
- "svm-genesis-templates",
+ "svm-genesis-config",
  "svm-hash",
  "svm-layout",
  "svm-types",

@@ -442,10 +442,9 @@ impl Codec for AccountMut {
 
 #[cfg(test)]
 mod test {
+    use svm_genesis_config::GenesisConfig;
     use svm_layout::Layout;
     use svm_types::{CodeSection, CtorsSection, DataSection, Sections, Template};
-
-    use crate::GenesisConfig;
 
     use super::*;
 

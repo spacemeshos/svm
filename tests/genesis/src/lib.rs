@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod test {
     use svm_codec::Codec;
+    use svm_genesis_config::GenesisConfig;
     use svm_runtime::{PriceResolverRegistry, Runtime, TemplatePriceCache};
-    use svm_state::{GenesisConfig, GlobalState};
+    use svm_state::GlobalState;
     use svm_types::{
         Address, BytesPrimitive, CodeKind, CodeSection, Context, CtorsSection, DataSection,
         Envelope, Gas, GasMode, Layer, Section, Sections, State, TemplateAddr, Transaction,

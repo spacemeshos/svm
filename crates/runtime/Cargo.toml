@@ -28,4 +28,6 @@ svm-program = { path = "../program" }
 
 [dev-dependencies]
 maplit = "1.0.2"
+svm-genesis-config = { path = "../genesis-config" }
+svm-runtime-testing = { path = "../runtime-testing" }
 svm-sdk-mock = { path = "../sdk-mock", features = ["dynamic-alloc"], default-features = false }

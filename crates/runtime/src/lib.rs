@@ -16,7 +16,6 @@ mod price_registry;
 mod runtime;
 mod wasm_store;
 
-pub mod testing;
 pub mod vmcalls;
 
 pub use error::ValidateError;

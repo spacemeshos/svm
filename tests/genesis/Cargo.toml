@@ -12,6 +12,7 @@ publish = false
 
 [dependencies]
 svm-codec = { path = "../../crates/codec" }
+svm-genesis-config = { path = "../../crates/genesis-config" }
 svm-runtime = { path = "../../crates/runtime" }
 svm-state = { path = "../../crates/state" }
 svm-types = { path = "../../crates/types" }

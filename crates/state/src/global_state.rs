@@ -3,11 +3,12 @@ use tokio::runtime::Runtime;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use svm_codec::Codec;
+use svm_genesis_config::GenesisConfig;
 use svm_hash::{Blake3Hasher, Hasher};
 use svm_types::{BytesPrimitive, Layer, State};
 
 use crate::storage::Storage;
-use crate::{GenesisConfig, StorageError, StorageResult as Result, TemplateStorage};
+use crate::{StorageError, StorageResult as Result, TemplateStorage};
 
 /// A key-value store with a non-falsifiable state signature, historical data
 /// querying and other features which make it suitable for storing Spacemesh'

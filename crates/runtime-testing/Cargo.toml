@@ -1,0 +1,22 @@
+[package]
+name = "svm-runtime-testing"
+version = "0.0.0"
+authors = ["Spacemesh SVM Team"]
+license = "MIT"
+edition = "2021"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[dependencies]
+svm-codec = { path = "../codec" }
+svm-genesis-config = { path = "../genesis-config" }
+svm-layout = { path = "../layout" }
+svm-runtime = { path = "../runtime" }
+svm-state = { path = "../state" }
+svm-types = { path = "../types" }
+wat = "1.0.40"
+
+[dev-dependencies]

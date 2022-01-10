@@ -8,8 +8,9 @@ use std::panic::UnwindSafe;
 use std::slice;
 
 use svm_codec::Codec;
+use svm_genesis_config::GenesisConfig;
 use svm_runtime::{PriceResolverRegistry, Runtime, TemplatePriceCache, ValidateError};
-use svm_state::{GenesisConfig, GlobalState};
+use svm_state::GlobalState;
 use svm_types::{Address, BytesPrimitive, Context, Envelope, Layer, State};
 
 use crate::resource_tracker::ResourceTracker;
