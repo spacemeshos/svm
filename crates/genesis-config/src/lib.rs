@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use svm_layout::{FixedLayout, Layout};
 use svm_types::{
     Address, BytesPrimitive, CodeKind, CodeSection, CtorsSection, DataSection, GasMode, Section,
     Sections, Template, TemplateAddr,
@@ -45,7 +46,9 @@ pub fn sct() -> (TemplateAddr, Template) {
     let template_addr = svm_types::compute_template_addr(&code_section);
 
     sections.insert(Section::Code(code_section));
-    sections.insert(Section::Data(DataSection::default()));
+    sections.insert(Section::Data(DataSection::with_layout(Layout::Fixed(
+        FixedLayout::default(),
+    ))));
     sections.insert(Section::Ctors(CtorsSection::default()));
     // TODO: populate noncore sections as well...
 

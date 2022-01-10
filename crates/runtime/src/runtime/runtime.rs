@@ -483,9 +483,12 @@ impl Runtime {
         balance: u64,
         counter: u128,
     ) -> Result<()> {
+        // We instantiate genesis accounts with the Simple Coin Transfer template.
+        let template_addr = svm_genesis_config::sct().0;
+
         self.create_account(
             account_addr,
-            TemplateAddr::stub(),
+            template_addr,
             name.to_string(),
             balance,
             counter,

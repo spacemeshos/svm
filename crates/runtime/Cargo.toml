@@ -18,16 +18,16 @@ lazy_static = "1.4.0"
 thiserror = "1.0.30"
 wasmer = { version = "2.1.1", features = ["default-singlepass", "default-universal"], default-features = false }
 wat = "1.0.40"
+svm-codec = { path = "../codec" }
 svm-hash = { path = "../hash" }
-svm-types = { path = "../types" }
+svm-genesis-config = { path = "../genesis-config" }
 svm-layout = { path = "../layout" }
 svm-state = { path = "../state" }
-svm-codec = { path = "../codec" }
+svm-types = { path = "../types" }
 svm-gas = { path = "../gas" }
 svm-program = { path = "../program" }
 
 [dev-dependencies]
 maplit = "1.0.2"
-svm-genesis-config = { path = "../genesis-config" }
 svm-runtime-testing = { path = "../runtime-testing" }
 svm-sdk-mock = { path = "../sdk-mock", features = ["dynamic-alloc"], default-features = false }

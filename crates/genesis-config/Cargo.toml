@@ -11,4 +11,5 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
+svm-layout = { path = "../../crates/layout" }
 svm-types = { path = "../../crates/types" }
