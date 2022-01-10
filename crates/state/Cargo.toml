@@ -11,21 +11,22 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-anyhow = "1.0.45"
+anyhow = "1.0.52"
 blake3 = "1.2.0"
-futures = "0.3.17"
+futures = "0.3.19"
 # https://github.com/launchbadge/sqlx/issues/713
-sqlx = { version = "0.5.9", features = ["runtime-tokio-rustls", "sqlite", "macros"] }
+sqlx = { version = "0.5.10", features = ["runtime-tokio-rustls", "sqlite", "macros"] }
 svm-codec = { path = "../codec" }
 svm-genesis-templates = { path = "../genesis-templates" }
 svm-hash = { path = "../hash" }
 svm-layout = { path = "../layout" }
 svm-types = { path = "../types" }
-tokio = { version = "1.13.0", features = ["rt"] }
+tokio = { version = "1.15.0", features = ["rt"] }
 thiserror = "1.0.30"
+tracing = "0.1.29"
 
 [dev-dependencies]
 quickcheck = "1.0.3"
 quickcheck_async = "0.1.1"
 quickcheck_macros = "1.0.0"
-tokio = { version = "1.13.0", features = ["rt", "macros"] }
+tokio = { version = "1.15.0", features = ["rt", "macros"] }

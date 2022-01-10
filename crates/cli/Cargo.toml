@@ -11,11 +11,11 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-anyhow = "1.0.45"
-clap = "2.33.3"
+anyhow = "1.0.52"
+clap = "3.0.0"
 thiserror = "1.0.30"
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.69"
+serde = { version = "1.0.133", features = ["derive"] }
+serde_json = "1.0.74"
 svm-codec = { path = "../codec" }
 svm-gas = { path = "../gas" }
 svm-program = { path = "../program" }

@@ -32,10 +32,10 @@ use subcmd_validate::{clap_app_validate, subcmd_validate};
 fn main() -> anyhow::Result<()> {
     let clap_matches = clap_app().get_matches();
     match clap_matches.subcommand() {
-        ("validate", Some(args)) => subcmd_validate(args)?,
-        ("tx", Some(args)) => subcmd_tx(args)?,
-        ("craft-deploy", Some(args)) => subcmd_craft_deploy(args)?,
-        (_, _) => unreachable!(),
+        Some(("validate", args)) => subcmd_validate(args)?,
+        Some(("tx", args)) => subcmd_tx(args)?,
+        Some(("craft-deploy", args)) => subcmd_craft_deploy(args)?,
+        _ => unreachable!(),
     }
     Ok(())
 }
@@ -48,7 +48,7 @@ enum Error {
     UnknownFileExtension,
 }
 
-fn clap_app() -> clap::App<'static, 'static> {
+fn clap_app() -> clap::App<'static> {
     use clap::*;
 
     // Help messages all use the third person rather than the imperative form,

@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 use svm_codec::api::json;
 
-pub fn clap_app_tx() -> clap::App<'static, 'static> {
+pub fn clap_app_tx() -> clap::App<'static> {
     use clap::*;
 
     SubCommand::with_name("tx")
@@ -15,7 +15,7 @@ pub fn clap_app_tx() -> clap::App<'static, 'static> {
         .arg(
             Arg::with_name("input")
                 .help("Reads JSON-formatted transactions from this file")
-                .short("i")
+                .short('i')
                 .long("input")
                 .required(true)
                 .takes_value(true),
@@ -23,7 +23,7 @@ pub fn clap_app_tx() -> clap::App<'static, 'static> {
         .arg(
             Arg::with_name("output")
                 .help("Writes the binary output to this file")
-                .short("o")
+                .short('o')
                 .long("output")
                 .required(true)
                 .takes_value(true),

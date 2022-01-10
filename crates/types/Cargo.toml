@@ -11,7 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-derive_more = "0.99.16"
+derive_more = "0.99.17"
 hex = "0.4.3"
 indexmap = "1.7.0"
 svm-hash = { path = "../hash" }

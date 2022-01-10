@@ -14,7 +14,7 @@ use svm_types::{CodeSection, CtorsSection, DataSection, Section, SectionKind, Se
 
 use meta::TemplateMeta;
 
-pub fn clap_app_craft_deploy() -> clap::App<'static, 'static> {
+pub fn clap_app_craft_deploy() -> clap::App<'static> {
     use clap::*;
 
     SubCommand::with_name("craft-deploy")
@@ -36,7 +36,7 @@ pub fn clap_app_craft_deploy() -> clap::App<'static, 'static> {
         .arg(
             Arg::with_name("output")
                 .help("Writes the binary output to this file")
-                .short("o")
+                .short('o')
                 .long("output")
                 .required(true)
                 .takes_value(true),

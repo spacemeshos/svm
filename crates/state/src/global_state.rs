@@ -49,13 +49,26 @@ impl GlobalState {
         let last_layer_id = self.block_on(self.storage().last_layer_id())?;
 
         if last_layer_id.is_some() {
+            println!("genesis info is already present: {:?}", last_layer_id);
+            tracing::info!("The global state is already initialized. Skipping.");
+
             return Ok(());
         }
+
+        tracing::info!(
+            num_templates = genesis.templates.len(),
+            "The global state is not initialized. Writing templates."
+        );
 
         for (template_addr, template) in genesis.templates {
             let mut core_sections = template.sections().clone();
             let noncore_sections = core_sections.remove_noncore();
 
+            tracing::debug!(
+                template_addr = template_addr.to_string().as_str(),
+                "Initializing a new template for genesis."
+            );
+            println!("new template with addr {}", template_addr.to_string());
             TemplateStorage::create(
                 self.clone(),
                 &template_addr,
@@ -69,6 +82,11 @@ impl GlobalState {
 
         assert_eq!(layer_id, -1);
         self.genesis_state = state;
+
+        tracing::info!(
+            state_fingerprint = state.to_string().as_str(),
+            "Genesis initialization completed."
+        );
 
         Ok(())
     }

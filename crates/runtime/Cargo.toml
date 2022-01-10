@@ -12,11 +12,11 @@ publish = false
 
 [dependencies]
 byteorder = "1.4.3"
-futures = "0.3.17"
+futures = "0.3.19"
 log = "0.4.14"
 lazy_static = "1.4.0"
 thiserror = "1.0.30"
-wasmer = { version = "2.1.0", features = ["default-singlepass", "default-universal"], default-features = false }
+wasmer = { version = "2.1.1", features = ["default-singlepass", "default-universal"], default-features = false }
 wat = "1.0.40"
 svm-hash = { path = "../hash" }
 svm-types = { path = "../types" }

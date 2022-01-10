@@ -8,14 +8,14 @@ use svm_program::{Program, ProgramVisitor};
 
 use crate::Error;
 
-pub fn clap_app_validate() -> clap::App<'static, 'static> {
+pub fn clap_app_validate() -> clap::App<'static> {
     use clap::*;
 
     SubCommand::with_name("validate")
         .about("Runs validation logic on a smWasm file")
         .arg(
             Arg::with_name("input")
-                .short("i")
+                .short('i')
                 .long("input")
                 .help("Sets the input file to use")
                 .takes_value(true)
