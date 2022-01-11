@@ -10,10 +10,10 @@ use svm_codec::api::json;
 pub fn clap_app_tx() -> clap::App<'static> {
     use clap::*;
 
-    SubCommand::with_name("tx")
+    App::new("tx")
         .about("Low-level API to craft transactions from JSON specification files")
         .arg(
-            Arg::with_name("input")
+            Arg::new("input")
                 .help("Reads JSON-formatted transactions from this file")
                 .short('i')
                 .long("input")
@@ -21,7 +21,7 @@ pub fn clap_app_tx() -> clap::App<'static> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("output")
+            Arg::new("output")
                 .help("Writes the binary output to this file")
                 .short('o')
                 .long("output")
@@ -29,7 +29,7 @@ pub fn clap_app_tx() -> clap::App<'static> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("tx-type")
+            Arg::new("tx-type")
                 .help("The type of input transaction")
                 .long("tx-type")
                 .required(true)

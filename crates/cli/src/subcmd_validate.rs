@@ -11,10 +11,10 @@ use crate::Error;
 pub fn clap_app_validate() -> clap::App<'static> {
     use clap::*;
 
-    SubCommand::with_name("validate")
+    App::new("validate")
         .about("Runs validation logic on a smWasm file")
         .arg(
-            Arg::with_name("input")
+            Arg::new("input")
                 .short('i')
                 .long("input")
                 .help("Sets the input file to use")

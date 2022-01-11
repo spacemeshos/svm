@@ -17,24 +17,24 @@ use meta::TemplateMeta;
 pub fn clap_app_craft_deploy() -> clap::App<'static> {
     use clap::*;
 
-    SubCommand::with_name("craft-deploy")
+    App::new("craft-deploy")
         .about("High-level API to craft \"Deploy\" transactions")
         .arg(
-            Arg::with_name("smwasm")
+            Arg::new("smwasm")
                 .help("Path to the smWasm `#[template]` code")
                 .long("smwasm")
                 .required(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("meta")
+            Arg::new("meta")
                 .help("Path to the JSON meta-information produced by the SVM SDK")
                 .long("meta")
                 .required(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("output")
+            Arg::new("output")
                 .help("Writes the binary output to this file")
                 .short('o')
                 .long("output")
