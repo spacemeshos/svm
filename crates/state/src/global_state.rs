@@ -27,6 +27,11 @@ impl GlobalState {
     /// Creates a new [`GlobalState`] from the database instance sitting at
     /// `sqlite_uri` and with the given [`GenesisConfig`].
     pub fn new(sqlite_uri: &str, genesis: GenesisConfig) -> Self {
+        tracing::info!(
+            sqlite_uri = sqlite_uri,
+            "Intitializing a new global state database."
+        );
+
         let runtime = Runtime::new().unwrap();
         let storage = runtime.block_on(Storage::new(sqlite_uri)).unwrap();
         let mut gs = Self {
@@ -49,10 +54,10 @@ impl GlobalState {
     fn init_genesis(&mut self, genesis: GenesisConfig) -> Result<()> {
         let last_layer_id = self.block_on(self.storage().last_layer_id())?;
 
-        if last_layer_id.is_some() {
-            println!("genesis info is already present: {:?}", last_layer_id);
-            tracing::info!("The global state is already initialized. Skipping.");
+        tracing::debug!("Initializing genesis configuration.");
 
+        if last_layer_id.is_some() {
+            tracing::debug!("The database is not empty. Genesis is assumed to have been configured already. Skipping.");
             return Ok(());
         }
 
@@ -78,7 +83,7 @@ impl GlobalState {
             )?;
         }
 
-        self.block_on(self.storage().checkpoint())?;
+        self.checkpoint()?;
         let (layer_id, state) = self.block_on(self.storage().commit())?;
 
         assert_eq!(layer_id, -1);

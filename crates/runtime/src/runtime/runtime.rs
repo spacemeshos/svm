@@ -816,8 +816,8 @@ fn commit_changes(env: &FuncEnv) -> svm_state::StorageResult<State> {
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
 
-    storage.gs.checkpoint()?;
-    let state = storage.gs.commit()?.1.into();
+    storage.gs.checkpoint().unwrap();
+    let state = storage.gs.commit().unwrap().1.into();
 
     Ok(state)
 }

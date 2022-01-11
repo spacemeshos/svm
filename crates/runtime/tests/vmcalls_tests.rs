@@ -1,5 +1,6 @@
 use std::ops::AddAssign;
 
+use test_log::test;
 use wasmer::{imports, FromToNativeWasmType, NativeFunc};
 
 use svm_genesis_config::GenesisConfig;

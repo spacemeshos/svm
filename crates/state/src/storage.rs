@@ -249,10 +249,13 @@ impl Storage {
         let mut inserts = vec![];
         let layer_changes = std::mem::take(&mut self.next_layer.changes);
 
+        tracing::trace!(layer_id = layer_id, "Fingerpriting...");
         let mut fingerprint = self.layer_fingerprint(layer_id, true).await?;
         xor_fingerprint(&mut fingerprint, &self.next_layer.changes_xor_fingerprint);
+        tracing::trace!("Fingerpriting done.");
 
         self.insert_layer(layer_id, fingerprint, false).await?;
+        println!("inserted layer.");
 
         for (key_hash, value) in layer_changes {
             inserts.push(
@@ -268,6 +271,7 @@ impl Storage {
                 .execute(&self.sqlite),
             )
         }
+        println!("done main loop.");
 
         futures::future::try_join_all(inserts).await?;
 
