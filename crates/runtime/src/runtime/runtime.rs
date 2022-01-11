@@ -812,11 +812,14 @@ fn set_calldata(env: &FuncEnv, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
     env.borrow_mut().set_calldata(offset, len);
 }
 
-fn commit_changes(env: &FuncEnv) -> State {
+fn commit_changes(env: &FuncEnv) -> svm_state::StorageResult<State> {
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
-    storage.gs.checkpoint().unwrap();
-    storage.gs.commit().unwrap().1.into()
+
+    storage.gs.checkpoint()?;
+    let state = storage.gs.commit()?.1.into();
+
+    Ok(state)
 }
 
 fn outcome_to_receipt(env: &FuncEnv, mut out: Outcome<Box<[wasmer::Val]>>) -> CallReceipt {
@@ -825,7 +828,7 @@ fn outcome_to_receipt(env: &FuncEnv, mut out: Outcome<Box<[wasmer::Val]>>) -> Ca
         success: true,
         error: None,
         returndata: Some(take_returndata(env)),
-        new_state: Some(commit_changes(&env)),
+        new_state: Some(commit_changes(&env).unwrap()),
         gas_used: out.gas_used(),
         touched_accounts: env.borrow().touched_accounts(),
         logs: out.take_logs(),

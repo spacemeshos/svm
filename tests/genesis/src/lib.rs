@@ -10,32 +10,13 @@ mod test {
         TransactionId,
     };
 
-    fn sct_sections() -> Sections {
-        let wasm_code = include_bytes!(
-            "../../../simple-coin-transfer-template/simple_coin_transfer_template.wasm"
-        );
-
-        let mut sections = Sections::default();
-        sections.insert(Section::Code(CodeSection::new(
-            CodeKind::Wasm,
-            wasm_code.to_vec(),
-            0,
-            GasMode::Fixed,
-            0,
-        )));
-        sections.insert(Section::Data(DataSection::default()));
-        sections.insert(Section::Ctors(CtorsSection::default()));
-
-        sections
-    }
-
     fn deploy_sct_template_helper(runtime: &mut Runtime) -> TemplateAddr {
         let principal = Address::zeros();
         let gas_limit = Gas::new();
         let gas_fee = 0;
         let envelope = Envelope::new(principal, 0, 0, gas_limit, gas_fee);
 
-        let message = sct_sections().encode_to_vec();
+        let message = svm_genesis_config::sct().1.sections().encode_to_vec();
 
         let tx_id = TransactionId::zeros();
         let layer = Layer::default();
