@@ -1,7 +1,5 @@
 extern crate svm_sdk_mock as svm_sdk;
 
-use test_log::test;
-
 use svm_codec::ParseError;
 use svm_layout::FixedLayout;
 use svm_program::ProgramError;

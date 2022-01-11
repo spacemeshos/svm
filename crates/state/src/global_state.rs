@@ -86,7 +86,9 @@ impl GlobalState {
         self.checkpoint()?;
         let (layer_id, state) = self.block_on(self.storage().commit())?;
 
-        assert_eq!(layer_id, -1);
+        debug_assert_eq!(layer_id, -1);
+        debug_assert_eq!(self.block_on(self.storage().last_layer_id())?, Some(0));
+
         self.genesis_state = state;
 
         tracing::info!(

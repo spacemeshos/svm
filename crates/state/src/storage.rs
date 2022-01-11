@@ -30,7 +30,7 @@ const STATE_ONES: State = State([std::u8::MAX; 32]);
 
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
 
-// The first ever [`Layer`] is 0, but genesis data sits at -1.
+// The first ever actual layer ID is 0, but genesis data sits at -1.
 const INITIAL_LAYER_ID: i64 = -1;
 
 #[derive(Debug)]
@@ -91,13 +91,20 @@ impl Storage {
             WHERE "layer_id" IN (
                 SELECT "id"
                 FROM "layers"
-                WHERE "ready" = 0
+                WHERE "complete" = 0
             )
             "#,
         )
         .execute(&self.sqlite)
         .await?
         .rows_affected();
+
+        if count_rows > 0 {
+            tracing::warn!(
+                affected_rows = count_rows,
+                "Deleted invalid entries in the SQLite global state database."
+            );
+        }
 
         Ok(count_rows)
     }
@@ -120,7 +127,7 @@ impl Storage {
         Ok((layer_id, fingerprint))
     }
 
-    fn assert_layer_id_is_ready(&self, layer_id: i64) {
+    fn assert_layer_id_is_complete(&self, layer_id: i64) {
         assert!(layer_id < self.next_layer.id);
     }
 
@@ -152,7 +159,7 @@ impl Storage {
         layer_id: Option<i64>,
     ) -> Result<Option<Vec<u8>>> {
         if let Some(layer_id) = layer_id {
-            self.assert_layer_id_is_ready(layer_id);
+            self.assert_layer_id_is_complete(layer_id);
             self.get_by_hash_historical(hash, layer_id).await
         } else if let Some(value) = self.dirty_changes.get(hash) {
             Ok(Some(value.clone()))
@@ -164,7 +171,7 @@ impl Storage {
                 SELECT "value"
                 FROM "values"
                 INNER JOIN "layers" ON
-                    "ready" = 1
+                    "complete" = 1
                     AND
                     "key_hash" = ?1
                 ORDER BY "layer_id" DESC
@@ -187,7 +194,7 @@ impl Storage {
             INNER JOIN "layers" ON
                 "layer_id" <= ?1
                 AND
-                "ready" = 1
+                "complete" = 1
                 AND
                 "key_hash" = ?2
             ORDER BY "layer_id" DESC
@@ -236,6 +243,7 @@ impl Storage {
     }
 
     pub async fn commit(&mut self) -> Result<(i64, State)> {
+        println!("committing");
         if !self.dirty_changes.is_empty() {
             return Err(StorageError::DirtyChanges);
         }
@@ -250,9 +258,11 @@ impl Storage {
         let layer_changes = std::mem::take(&mut self.next_layer.changes);
 
         tracing::trace!(layer_id = layer_id, "Fingerpriting...");
+        dbg!("fingerprinting", layer_id);
         let mut fingerprint = self.layer_fingerprint(layer_id, true).await?;
         xor_fingerprint(&mut fingerprint, &self.next_layer.changes_xor_fingerprint);
         tracing::trace!("Fingerpriting done.");
+        dbg!("fingerprinting done");
 
         self.insert_layer(layer_id, fingerprint, false).await?;
         println!("inserted layer.");
@@ -278,8 +288,8 @@ impl Storage {
         sqlx::query(
             r#"
             UPDATE "layers"
-            SET "fingerprint" = ?1, "ready" = 1
-            WHERE "id" = ?2 AND "ready" = 0
+            SET "fingerprint" = ?1, "complete" = 1
+            WHERE "id" = ?2 AND "complete" = 0
             "#,
         )
         .bind(&fingerprint.0[..])
@@ -295,39 +305,39 @@ impl Storage {
     }
 
     /// Creates a new [`State`]-ed layer with the given `id`.
-    async fn insert_layer(&self, id: i64, fingerprint: State, ready: bool) -> Result<()> {
+    async fn insert_layer(&self, id: i64, fingerprint: State, complete: bool) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO "layers" ("id", "fingerprint", "ready")
+            INSERT INTO "layers" ("id", "fingerprint", "complete")
             VALUES (?1, ?2, ?3)
             "#,
         )
         .bind(id)
         .bind(&fingerprint.0[..])
-        .bind(if ready { 1 } else { 0 })
+        .bind(if complete { 1 } else { 0 })
         .execute(&self.sqlite)
         .await?;
         Ok(())
     }
 
     /// Queries the current [`State`] value of `layer_id`.
-    async fn layer_fingerprint(&self, layer_id: i64, ready: bool) -> Result<State> {
+    async fn layer_fingerprint(&self, layer_id: i64, complete: bool) -> Result<State> {
         let bytes: (Vec<u8>,) = sqlx::query_as(
             r#"
             SELECT "fingerprint"
             FROM "layers"
-            WHERE "id" = ?1 AND "ready" = ?2
+            WHERE "id" = ?1 AND "complete" = ?2
             "#,
         )
         .bind(layer_id)
-        .bind(if ready { 1 } else { 0 })
+        .bind(if complete { 1 } else { 0 })
         .fetch_one(&self.sqlite)
         .await?;
         Ok(State(bytes.0.try_into().unwrap()))
     }
 
     pub async fn rewind(&mut self, layer_id: i64) -> Result<()> {
-        self.assert_layer_id_is_ready(layer_id);
+        self.assert_layer_id_is_complete(layer_id);
 
         if !self.dirty_changes.is_empty() {
             return Err(StorageError::DirtyChanges);
