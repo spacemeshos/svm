@@ -30,8 +30,11 @@ jobs:
         profile: [release]
         include:
           - os: ubuntu-latest
+            target-args:
           - os: macos-latest
+            target-args: --target aarch64-apple-darwin --target x86_64-apple-darwin
           - os: windows-latest
+            target-args:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -56,18 +59,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --no-default-features
-      - uses: actions-rs/cargo@v1
-        if: matrix.os == 'macos-latest'
-        with:
-          command: build
-          args: --target aarch64-apple-darwin --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --no-default-features
-      - name: List Cargo artifacts
+          args: ${{ matrix.target-args }} --release -p svm-runtime-ffi -p svm-cli --no-default-features
+      - name: Prepare Artifacts
         run: |
           ls target
-          ls target/${{ matrix.profile }}
-      - name: Prepare Artifacts
-        run: ./.github/copy-artifacts.sh
+          ls target/release
+          ./.github/copy-artifacts.sh
         env:
           OS: ${{ matrix.os }}
       - uses: msys2/setup-msys2@v2
@@ -234,9 +231,11 @@ jobs:
           zip -r ../svm-linux-v${{ env.VERSION }}.zip *
           cd ../bins-Windows-release
           zip -r ../svm-windows-v${{ env.VERSION }}.zip *
-          cd ../bins-macOS-release
+          cd ../bins-macOS-release/x86_64
           zip -r ../svm-macos-v${{ env.VERSION }}.zip *
-          cd ..
+          cd ../aarch64
+          zip -r ../svm-macos-m1-v${{ env.VERSION }}.zip *
+          cd ../..
           cp svm_codec.wasm/svm_codec.wasm svm_codec_v${{ env.VERSION }}.wasm
       - uses: softprops/action-gh-release@v1
         with:
@@ -245,6 +244,7 @@ jobs:
             svm-linux-v${{ env.VERSION }}.zip
             svm-windows-v${{ env.VERSION }}.zip
             svm-macos-v${{ env.VERSION }}.zip
+            svm-macos-m1-v${{ env.VERSION }}.zip
             svm_codec_v${{ env.VERSION }}.wasm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
