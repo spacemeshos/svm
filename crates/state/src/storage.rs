@@ -322,6 +322,7 @@ impl Storage {
 
     /// Queries the current [`State`] value of `layer_id`.
     async fn layer_fingerprint(&self, layer_id: i64, complete: bool) -> Result<State> {
+        println!("fingerprinting layer: {} & {}", layer_id, complete);
         let bytes: (Vec<u8>,) = sqlx::query_as(
             r#"
             SELECT "fingerprint"
@@ -333,6 +334,7 @@ impl Storage {
         .bind(if complete { 1 } else { 0 })
         .fetch_one(&self.sqlite)
         .await?;
+        println!("fingerprinting layer: {:?}", bytes);
         Ok(State(bytes.0.try_into().unwrap()))
     }
 

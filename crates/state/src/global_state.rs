@@ -18,7 +18,6 @@ use crate::{StorageError, StorageResult as Result, TemplateStorage};
 #[derive(Debug, Clone)]
 pub struct GlobalState {
     pub(crate) storage: Arc<Mutex<Storage>>,
-    runtime: Arc<Mutex<Runtime>>,
     layer_query_parameter: Option<Layer>,
     genesis_state: State,
 }
@@ -26,33 +25,33 @@ pub struct GlobalState {
 impl GlobalState {
     /// Creates a new [`GlobalState`] from the database instance sitting at
     /// `sqlite_uri` and with the given [`GenesisConfig`].
-    pub fn new(sqlite_uri: &str, genesis: GenesisConfig) -> Self {
+    pub async fn new(sqlite_uri: &str, genesis: GenesisConfig) -> Self {
         tracing::info!(
             sqlite_uri = sqlite_uri,
             "Intitializing a new global state database."
         );
 
         let runtime = Runtime::new().unwrap();
-        let storage = runtime.block_on(Storage::new(sqlite_uri)).unwrap();
+        let storage = Storage::new(sqlite_uri).await.unwrap();
         let mut gs = Self {
             storage: Arc::new(Mutex::new(storage)),
-            runtime: Arc::new(Mutex::new(runtime)),
             layer_query_parameter: None,
             genesis_state: State::zeros(),
         };
         gs.init_genesis(genesis)
+            .await
             .expect("Genesis initialization failed.");
         gs
     }
 
     /// Creates a pristine [`GlobalState`] backed by an in-memory SQLite
     /// instance. No disk operations at all will be done.
-    pub fn in_memory(genesis: GenesisConfig) -> Self {
+    pub async fn in_memory(genesis: GenesisConfig) -> Self {
         Self::new(":memory:", genesis)
     }
 
-    fn init_genesis(&mut self, genesis: GenesisConfig) -> Result<()> {
-        let last_layer_id = self.block_on(self.storage().last_layer_id())?;
+    async fn init_genesis(&mut self, genesis: GenesisConfig) -> Result<()> {
+        let last_layer_id = self.storage().last_layer_id()?;
 
         tracing::debug!("Initializing genesis configuration.");
 
@@ -84,10 +83,10 @@ impl GlobalState {
         }
 
         self.checkpoint()?;
-        let (layer_id, state) = self.block_on(self.storage().commit())?;
+        let (layer_id, state) = self.storage().commit()?;
 
         debug_assert_eq!(layer_id, -1);
-        debug_assert_eq!(self.block_on(self.storage().last_layer_id())?, Some(0));
+        debug_assert_eq!(self.storage().last_layer_id()?, Some(0));
 
         self.genesis_state = state;
 
@@ -114,7 +113,7 @@ impl GlobalState {
     /// Saves dirty changes in preparation of [`GlobalState::commit`]. After
     /// saving, changes are frozen and can't be removed from the current layer.
     pub fn checkpoint(&mut self) -> Result<()> {
-        self.block_on(self.storage().checkpoint())?;
+        self.storage().checkpoint()?;
         Ok(())
     }
 
@@ -123,21 +122,21 @@ impl GlobalState {
     /// dirty changes that haven't been saved via [`GlobalState::checkpoint`]
     /// before this call.
     pub fn commit(&mut self) -> Result<(Layer, State)> {
-        let (layer_id, state) = self.block_on(self.storage().commit())?;
+        let (layer_id, state) = self.storage().commit()?;
         Ok((Layer(layer_id.try_into().unwrap()), state))
     }
 
     /// Returns the [`Layer`] and [`State`] of the last ever committed
     /// layer; i.e. persisted changes without dirty and saved changes.
     pub fn current_layer(&mut self) -> Result<(Layer, State)> {
-        let (layer_id, state) = self.block_on(self.storage().last_layer())?;
+        let (layer_id, state) = self.storage().last_layer()?;
         Ok((Layer(layer_id.try_into().unwrap()), state))
     }
 
     /// Erases all dirty changes from memory. Persisted and saved data are left
     /// untouched.
     pub fn rollback(&mut self) -> Result<()> {
-        self.block_on(self.storage().rollback())?;
+        self.storage().rollback()?;
         Ok(())
     }
 
@@ -151,7 +150,7 @@ impl GlobalState {
     ///
     /// Panics if `layer_id` is invalid.
     pub fn rewind(&mut self, layer_id: Layer) -> Result<()> {
-        self.block_on(self.storage().rewind(layer_id.0.try_into().unwrap()))?;
+        self.storage().rewind(layer_id.0.try_into().unwrap())?;
         Ok(())
     }
 
@@ -170,25 +169,17 @@ impl GlobalState {
             .expect("Poisoned lock on global state storage")
     }
 
-    pub(crate) fn block_on<F>(&self, future: F) -> F::Output
-    where
-        F: std::future::Future,
-    {
-        self.runtime
-            .lock()
-            .expect("Poisoned lock on global state runtime")
-            .block_on(future)
-    }
-
-    pub(crate) fn read_and_decode<T>(&self, key: &str) -> Result<T>
+    pub(crate) async fn read_and_decode<T>(&self, key: &str) -> Result<T>
     where
         T: Codec,
     {
         let bytes = self
-            .block_on(self.storage().get(
+            .storage()
+            .get(
                 key.as_bytes(),
                 self.layer_query_parameter.map(|layer| layer.0 as i64),
-            ))?
+            )
+            .await?
             .ok_or(StorageError::NotFound {
                 key_hash: State(Blake3Hasher::hash(key.as_bytes())),
             })?;
@@ -202,7 +193,7 @@ impl GlobalState {
     where
         T: Codec,
     {
-        self.block_on(self.storage().upsert(key.as_bytes(), item.encode_to_vec()));
+        self.storage().upsert(key.as_bytes(), item.encode_to_vec());
     }
 
     pub(crate) fn replace<T, F>(&mut self, key: &str, f: F) -> Result<()>

@@ -3,7 +3,6 @@
 use svm_codec::{template, Codec};
 use svm_genesis_config::GenesisConfig;
 use svm_layout::{FixedLayout, Layout};
-use svm_runtime::{PriceResolverRegistry, Runtime, TemplatePriceCache};
 use svm_state::GlobalState;
 use svm_types::{
     Address, CodeSection, CtorsSection, DataSection, HeaderSection, SpawnAccount, Template,

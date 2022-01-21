@@ -86,7 +86,7 @@ impl AccountStorage {
     }
 
     /// Creates a new [`AccountStorage`].
-    pub fn load(gs: GlobalState, address: &Address) -> StorageResult<Self> {
+    pub async fn load(gs: GlobalState, address: &Address) -> StorageResult<Self> {
         let account_data = AccountData::read(&gs, address)?;
         let layout = template_layout(gs.clone(), &account_data.template_addr)?;
 
@@ -107,7 +107,7 @@ impl AccountStorage {
     /// # Panics
     ///
     /// Panics if `var` is not large enough to hold the `var_id` value.
-    pub fn get_var(&self, var_id: u32, mut var: &mut [u8]) -> StorageResult<()> {
+    pub async fn get_var(&self, var_id: u32, mut var: &mut [u8]) -> StorageResult<()> {
         let raw_var = self.layout.get(var_id);
         let offset = raw_var.offset;
         let byte_size = raw_var.byte_size;
@@ -127,7 +127,9 @@ impl AccountStorage {
         for segment in segments.into_iter() {
             let bytes: [u8; SEGMENT_SIZE] = self
                 .gs
-                .block_on(self.gs.storage().get(segment.key.as_bytes(), None))?
+                .storage()
+                .get(segment.key.as_bytes(), None)
+                .await?
                 .unwrap_or(vec![0; SEGMENT_SIZE])
                 .try_into()
                 .expect("Unexpected length of value.");
@@ -140,11 +142,11 @@ impl AccountStorage {
     }
 
     /// Reads and returns the data associated with `var_id` in a [`Vec<u8>`].
-    pub fn get_var_vec(&self, var_id: u32) -> StorageResult<Vec<u8>> {
+    pub async fn get_var_vec(&self, var_id: u32) -> StorageResult<Vec<u8>> {
         let raw_var = self.layout.get(var_id);
         let mut bytes = vec![0; raw_var.byte_size as usize];
 
-        self.get_var(var_id, &mut bytes)?;
+        self.get_var(var_id, &mut bytes).await?;
 
         Ok(bytes)
     }
@@ -371,8 +373,8 @@ impl AccountData {
         format!("accounts:{}:immutable", account_addr.to_string())
     }
 
-    pub fn read(gs: &GlobalState, address: &Address) -> StorageResult<Self> {
-        gs.read_and_decode::<Self>(&Self::key(address))
+    pub async fn read(gs: &GlobalState, address: &Address) -> StorageResult<Self> {
+        gs.read_and_decode::<Self>(&Self::key(address)).await
     }
 }
 
@@ -543,8 +545,8 @@ mod test {
         assert_eq!(account.counter().unwrap(), 100);
     }
 
-    #[test]
-    fn account_byte_vars() {
+    #[tokio::test]
+    async fn account_byte_vars() {
         let gs = new_gs();
 
         let address = Address::repeat(0xff);
@@ -580,8 +582,8 @@ mod test {
         assert_eq!(account.get_var_vec(0).unwrap(), &[1; 10]);
     }
 
-    #[test]
-    fn account_numeric_vars() {
+    #[tokio::test]
+    async fn account_numeric_vars() {
         let gs = new_gs();
 
         let address = Address::repeat(0xff);
@@ -609,8 +611,8 @@ mod test {
         assert_eq!(account.get_var_i64(9).unwrap(), i64::MAX);
     }
 
-    #[test]
-    fn create_then_load() {
+    #[tokio::test]
+    async fn create_then_load() {
         let gs = new_gs();
 
         let address = Address::repeat(0xff);
@@ -629,7 +631,7 @@ mod test {
         )
         .unwrap();
 
-        let new_account = AccountStorage::load(gs, &address).unwrap();
+        let new_account = AccountStorage::load(gs, &address).await.unwrap();
 
         assert_eq!(account.name().unwrap(), new_account.name().unwrap());
         assert_eq!(

@@ -14,7 +14,6 @@ publish = false
 svm-codec = { path = "../codec" }
 svm-genesis-config = { path = "../genesis-config" }
 svm-layout = { path = "../layout" }
-svm-runtime = { path = "../runtime" }
 svm-state = { path = "../state" }
 svm-types = { path = "../types" }
 wat = "1.0.40"
