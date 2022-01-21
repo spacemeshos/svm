@@ -11,8 +11,8 @@ if [[ "${OS}" == "windows-latest" ]]; then
     cp target/release/svm-cli.exe bins/svm-cli.exe
     cp target/release/svm.h bins/svm.h
 elif [[ "${OS}" == "macos-latest" ]]; then
-    mkdir bins/x86_64
-    mkdir bins/aarch64
+    mkdir -p bins/x86_64
+    mkdir -p bins/aarch64
     cp target/aarch64-apple-darwin/release/libsvm_runtime_ffi.dylib bins/aarch64/libsvm.dylib
     cp target/aarch64-apple-darwin/release/libsvm_runtime_ffi.a bins/aarch64/libsvm.a
     cp target/aarch64-apple-darwin/release/svm-cli bins/aarch64/svm-cli
