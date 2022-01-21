@@ -57,8 +57,7 @@ jobs:
         with:
           command: build
           args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --no-default-features
-      - name: Cargo Build
-        uses: actions-rs/cargo@v1
+      - uses: actions-rs/cargo@v1
         if: matrix.os == `macos-latest`
         with:
           command: build
