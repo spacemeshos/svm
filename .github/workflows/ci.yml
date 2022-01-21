@@ -28,13 +28,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         profile: [release]
-        include:
-          - os: ubuntu-latest
-            cargo-targets: ["x86_64-unknown-linux-gnu"]
-          - os: macos-latest
-            cargo-target: ["aarch64-apple-darwin", "x86_64-apple-darwin"]
-          - os: windows-latest
-            cargo-target: ["x86_64-pc-windows-msvc"]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -59,7 +52,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --target ${{ matrix.cargo-target }} --release -p svm-runtime-ffi -p svm-cli --no-default-features
+          args: --release -p svm-runtime-ffi -p svm-cli --no-default-features
+      - name: Cargo Build (Apple Silicon)
+        if: matrix.os == 'macos-latest'
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target aarch64-apple-darwin --release -p svm-runtime-ffi -p svm-cli --no-default-features
       - name: Prepare Artifacts
         run: |
           ls target
