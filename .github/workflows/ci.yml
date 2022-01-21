@@ -39,6 +39,7 @@ jobs:
           fetch-depth: 1
       - uses: actions-rs/toolchain@v1
         with:
+          target: aarch64-apple-darwin
           toolchain: nightly
           override: true
       - uses: actions/cache@v2
@@ -56,8 +57,15 @@ jobs:
         with:
           command: build
           args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --no-default-features
+      - uses: actions-rs/cargo@v1
+        if: matrix.os == 'macos-latest'
+        with:
+          command: build
+          args: --target aarch64-apple-darwin --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --no-default-features
       - name: List Cargo artifacts
-        run: ls target/${{ matrix.profile }}
+        run: |
+          ls target
+          ls target/${{ matrix.profile }}
       - name: Prepare Artifacts
         run: ./.github/copy-artifacts.sh
         env:
