@@ -19,7 +19,8 @@ elif [[ "${OS}" == "macos-latest" ]]; then
     cp target/release/libsvm_runtime_ffi.dylib bins/x86_64/libsvm.dylib
     cp target/release/libsvm_runtime_ffi.a bins/x86_64/libsvm.a
     cp target/release/svm-cli bins/x86_64/svm-cli
-    cp target/release/svm.h bins/svm.h
+    cp target/release/svm.h bins/x86_64/svm.h
+    cp target/release/svm.h bins/aarch64/svm.h
 elif [[ "${OS}" == "ubuntu-latest" ]]; then
     cp target/release/libsvm_runtime_ffi.so bins/libsvm.so
     cp target/release/libsvm_runtime_ffi.a bins/libsvm.a
