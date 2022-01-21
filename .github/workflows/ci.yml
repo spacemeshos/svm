@@ -63,7 +63,9 @@ jobs:
           command: build
           args: --target aarch64-apple-darwin --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --no-default-features
       - name: List Cargo artifacts
-        run: ls target/${{ matrix.profile }}
+        run: |
+          ls target
+          ls target/${{ matrix.profile }}
       - name: Prepare Artifacts
         run: ./.github/copy-artifacts.sh
         env:
