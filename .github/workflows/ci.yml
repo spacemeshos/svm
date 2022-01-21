@@ -58,7 +58,7 @@ jobs:
           command: build
           args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --no-default-features
       - uses: actions-rs/cargo@v1
-        if: matrix.os == `macos-latest`
+        if: matrix.os == 'macos-latest'
         with:
           command: build
           args: --target aarch64-apple-darwin --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --no-default-features
