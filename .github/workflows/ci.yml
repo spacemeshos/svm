@@ -231,9 +231,9 @@ jobs:
           cd ../bins-Windows-release
           zip -r ../svm-windows-v${{ env.VERSION }}.zip *
           cd ../bins-macOS-release/x86_64
-          zip -r ../svm-macos-v${{ env.VERSION }}.zip *
+          zip -r ../../svm-macos-v${{ env.VERSION }}.zip *
           cd ../aarch64
-          zip -r ../svm-macos-m1-v${{ env.VERSION }}.zip *
+          zip -r ../../svm-macos-m1-v${{ env.VERSION }}.zip *
           cd ../..
           cp svm_codec.wasm/svm_codec.wasm svm_codec_v${{ env.VERSION }}.wasm
       - uses: softprops/action-gh-release@v1
