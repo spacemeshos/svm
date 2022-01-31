@@ -1,13 +1,10 @@
 //! Implements [`FuncEnv`]. Used for managing data of running `Transaction`s.
 
-use tokio::runtime::Runtime;
+use tokio::runtime::Runtime as TokioRuntime;
 use wasmer::Memory;
 
-use std::{
-    collections::HashSet,
-    rc::Rc,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
-};
+use std::collections::HashSet;
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use svm_state::AccountStorage;
 use svm_types::{Address, Context, Envelope, ReceiptLog, TemplateAddr};
@@ -15,7 +12,9 @@ use svm_types::{Address, Context, Envelope, ReceiptLog, TemplateAddr};
 /// [`FuncEnv`] is a container for the accessible data by running [`Wasmer instance`](wasmer::Instance).
 #[derive(wasmer::WasmerEnv, Clone)]
 pub struct FuncEnv {
-    pub tokio_runtime: Rc<TokioRuntime>,
+    /// The [`tokio::runtime::Runtime`] shared with the parent
+    /// [`Runtime`](crate::Runtime).
+    pub tokio_rt: Arc<TokioRuntime>,
     /// The [`TemplateAddr`] associated with the currently executed `Account`.
     pub template_addr: TemplateAddr,
     /// The [`Address`] of the currently executed `Account`.
@@ -29,7 +28,7 @@ pub struct FuncEnv {
 impl FuncEnv {
     /// Creates a new instance
     pub fn new(
-        tokio_runtime: Rc<TokioRuntime>,
+        tokio_rt: Arc<TokioRuntime>,
         storage: AccountStorage,
         envelope: &Envelope,
         context: &Context,
@@ -40,7 +39,7 @@ impl FuncEnv {
         let inner = Inner::new(storage);
 
         let env = Self {
-            tokio_runtime,
+            tokio_rt,
             inner: Arc::new(RwLock::new(inner)),
             template_addr,
             target_addr,
@@ -54,7 +53,7 @@ impl FuncEnv {
 
     /// New instance with explicit memory
     pub fn new_with_memory(
-        tokio_runtime: Rc<TokioRuntime>,
+        tokio_rt: Arc<TokioRuntime>,
         memory: Memory,
         storage: AccountStorage,
         envelope: &Envelope,
@@ -64,7 +63,7 @@ impl FuncEnv {
         mode: AccessMode,
     ) -> Self {
         let env = Self::new(
-            tokio_runtime,
+            tokio_rt,
             storage,
             envelope,
             context,

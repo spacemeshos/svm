@@ -1,4 +1,4 @@
-use std::{convert::TryInto, os::unix::prelude::FileTypeExt};
+use std::convert::TryInto;
 
 use crate::FuncEnv;
 
@@ -8,7 +8,7 @@ use crate::FuncEnv;
 ///
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 32 bits.
 pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
-    let rt = env.tokio_runtime.clone();
+    let rt = env.tokio_rt.clone();
     let borrow = env.borrow();
     let storage = borrow.storage();
     rt.block_on(storage.get_var_i64(var_id)).unwrap() as u32
@@ -21,7 +21,7 @@ pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 32 bits,
 /// or when it has not enough bytes to hold `value`.
 pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
-    let rt = env.tokio_runtime.clone();
+    let rt = env.tokio_rt.clone();
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
     rt.block_on(storage.set_var_i32(var_id, value as i32))
@@ -34,7 +34,7 @@ pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
 ///
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 64 bits.
 pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
-    let rt = env.tokio_runtime.clone();
+    let rt = env.tokio_rt.clone();
     let borrow = env.borrow();
     let storage = borrow.storage();
     rt.block_on(storage.get_var_i64(var_id)).unwrap() as u64
@@ -47,7 +47,7 @@ pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
 /// Panics when variable `var_id` consumes more than 64-bit,
 /// or when it has not enough bytes to hold `value`.
 pub fn set64(env: &FuncEnv, var_id: u32, value: u64) {
-    let rt = env.tokio_runtime.clone();
+    let rt = env.tokio_rt.clone();
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
     rt.block_on(storage.set_var_i64(var_id, value as i64))
@@ -88,7 +88,7 @@ fn store<const N: usize>(env: &FuncEnv, mem_ptr: u32, var_id: u32) {
             .unwrap()
     };
 
-    let rt = env.tokio_runtime.clone();
+    let rt = env.tokio_rt.clone();
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
     rt.block_on(storage.set_var_bytes(var_id, &bytes[..]))
@@ -96,7 +96,7 @@ fn store<const N: usize>(env: &FuncEnv, mem_ptr: u32, var_id: u32) {
 }
 
 fn load<const N: usize>(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
-    let rt = env.tokio_runtime.clone();
+    let rt = env.tokio_rt.clone();
     let borrow = env.borrow();
     let storage = borrow.storage();
 

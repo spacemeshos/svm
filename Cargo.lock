@@ -1778,6 +1778,7 @@ dependencies = [
  "svm-runtime",
  "svm-state",
  "svm-types",
+ "tokio",
 ]
 
 [[package]]
@@ -1866,8 +1867,10 @@ dependencies = [
  "svm-codec",
  "svm-genesis-config",
  "svm-layout",
+ "svm-runtime",
  "svm-state",
  "svm-types",
+ "tokio",
  "wat",
 ]
 

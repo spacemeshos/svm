@@ -1,9 +1,10 @@
-use std::rc::Rc;
-
 use log::info;
-use svm_codec::Codec;
+use tokio::runtime::Runtime as TokioRuntime;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
+use std::sync::Arc;
+
+use svm_codec::Codec;
 use svm_hash::{Blake3Hasher, Hasher};
 use svm_program::Program;
 use svm_state::{AccountStorage, GlobalState, TemplateStorage};
@@ -27,30 +28,26 @@ const ERR_VALIDATE_DEPLOY: &str = "Should have called `validate_deploy` first";
 
 /// An SVM runtime implementation based on [`Wasmer`](https://wasmer.io).
 pub struct Runtime {
-    tokio_runtime: Rc<TokioRuntime>,
-
-    /// The [`GlobalState`]
+    tokio_rt: Arc<TokioRuntime>,
     gs: GlobalState,
-
-    /// A Cache for a [`Template`]'= functions prices.
     template_price: TemplatePriceCache,
 }
 
 impl Runtime {
     /// Initializes a new [`Runtime`].
     pub fn new(
+        tokio_runtime: Arc<TokioRuntime>,
         gs: GlobalState,
         template_price: TemplatePriceCache,
-        tokio_runtime: Rc<TokioRuntime>,
     ) -> Self {
         Self {
+            tokio_rt: tokio_runtime,
             gs,
             template_price,
-            tokio_runtime,
         }
     }
 
-    async fn call_ctor(
+    fn call_ctor(
         &mut self,
         spawn: &SpawnAccount,
         target: Address,
@@ -73,7 +70,7 @@ impl Runtime {
             context,
         };
 
-        let mut receipt = self.exec_call::<(), ()>(&call).await;
+        let mut receipt = self.exec_call::<(), ()>(&call);
         receipt.touched_accounts.insert(target);
         receipt
             .touched_accounts
@@ -83,26 +80,25 @@ impl Runtime {
         svm_types::into_spawn_receipt(receipt, &target)
     }
 
-    async fn exec_call<'a, Args, Rets>(&'a mut self, call: &Call<'a>) -> CallReceipt {
-        let result = self
-            .exec::<(), (), _, _>(&call, |env, out| outcome_to_receipt(env, out))
-            .await;
+    fn exec_call<'a, Args, Rets>(&'a mut self, call: &Call<'a>) -> CallReceipt {
+        let result = self.exec::<(), (), _, _>(&call, |env, out| outcome_to_receipt(env, out));
         result.unwrap_or_else(|fail| CallReceipt::from_err(fail.err, fail.logs))
     }
 
-    async fn exec<Args, Rets, F, R>(&self, call: &Call, f: F) -> Result<R>
+    fn exec<Args, Rets, F, R>(&self, call: &Call, f: F) -> Result<R>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
         F: Fn(&FuncEnv, Outcome<Box<[wasmer::Val]>>) -> R,
     {
-        let template = self.account_template(&call.target).await?;
-        let storage = AccountStorage::load(self.gs.clone(), &call.target)
-            .await
+        let template = self.account_template(&call.target)?;
+        let storage = self
+            .tokio_rt
+            .block_on(AccountStorage::load(self.gs.clone(), &call.target))
             .unwrap();
 
         let mut env = FuncEnv::new(
-            self.tokio_runtime.clone(),
+            self.tokio_rt.clone(),
             storage,
             call.envelope,
             call.context,
@@ -316,26 +312,27 @@ impl Runtime {
         import_object
     }
 
-    async fn account_template(
+    fn account_template(
         &self,
         account_addr: &Address,
     ) -> std::result::Result<Template, RuntimeFailure> {
         // TODO:
         //
         // * Return a `RuntimeFailure` when `account_addr` doesn't exist.
-        let account = AccountStorage::load(self.gs.clone(), account_addr)
-            .await
+        let account = self
+            .tokio_rt
+            .block_on(AccountStorage::load(self.gs.clone(), account_addr))
             .unwrap();
-        let template_addr = account.template_addr().await.unwrap();
-        self.load_template(&template_addr).await
+        let template_addr = self.tokio_rt.block_on(account.template_addr()).unwrap();
+        self.load_template(&template_addr)
     }
 
-    async fn load_template(
+    fn load_template(
         &self,
         template_addr: &TemplateAddr,
     ) -> std::result::Result<Template, RuntimeFailure> {
         let template_storage = TemplateStorage::load(self.gs.clone(), &template_addr).unwrap();
-        let sections = template_storage.sections().await.unwrap();
+        let sections = self.tokio_rt.block_on(template_storage.sections()).unwrap();
         let template = Template::from_sections(sections);
 
         // TODO:
@@ -449,7 +446,7 @@ impl Runtime {
         }
     }
 
-    async fn build_call<'a>(
+    fn build_call<'a>(
         &self,
         tx: &'a Transaction,
         envelope: &'a Envelope,
@@ -460,8 +457,15 @@ impl Runtime {
         gas_left: GasTank,
     ) -> Call<'a> {
         let target = tx.target();
-        let account_storage = AccountStorage::load(self.gs.clone(), target).await.unwrap();
-        let template = account_storage.template_addr().await.unwrap();
+        let template = self
+            .tokio_rt
+            .block_on(async {
+                AccountStorage::load(self.gs.clone(), target)
+                    .await?
+                    .template_addr()
+                    .await
+            })
+            .unwrap();
 
         Call {
             func_name,
@@ -478,26 +482,29 @@ impl Runtime {
     }
 
     /// Returns the [`State`] root hash and [`Layer`] of the last layer.
-    pub async fn current_layer(&mut self) -> (Layer, State) {
-        self.gs.current_layer().await.unwrap()
+    pub fn current_layer(&mut self) -> (Layer, State) {
+        self.tokio_rt.block_on(self.gs.current_layer()).unwrap()
     }
 
     /// Increases the balance by a given amount associated with `account_addr`.
-    pub async fn increase_balance(&mut self, account_addr: &Address, amount: u64) -> Result<()> {
-        let mut accounts = AccountStorage::load(self.gs.clone(), account_addr)
-            .await
-            .unwrap();
-        let balance = accounts.balance().await.unwrap();
-        let new_balance = balance
-            .checked_add(amount)
-            .expect("Overflow when increasing balance.");
-        accounts.set_balance(new_balance).await.unwrap();
+    pub fn increase_balance(&mut self, account_addr: &Address, amount: u64) -> Result<()> {
+        self.tokio_rt.block_on(async {
+            let mut account = AccountStorage::load(self.gs.clone(), account_addr)
+                .await
+                .unwrap();
+            let balance = account.balance().await.unwrap();
 
-        Ok(())
+            let new_balance = balance
+                .checked_add(amount)
+                .expect("Overflow when increasing balance.");
+
+            account.set_balance(new_balance).await.unwrap();
+            Ok(())
+        })
     }
 
     /// Creates a new `Genesis Account`.
-    pub async fn create_genesis_account(
+    pub fn create_genesis_account(
         &mut self,
         account_addr: &Address,
         name: impl ToString,
@@ -514,14 +521,13 @@ impl Runtime {
             balance,
             counter,
         )
-        .await
         .unwrap();
 
         Ok(())
     }
 
     /// Creates a new `Account` with the given params.
-    pub async fn create_account(
+    pub fn create_account(
         &mut self,
         account_addr: &Address,
         template_addr: TemplateAddr,
@@ -529,16 +535,16 @@ impl Runtime {
         balance: u64,
         counter: u128,
     ) -> Result<()> {
-        AccountStorage::create(
-            self.gs.clone(),
-            account_addr,
-            name,
-            template_addr,
-            balance,
-            counter,
-        )
-        .await
-        .unwrap();
+        self.tokio_rt
+            .block_on(AccountStorage::create(
+                self.gs.clone(),
+                account_addr,
+                name,
+                template_addr,
+                balance,
+                counter,
+            ))
+            .unwrap();
 
         Ok(())
     }
@@ -571,7 +577,7 @@ impl Runtime {
     }
 
     /// Deploys a `Template`
-    pub async fn deploy(
+    pub fn deploy(
         &mut self,
         envelope: &Envelope,
         message: &[u8],
@@ -597,20 +603,20 @@ impl Runtime {
         // * Create a `Deploy Section` to be added to `TemplateStorage`
         // * Have `template.core_sections() and `template.noncore_sections()`
         // * Pass to `TemplateStorage` `core sections` and `non-core sections`
-        TemplateStorage::create(
-            self.gs.clone(),
-            &addr,
-            template.sections().clone(),
-            template.sections().clone(),
-        )
-        .await
-        .unwrap();
+        self.tokio_rt
+            .block_on(TemplateStorage::create(
+                self.gs.clone(),
+                &addr,
+                template.sections().clone(),
+                template.sections().clone(),
+            ))
+            .unwrap();
 
         DeployReceipt::new(addr, gas_used)
     }
 
     /// Spawns a new `Account`
-    pub async fn spawn(
+    pub fn spawn(
         &mut self,
         envelope: &Envelope,
         message: &[u8],
@@ -621,7 +627,7 @@ impl Runtime {
         let gas_left = GasTank::new(envelope.gas_limit());
         let spawn = SpawnAccount::decode_bytes(message).expect(ERR_VALIDATE_SPAWN);
         let template_addr = spawn.account.template_addr();
-        let template = self.load_template(&template_addr).await;
+        let template = self.load_template(&template_addr);
 
         if let Err(fail) = template {
             return SpawnReceipt::from_err(fail.err, fail.logs);
@@ -651,15 +657,13 @@ impl Runtime {
             0,
             0,
         )
-        .await
         .unwrap();
 
         self.call_ctor(&spawn, target, envelope, context, gas_left)
-            .await
     }
 
     /// Verifies a [`Transaction`](svm_types::Transaction) before execution.
-    pub async fn verify(
+    pub fn verify(
         &mut self,
         envelope: &Envelope,
         message: &[u8],
@@ -675,62 +679,51 @@ impl Runtime {
         //
         // In that case, the current behavior should be backward-compatible since
         // we could always executed `Access Denied` logic when partial `Storage` access will be allowed by SVM.
-        let call = self
-            .build_call(
-                &tx,
-                envelope,
-                context,
-                AccessMode::AccessDenied,
-                "svm_verify",
-                tx.verifydata(),
-                gas_left,
-            )
-            .await;
+        let call = self.build_call(
+            &tx,
+            envelope,
+            context,
+            AccessMode::AccessDenied,
+            "svm_verify",
+            tx.verifydata(),
+            gas_left,
+        );
 
         // TODO: override the `call.gas_limit` with `VERIFY_MAX_GAS`
-        self.exec_call::<(), ()>(&call).await
+        self.exec_call::<(), ()>(&call)
     }
 
     /// Executes a [`Transaction`](svm_types::Transaction) and returns its output [`CallReceipt`].
     ///
     /// This function should be called only if the `verify` stage has passed.
-    pub async fn call(
-        &mut self,
-        envelope: &Envelope,
-        message: &[u8],
-        context: &Context,
-    ) -> CallReceipt {
+    pub fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
         let tx = Transaction::decode_bytes(message).expect(ERR_VALIDATE_CALL);
 
-        let call = self
-            .build_call(
-                &tx,
-                envelope,
-                context,
-                AccessMode::FullAccess,
-                tx.func_name(),
-                tx.calldata(),
-                envelope.gas_limit(),
-            )
-            .await;
+        let call = self.build_call(
+            &tx,
+            envelope,
+            context,
+            AccessMode::FullAccess,
+            tx.func_name(),
+            tx.calldata(),
+            GasTank::new(envelope.gas_limit()),
+        );
 
-        self.exec_call::<(), ()>(&call).await
+        self.exec_call::<(), ()>(&call)
     }
 
     /// Moves the internal state of this [`Runtime`] back to the time of
     /// `layer_id`.
-    pub async fn rewind(&mut self, layer_id: Layer) -> Result<()> {
-        self.gs
-            .rewind(layer_id)
-            .await
+    pub fn rewind(&mut self, layer_id: Layer) -> Result<()> {
+        self.tokio_rt
+            .block_on(self.gs.rewind(layer_id))
             .map_err(|_e| RuntimeFailure::new(RuntimeError::OOG, vec![]))
     }
 
     /// Creates a new layer with the given changes.
-    pub async fn commit(&mut self) -> Result<()> {
-        self.gs
-            .commit()
-            .await
+    pub fn commit(&mut self) -> Result<()> {
+        self.tokio_rt
+            .block_on(self.gs.commit())
             .map_err(|_e| RuntimeFailure::new(RuntimeError::OOG, vec![]))?;
         Ok(())
     }
@@ -748,14 +741,16 @@ impl Runtime {
     /// - template's address;
     ///
     /// from the database layer.
-    pub async fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)> {
-        let account_storage = AccountStorage::load(self.gs.clone(), account_addr)
-            .await
-            .ok()?;
-        let balance = account_storage.balance().await.ok()?;
-        let counter = account_storage.counter().await.ok()?;
-        let template_addr = account_storage.template_addr().await.ok()?;
-        Some((balance, counter, template_addr))
+    pub fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)> {
+        self.tokio_rt.block_on(async {
+            let account_storage = AccountStorage::load(self.gs.clone(), account_addr)
+                .await
+                .ok()?;
+            let balance = account_storage.balance().await.ok()?;
+            let counter = account_storage.counter().await.ok()?;
+            let template_addr = account_storage.template_addr().await.ok()?;
+            Some((balance, counter, template_addr))
+        })
     }
 
     /// Sends coins from the current executing account to a destination account.
@@ -763,33 +758,36 @@ impl Runtime {
     /// # Panics
     ///
     /// Panics when the destination account does not exist.
-    pub async fn transfer(&self, src_addr: &Address, dst_addr: &Address, amount: u64) {
-        let mut src_account = AccountStorage::load(self.gs.clone(), src_addr)
-            .await
-            .unwrap();
-
-        let mut dst_account = if let Some((_bal, _counter, _addr)) = self.get_account(dst_addr) {
-            AccountStorage::load(self.gs.clone(), dst_addr)
+    pub fn transfer(&self, src_addr: &Address, dst_addr: &Address, amount: u64) {
+        self.tokio_rt.block_on(async {
+            let mut src_account = AccountStorage::load(self.gs.clone(), src_addr)
                 .await
-                .unwrap()
-        } else {
-            panic!("Destination account does not exist")
-        };
+                .unwrap();
 
-        let src_bal = src_account.balance().await.unwrap();
-        let dst_bal = dst_account.balance().await.unwrap();
+            let mut dst_account = if let Some((_bal, _counter, _addr)) = self.get_account(dst_addr)
+            {
+                AccountStorage::load(self.gs.clone(), dst_addr)
+                    .await
+                    .unwrap()
+            } else {
+                panic!("Destination account does not exist")
+            };
 
-        if src_bal < amount {
-            panic!("Not enough balance to execute transfer");
-        }
-        src_account
-            .set_balance(src_bal.checked_sub(amount).unwrap())
-            .await
-            .unwrap();
-        dst_account
-            .set_balance(dst_bal.checked_add(amount).unwrap())
-            .await
-            .unwrap();
+            let src_bal = src_account.balance().await.unwrap();
+            let dst_bal = dst_account.balance().await.unwrap();
+
+            if src_bal < amount {
+                panic!("Not enough balance to execute transfer");
+            }
+            src_account
+                .set_balance(src_bal.checked_sub(amount).unwrap())
+                .await
+                .unwrap();
+            dst_account
+                .set_balance(dst_bal.checked_add(amount).unwrap())
+                .await
+                .unwrap();
+        });
     }
 }
 
@@ -857,7 +855,7 @@ fn set_calldata(env: &FuncEnv, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
 }
 
 fn commit_changes(env: &FuncEnv) -> svm_state::StorageResult<State> {
-    let rt = env.tokio_runtime.clone();
+    let rt = env.tokio_rt.clone();
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
 

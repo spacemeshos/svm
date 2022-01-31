@@ -21,7 +21,7 @@ pub fn svm_transfer(env: &FuncEnv, src_addr_offset: i32, dst_addr_offset: i32, a
         return;
     }
 
-    let rt = env.tokio_runtime.clone();
+    let rt = env.tokio_rt.clone();
     let src_addr_ptr = WasmPtr::new(src_addr_offset as u32);
     let dst_addr_ptr = WasmPtr::new(dst_addr_offset as u32);
 

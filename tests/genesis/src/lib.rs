@@ -1,5 +1,9 @@
 #[cfg(test)]
 mod test {
+    use tokio::runtime::Runtime as TokioRuntime;
+
+    use std::sync::Arc;
+
     use svm_codec::Codec;
     use svm_genesis_config::GenesisConfig;
     use svm_runtime::{PriceResolverRegistry, Runtime, TemplatePriceCache};
@@ -30,10 +34,11 @@ mod test {
 
     #[test]
     fn deploy_sct_template() {
-        let gs = GlobalState::in_memory(GenesisConfig::mainnet());
+        let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
+        let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
         let pricing_registry = PriceResolverRegistry::default();
         let pricing_cache = TemplatePriceCache::new(pricing_registry);
-        let mut runtime = Runtime::new(gs, pricing_cache);
+        let mut runtime = Runtime::new(tokio_rt, gs, pricing_cache);
         let sct_template_addr = deploy_sct_template_helper(&mut runtime);
 
         let addr_1 = Address::repeat(0x4c);

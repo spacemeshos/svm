@@ -12,6 +12,7 @@ use svm_types::{
     Address, BytesPrimitive, Context, DeployReceipt, Envelope, Gas, RuntimeError, SpawnAccount,
     SpawnReceipt,
 };
+use testing::WasmFile;
 
 #[test]
 fn memory_runtime_validate_deploy_eof() {
@@ -33,7 +34,7 @@ fn memory_runtime_validate_deploy_missing_svm_verify_export() {
         "My Template",
         FixedLayout::default(),
         &[],
-        include_str!("wasm/missing_svm_verify.wast").into(),
+        WasmFile::Text(include_str!("wasm/missing_svm_verify.wast")),
     );
 
     let error = ProgramError::FunctionNotFound("svm_verify".to_string());
@@ -52,7 +53,7 @@ fn memory_runtime_validate_deploy_missing_svm_alloc_export() {
         "My Template",
         FixedLayout::default(),
         &[],
-        include_str!("wasm/missing_svm_alloc.wast").into(),
+        WasmFile::Text(include_str!("wasm/missing_svm_alloc.wast")),
     );
 
     let error = ProgramError::FunctionNotFound("svm_alloc".to_string());
@@ -71,7 +72,7 @@ fn memory_runtime_validate_deploy_svm_alloc_export_invalid_signature() {
         "My Template",
         FixedLayout::default(),
         &[],
-        include_str!("wasm/svm_alloc_invalid_sig.wast").into(),
+        WasmFile::Text(include_str!("wasm/svm_alloc_invalid_sig.wast")),
     );
 
     let error = ProgramError::InvalidExportFunctionSignature("svm_alloc".to_string());
@@ -90,7 +91,7 @@ fn memory_runtime_validate_deploy_svm_verify_export_invalid_signature() {
         "My Template",
         FixedLayout::default(),
         &[],
-        include_str!("wasm/svm_verify_invalid_sig.wast").into(),
+        WasmFile::Text(include_str!("wasm/svm_verify_invalid_sig.wast")),
     );
 
     let error = ProgramError::InvalidExportFunctionSignature("svm_verify".to_string());
@@ -110,7 +111,7 @@ fn memory_runtime_validate_deploy_floats_not_allowed() {
         "My Template",
         FixedLayout::default(),
         &[],
-        include_str!("wasm/wasm_with_floats.wast").into(),
+        WasmFile::Text(include_str!("wasm/wasm_with_floats.wast")),
     );
 
     let error = ProgramError::FloatsNotAllowed;
@@ -129,7 +130,7 @@ fn memory_runtime_validate_deploy_ok() {
         "My Template",
         FixedLayout::default(),
         &[],
-        include_bytes!("wasm/runtime_calldata.wasm")[..].into(),
+        WasmFile::Binary(include_bytes!("wasm/runtime_calldata.wasm")),
     );
 
     let result = runtime.validate_deploy(&message);
@@ -167,7 +168,7 @@ fn memory_runtime_deploy_reaches_oog() {
         "My Template",
         FixedLayout::default(),
         &["ctor".to_string()],
-        include_str!("wasm/runtime_spawn.wast").into(),
+        WasmFile::Text(include_str!("wasm/runtime_spawn.wast")),
     );
     let envelope = Envelope::with_gas_limit(Gas::with(0));
     let context = Context::default();
@@ -186,7 +187,7 @@ fn memory_runtime_deploy_success() {
         "My Template",
         FixedLayout::default(),
         &["ctor".to_string()],
-        include_str!("wasm/runtime_spawn.wast").into(),
+        WasmFile::Text(include_str!("wasm/runtime_spawn.wast")),
     );
     let envelope = Envelope::default();
     let context = Context::default();
@@ -209,7 +210,7 @@ fn memory_runtime_spawn_invoking_non_ctor_fails() {
         "My Template",
         FixedLayout::default(),
         &["ctor".to_string()],
-        include_str!("wasm/runtime_spawn.wast").into(),
+        WasmFile::Text(include_str!("wasm/runtime_spawn.wast")),
     );
 
     let receipt = runtime.deploy(&envelope, &message, &context);
@@ -241,7 +242,7 @@ fn memory_runtime_spawn_reaches_oog() {
         "My Template",
         FixedLayout::default(),
         &["ctor".to_string()],
-        include_str!("wasm/runtime_spawn.wast").into(),
+        WasmFile::Text(include_str!("wasm/runtime_spawn.wast")),
     );
     let envelope = Envelope::default();
     let context = Context::default();
@@ -272,7 +273,7 @@ fn memory_runtime_call_func_not_found() {
         "My Template",
         layout.clone(),
         &["initialize".to_string()],
-        (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
+        WasmFile::Binary(include_bytes!("wasm/runtime_calldata.wasm")),
     );
     let envelope = Envelope::default();
     let context = Context::default();
@@ -319,7 +320,7 @@ fn memory_runtime_call_success() {
         "My Template",
         layout.clone(),
         &["initialize".to_string()],
-        (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
+        WasmFile::Binary(include_bytes!("wasm/runtime_calldata.wasm")),
     );
     let envelope = Envelope::default();
     let context = Context::default();
@@ -390,7 +391,7 @@ fn spawn_touched_accounts() {
         "My Template",
         layout.clone(),
         &["initialize".to_string()],
-        (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
+        WasmFile::Binary(include_bytes!("wasm/runtime_calldata.wasm")),
     );
     let envelope = Envelope::default();
     let context = Context::default();

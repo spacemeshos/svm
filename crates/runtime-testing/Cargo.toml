@@ -14,8 +14,10 @@ publish = false
 svm-codec = { path = "../codec" }
 svm-genesis-config = { path = "../genesis-config" }
 svm-layout = { path = "../layout" }
+svm-runtime = { path = "../runtime" }
 svm-state = { path = "../state" }
 svm-types = { path = "../types" }
+tokio = { version = "1", features = ["full"] }
 wat = "1.0.40"
 
 [dev-dependencies]
