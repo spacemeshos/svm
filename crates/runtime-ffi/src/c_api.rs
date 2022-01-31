@@ -1,7 +1,9 @@
 /// SVM C-API methods to access the runtime.
 use lazy_static::lazy_static;
 use log::{debug, error};
+use std::rc::Rc;
 use std::sync::Mutex;
+use tokio::runtime::Runtime as TokioRuntime;
 
 use std::ffi::c_void;
 use std::panic::UnwindSafe;
@@ -17,8 +19,8 @@ use crate::resource_tracker::ResourceTracker;
 use crate::svm_result_t;
 
 lazy_static! {
-    static ref RUNTIME_TRACKER: ResourceTracker<Runtime> = ResourceTracker::default();
     static ref INITIALIZED: Mutex<bool> = Mutex::new(false);
+    static ref TOKIO_RUNTIME: Rc<TokioRuntime> = Rc::new(TokioRuntime::new().unwrap());
 }
 
 /// Initializes the SVM library.
@@ -71,15 +73,19 @@ pub unsafe extern "C" fn svm_runtime_create(
 
         let genesis = GenesisConfig::mainnet();
         let global_state = if path.is_null() {
-            GlobalState::in_memory(genesis)
+            TOKIO_RUNTIME.block_on(GlobalState::in_memory(genesis))
         } else {
             let db_path_bytes = std::slice::from_raw_parts(path, path_len as usize);
             let db_path = std::str::from_utf8(db_path_bytes).expect("Invalid UTF-8 path.");
-            GlobalState::new(db_path, genesis)
+            TOKIO_RUNTIME.block_on(GlobalState::new(db_path, genesis))
         };
 
         let registry = PriceResolverRegistry::default();
-        let runtime = Runtime::new(global_state, TemplatePriceCache::new(registry));
+        let runtime = Runtime::new(
+            global_state,
+            TemplatePriceCache::new(registry),
+            TOKIO_RUNTIME.clone(),
+        );
 
         *runtime_ptr = RUNTIME_TRACKER.alloc(runtime);
         debug!("`svm_runtime_create` end");

@@ -10,9 +10,9 @@
 #![feature(ptr_as_uninit)]
 #![feature(try_trait_v2)]
 
-mod api;
+mod c_api;
 mod resource_tracker;
 mod result;
 
-pub use api::*;
+pub use c_api::*;
 pub use result::svm_result_t;

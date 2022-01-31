@@ -1,5 +1,3 @@
-use tokio::runtime::Runtime;
-
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use svm_codec::Codec;
@@ -31,7 +29,6 @@ impl GlobalState {
             "Intitializing a new global state database."
         );
 
-        let runtime = Runtime::new().unwrap();
         let storage = Storage::new(sqlite_uri).await.unwrap();
         let mut gs = Self {
             storage: Arc::new(Mutex::new(storage)),
@@ -47,11 +44,11 @@ impl GlobalState {
     /// Creates a pristine [`GlobalState`] backed by an in-memory SQLite
     /// instance. No disk operations at all will be done.
     pub async fn in_memory(genesis: GenesisConfig) -> Self {
-        Self::new(":memory:", genesis)
+        Self::new(":memory:", genesis).await
     }
 
     async fn init_genesis(&mut self, genesis: GenesisConfig) -> Result<()> {
-        let last_layer_id = self.storage().last_layer_id()?;
+        let last_layer_id = self.storage().last_layer_id().await?;
 
         tracing::debug!("Initializing genesis configuration.");
 
@@ -79,14 +76,15 @@ impl GlobalState {
                 &template_addr,
                 core_sections,
                 noncore_sections,
-            )?;
+            )
+            .await?;
         }
 
-        self.checkpoint()?;
-        let (layer_id, state) = self.storage().commit()?;
+        self.checkpoint().await?;
+        let (layer_id, state) = self.storage().commit().await?;
 
         debug_assert_eq!(layer_id, -1);
-        debug_assert_eq!(self.storage().last_layer_id()?, Some(0));
+        debug_assert_eq!(self.storage().last_layer_id().await?, Some(0));
 
         self.genesis_state = state;
 
@@ -112,8 +110,8 @@ impl GlobalState {
 
     /// Saves dirty changes in preparation of [`GlobalState::commit`]. After
     /// saving, changes are frozen and can't be removed from the current layer.
-    pub fn checkpoint(&mut self) -> Result<()> {
-        self.storage().checkpoint()?;
+    pub async fn checkpoint(&mut self) -> Result<()> {
+        self.storage().checkpoint().await?;
         Ok(())
     }
 
@@ -121,22 +119,22 @@ impl GlobalState {
     /// layer. It returns a [`StorageError::DirtyChanges`] in case there's any
     /// dirty changes that haven't been saved via [`GlobalState::checkpoint`]
     /// before this call.
-    pub fn commit(&mut self) -> Result<(Layer, State)> {
-        let (layer_id, state) = self.storage().commit()?;
+    pub async fn commit(&mut self) -> Result<(Layer, State)> {
+        let (layer_id, state) = self.storage().commit().await?;
         Ok((Layer(layer_id.try_into().unwrap()), state))
     }
 
     /// Returns the [`Layer`] and [`State`] of the last ever committed
     /// layer; i.e. persisted changes without dirty and saved changes.
-    pub fn current_layer(&mut self) -> Result<(Layer, State)> {
-        let (layer_id, state) = self.storage().last_layer()?;
+    pub async fn current_layer(&mut self) -> Result<(Layer, State)> {
+        let (layer_id, state) = self.storage().last_layer().await?;
         Ok((Layer(layer_id.try_into().unwrap()), state))
     }
 
     /// Erases all dirty changes from memory. Persisted and saved data are left
     /// untouched.
-    pub fn rollback(&mut self) -> Result<()> {
-        self.storage().rollback()?;
+    pub async fn rollback(&mut self) -> Result<()> {
+        self.storage().rollback().await?;
         Ok(())
     }
 
@@ -149,8 +147,10 @@ impl GlobalState {
     /// # Panics
     ///
     /// Panics if `layer_id` is invalid.
-    pub fn rewind(&mut self, layer_id: Layer) -> Result<()> {
-        self.storage().rewind(layer_id.0.try_into().unwrap())?;
+    pub async fn rewind(&mut self, layer_id: Layer) -> Result<()> {
+        self.storage()
+            .rewind(layer_id.0.try_into().unwrap())
+            .await?;
         Ok(())
     }
 
@@ -189,21 +189,23 @@ impl GlobalState {
         })
     }
 
-    pub(crate) fn encode_and_write<T>(&mut self, item: &T, key: &str) -> ()
+    pub(crate) async fn encode_and_write<T>(&mut self, item: &T, key: &str) -> ()
     where
         T: Codec,
     {
-        self.storage().upsert(key.as_bytes(), item.encode_to_vec());
+        self.storage()
+            .upsert(key.as_bytes(), item.encode_to_vec())
+            .await;
     }
 
-    pub(crate) fn replace<T, F>(&mut self, key: &str, f: F) -> Result<()>
+    pub(crate) async fn replace<T, F>(&mut self, key: &str, f: F) -> Result<()>
     where
         T: Codec,
         F: Fn(T) -> T,
     {
-        let old_item = self.read_and_decode::<T>(key)?;
+        let old_item = self.read_and_decode::<T>(key).await?;
 
-        self.encode_and_write(&f(old_item), key);
+        self.encode_and_write(&f(old_item), key).await;
         Ok(())
     }
 }

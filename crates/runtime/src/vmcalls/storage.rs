@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, os::unix::prelude::FileTypeExt};
 
 use crate::FuncEnv;
 
@@ -8,9 +8,10 @@ use crate::FuncEnv;
 ///
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 32 bits.
 pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
+    let rt = env.tokio_runtime.clone();
     let borrow = env.borrow();
     let storage = borrow.storage();
-    storage.get_var_i64(var_id).unwrap() as u32
+    rt.block_on(storage.get_var_i64(var_id)).unwrap() as u32
 }
 
 /// Sets the data of variable `var_id` to Little-Endian representation of `value`.
@@ -20,9 +21,11 @@ pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 32 bits,
 /// or when it has not enough bytes to hold `value`.
 pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
+    let rt = env.tokio_runtime.clone();
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
-    storage.set_var_i32(var_id, value as i32).unwrap();
+    rt.block_on(storage.set_var_i32(var_id, value as i32))
+        .unwrap();
 }
 
 /// Returns the data stored by variable `var_id` as 64-bit integer.
@@ -31,9 +34,10 @@ pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
 ///
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 64 bits.
 pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
+    let rt = env.tokio_runtime.clone();
     let borrow = env.borrow();
     let storage = borrow.storage();
-    storage.get_var_i64(var_id).unwrap() as u64
+    rt.block_on(storage.get_var_i64(var_id)).unwrap() as u64
 }
 
 /// Sets the data of variable `var_id` to Little-Endian representation of `value`.
@@ -43,9 +47,11 @@ pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
 /// Panics when variable `var_id` consumes more than 64-bit,
 /// or when it has not enough bytes to hold `value`.
 pub fn set64(env: &FuncEnv, var_id: u32, value: u64) {
+    let rt = env.tokio_runtime.clone();
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
-    storage.set_var_i64(var_id, value as i64).unwrap();
+    rt.block_on(storage.set_var_i64(var_id, value as i64))
+        .unwrap();
 }
 
 /// Stores memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]` into variable `var_id`.
@@ -82,19 +88,22 @@ fn store<const N: usize>(env: &FuncEnv, mem_ptr: u32, var_id: u32) {
             .unwrap()
     };
 
+    let rt = env.tokio_runtime.clone();
     let mut borrow = env.borrow_mut();
     let storage = borrow.storage_mut();
-    storage.set_var_bytes(var_id, &bytes[..]).unwrap();
+    rt.block_on(storage.set_var_bytes(var_id, &bytes[..]))
+        .unwrap();
 }
 
 fn load<const N: usize>(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
+    let rt = env.tokio_runtime.clone();
     let borrow = env.borrow();
     let storage = borrow.storage();
 
     let start = mem_ptr as usize;
     let view = &borrow.memory().view::<u8>()[start..][..N];
 
-    let bytes = storage.get_var_array::<N>(var_id).unwrap();
+    let bytes = rt.block_on(storage.get_var_array::<N>(var_id)).unwrap();
     for (cell, &byte) in view.iter().zip(bytes.iter()) {
         cell.set(byte);
     }

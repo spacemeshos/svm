@@ -26,6 +26,7 @@ svm-state = { path = "../state" }
 svm-types = { path = "../types" }
 svm-gas = { path = "../gas" }
 svm-program = { path = "../program" }
+tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
 maplit = "1.0.2"

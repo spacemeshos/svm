@@ -24,14 +24,16 @@ impl TemplateStorage {
 
     /// Saves a [`TemplateStorage`] at the given address and
     /// on the given [`GlobalState`] instance.
-    pub fn create(
+    pub async fn create(
         mut gs: GlobalState,
         template_addr: &TemplateAddr,
         core_sections: Sections,
         noncore_sections: Sections,
     ) -> StorageResult<Self> {
-        gs.encode_and_write(&core_sections, &key_core(&template_addr));
-        gs.encode_and_write(&noncore_sections, &key_noncore(&template_addr));
+        gs.encode_and_write(&core_sections, &key_core(&template_addr))
+            .await;
+        gs.encode_and_write(&noncore_sections, &key_noncore(&template_addr))
+            .await;
 
         Ok(Self {
             gs,
@@ -40,24 +42,24 @@ impl TemplateStorage {
     }
 
     /// Reads, decodes and finally returns all [`Sections`] of `self`.
-    pub fn sections(&self) -> StorageResult<Sections> {
-        read_sections(&self.gs, &self.addr)
+    pub async fn sections(&self) -> StorageResult<Sections> {
+        read_sections(&self.gs, &self.addr).await
     }
 
     /// Overwrites the "core" (mandatory) [`Sections`] associated with
     /// `self`.
-    pub fn set_core(&mut self, sections: &Sections) -> StorageResult<()> {
+    pub async fn set_core(&mut self, sections: &Sections) -> StorageResult<()> {
         let key = key_core(&self.addr);
-        self.gs.encode_and_write(sections, &key);
+        self.gs.encode_and_write(sections, &key).await;
 
         Ok(())
     }
 
     /// Overwrites the "non-core" (optional) [`Sections`] associated with
     /// `self`.
-    pub fn set_noncore(&mut self, sections: &Sections) -> StorageResult<()> {
+    pub async fn set_noncore(&mut self, sections: &Sections) -> StorageResult<()> {
         let key = key_noncore(&self.addr);
-        self.gs.encode_and_write(sections, &key);
+        self.gs.encode_and_write(sections, &key).await;
 
         Ok(())
     }
@@ -71,9 +73,9 @@ fn key_noncore(template_addr: &TemplateAddr) -> String {
     format!("templates:{}:noncore", template_addr.to_string())
 }
 
-fn read_sections(gs: &GlobalState, addr: &TemplateAddr) -> StorageResult<Sections> {
-    let mut sections = gs.read_and_decode::<Sections>(&key_core(addr))?;
-    let noncore = gs.read_and_decode::<Sections>(&key_noncore(addr))?;
+async fn read_sections(gs: &GlobalState, addr: &TemplateAddr) -> StorageResult<Sections> {
+    let mut sections = gs.read_and_decode::<Sections>(&key_core(addr)).await?;
+    let noncore = gs.read_and_decode::<Sections>(&key_noncore(addr)).await?;
 
     for s in noncore.iter().cloned() {
         sections.insert(s);
@@ -93,7 +95,7 @@ mod test {
         FixedLayout::from_byte_sizes(0, &[10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
     }
 
-    fn new_template(gs: &GlobalState) -> TemplateAddr {
+    async fn new_template(gs: &GlobalState) -> TemplateAddr {
         let template_addr = TemplateAddr::repeat(0x80);
 
         let code_section = CodeSection::new(
@@ -112,21 +114,23 @@ mod test {
         let noncore_sections = Sections::with_capacity(0);
 
         TemplateStorage::create(gs.clone(), &template_addr, core_sections, noncore_sections)
+            .await
             .unwrap();
 
         template_addr
     }
 
-    #[test]
-    fn create_then_load() {
-        let gs = GlobalState::in_memory(GenesisConfig::mainnet());
+    #[tokio::test]
+    async fn create_then_load() {
+        let gs = GlobalState::in_memory(GenesisConfig::mainnet()).await;
 
-        let template_addr = new_template(&gs);
+        let template_addr = new_template(&gs).await;
 
         let template_storage = TemplateStorage::load(gs, &template_addr).unwrap();
 
         assert!(template_storage
             .sections()
+            .await
             .unwrap()
             .get(SectionKind::Code)
             .as_code()

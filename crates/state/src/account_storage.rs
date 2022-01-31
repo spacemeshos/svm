@@ -21,6 +21,7 @@ pub struct AccountStorage {
     pub address: Address,
 
     template_addr: TemplateAddr,
+
     layout: FixedLayout,
 }
 
@@ -28,7 +29,7 @@ impl AccountStorage {
     /// Like [`AccountStorage::create`], but it doesn't store a
     /// [`Template`](svm_types::Template) associated with the newly stored
     /// account data.
-    pub fn create_stub(
+    pub async fn create_stub(
         mut gs: GlobalState,
         address: &Address,
         name: String,
@@ -44,9 +45,11 @@ impl AccountStorage {
                 template_addr,
             },
             &AccountData::key(address),
-        );
+        )
+        .await;
 
-        gs.encode_and_write(&AccountMut { balance, counter }, &AccountMut::key(address));
+        gs.encode_and_write(&AccountMut { balance, counter }, &AccountMut::key(address))
+            .await;
 
         Ok(Self {
             gs,
@@ -57,7 +60,7 @@ impl AccountStorage {
     }
 
     /// Saves `self` to the associated [`GlobalState`].
-    pub fn create(
+    pub async fn create(
         mut gs: GlobalState,
         address: &Address,
         name: String,
@@ -65,7 +68,7 @@ impl AccountStorage {
         balance: u64,
         counter: u128,
     ) -> StorageResult<Self> {
-        let layout = template_layout(gs.clone(), &template_addr)?;
+        let layout = template_layout(gs.clone(), &template_addr).await?;
 
         gs.encode_and_write(
             &AccountData {
@@ -73,9 +76,11 @@ impl AccountStorage {
                 template_addr,
             },
             &AccountData::key(address),
-        );
+        )
+        .await;
 
-        gs.encode_and_write(&AccountMut { balance, counter }, &AccountMut::key(address));
+        gs.encode_and_write(&AccountMut { balance, counter }, &AccountMut::key(address))
+            .await;
 
         Ok(Self {
             gs,
@@ -87,8 +92,8 @@ impl AccountStorage {
 
     /// Creates a new [`AccountStorage`].
     pub async fn load(gs: GlobalState, address: &Address) -> StorageResult<Self> {
-        let account_data = AccountData::read(&gs, address)?;
-        let layout = template_layout(gs.clone(), &account_data.template_addr)?;
+        let account_data = AccountData::read(&gs, address).await?;
+        let layout = template_layout(gs.clone(), &account_data.template_addr).await?;
 
         Ok(Self {
             gs,
@@ -160,25 +165,25 @@ impl AccountStorage {
     /// # Panics
     ///
     /// Panics if `N` is not large enough to hold the `var_id` value.
-    pub fn get_var_array<const N: usize>(&self, var_id: u32) -> StorageResult<[u8; N]> {
+    pub async fn get_var_array<const N: usize>(&self, var_id: u32) -> StorageResult<[u8; N]> {
         let mut bytes = [0; N];
-        self.get_var(var_id, &mut bytes)?;
+        self.get_var(var_id, &mut bytes).await?;
 
         Ok(bytes)
     }
 
     /// Reads and returns the [`i64`] value associated with `var_id`.
-    pub fn get_var_i64(&self, var_id: u32) -> StorageResult<i64> {
+    pub async fn get_var_i64(&self, var_id: u32) -> StorageResult<i64> {
         let mut bytes = [0; 8];
-        self.get_var(var_id, &mut bytes)?;
+        self.get_var(var_id, &mut bytes).await?;
 
         Ok(i64::from_le_bytes(bytes))
     }
 
     /// Reads and returns the [`i32`] value associated with `var_id`.
-    pub fn get_var_i32(&self, var_id: u32) -> StorageResult<i32> {
+    pub async fn get_var_i32(&self, var_id: u32) -> StorageResult<i32> {
         let mut bytes = [0; 4];
-        self.get_var(var_id, &mut bytes)?;
+        self.get_var(var_id, &mut bytes).await?;
 
         Ok(i32::from_le_bytes(bytes))
     }
@@ -193,7 +198,7 @@ impl AccountStorage {
     ///
     /// Panics if `new_value` is not large enough to contain a fully-qualified
     /// `var_id` value.
-    pub fn set_var_bytes(&mut self, var_id: u32, mut new_value: &[u8]) -> StorageResult<()> {
+    pub async fn set_var_bytes(&mut self, var_id: u32, mut new_value: &[u8]) -> StorageResult<()> {
         let raw_var = self.layout.get(var_id);
         let offset = raw_var.offset;
         let byte_size = raw_var.byte_size;
@@ -213,7 +218,9 @@ impl AccountStorage {
         for segment in segments.into_iter() {
             let mut bytes: [u8; SEGMENT_SIZE] = self
                 .gs
-                .block_on(self.gs.storage().get(segment.key.as_bytes(), None))?
+                .storage()
+                .get(segment.key.as_bytes(), None)
+                .await?
                 .unwrap_or(vec![0; SEGMENT_SIZE])
                 .try_into()
                 .expect("Unexpected length of value.");
@@ -222,20 +229,24 @@ impl AccountStorage {
             new_value = &new_value[segment.len()..];
 
             self.gs
-                .block_on(self.gs.storage().upsert(segment.key.as_bytes(), &bytes[..]));
+                .storage()
+                .upsert(segment.key.as_bytes(), &bytes[..])
+                .await;
         }
 
         Ok(())
     }
 
     /// Overwrites the [`i64`] value associated with `var_id`.
-    pub fn set_var_i64(&mut self, var_id: u32, new_value: i64) -> StorageResult<()> {
+    pub async fn set_var_i64(&mut self, var_id: u32, new_value: i64) -> StorageResult<()> {
         self.set_var_bytes(var_id, &new_value.to_le_bytes()[..])
+            .await
     }
 
     /// Overwrites the [`i32`] value associated with `var_id`.
-    pub fn set_var_i32(&mut self, var_id: u32, new_value: i32) -> StorageResult<()> {
+    pub async fn set_var_i32(&mut self, var_id: u32, new_value: i32) -> StorageResult<()> {
         self.set_var_bytes(var_id, &new_value.to_le_bytes()[..])
+            .await
     }
 
     /// Creates a new [`TemplateStorage`] utility instance for the
@@ -254,49 +265,58 @@ impl AccountStorage {
 
     /// Reads and returns the [`Account`](svm_types::Account) name of
     /// `self`.
-    pub fn name(&self) -> StorageResult<String> {
+    pub async fn name(&self) -> StorageResult<String> {
         let key = AccountData::key(&self.address);
 
-        Ok(self.gs.read_and_decode::<AccountData>(key.as_str())?.name)
+        Ok(self
+            .gs
+            .read_and_decode::<AccountData>(key.as_str())
+            .await?
+            .name)
     }
 
     /// Reads and returns the [`TemplateAddr`] of `self`.
-    pub fn template_addr(&self) -> StorageResult<TemplateAddr> {
+    pub async fn template_addr(&self) -> StorageResult<TemplateAddr> {
         self.gs
             .read_and_decode::<AccountData>(&AccountData::key(&self.address))
+            .await
             .map(|data| data.template_addr)
     }
 
     /// Reads and returns the balance of `self`.
-    pub fn balance(&self) -> StorageResult<u64> {
+    pub async fn balance(&self) -> StorageResult<u64> {
         self.gs
             .read_and_decode::<AccountMut>(&AccountMut::key(&self.address))
+            .await
             .map(|data| data.balance)
     }
 
     /// Reads and returns the nonce counter of `self`.
-    pub fn counter(&self) -> StorageResult<u128> {
+    pub async fn counter(&self) -> StorageResult<u128> {
         self.gs
             .read_and_decode::<AccountMut>(&AccountMut::key(&self.address))
+            .await
             .map(|data| data.counter)
     }
 
     /// Replaces the current balance of `self`.
-    pub fn set_balance(&mut self, balance: u64) -> StorageResult<()> {
+    pub async fn set_balance(&mut self, balance: u64) -> StorageResult<()> {
         self.gs
             .replace(&AccountMut::key(&self.address), |mut data: AccountMut| {
                 data.balance = balance;
                 data
             })
+            .await
     }
 
     /// Replaces the current nonce counter of `self`.
-    pub fn set_counter(&mut self, counter: u128) -> StorageResult<()> {
+    pub async fn set_counter(&mut self, counter: u128) -> StorageResult<()> {
         self.gs
             .replace(&AccountMut::key(&self.address), |mut data: AccountMut| {
                 data.counter = counter;
                 data
             })
+            .await
     }
 }
 
@@ -308,9 +328,12 @@ fn key_account_var_segment(account_addr: &Address, segment: u32) -> String {
     )
 }
 
-fn template_layout(gs: GlobalState, template_addr: &TemplateAddr) -> StorageResult<FixedLayout> {
+async fn template_layout(
+    gs: GlobalState,
+    template_addr: &TemplateAddr,
+) -> StorageResult<FixedLayout> {
     let template_storage = TemplateStorage::load(gs, &template_addr)?;
-    let sections = template_storage.sections()?;
+    let sections = template_storage.sections().await?;
     let data_section = sections.get(SectionKind::Data).as_data();
     let layout = data_section.layouts()[0].as_fixed().clone();
     Ok(layout)
@@ -454,11 +477,11 @@ mod test {
         FixedLayout::from_byte_sizes(0, &[10, 20, 4, 30, 64, 31, 100, 4, 8, 8])
     }
 
-    fn new_gs() -> GlobalState {
-        GlobalState::in_memory(GenesisConfig::mainnet())
+    async fn new_gs() -> GlobalState {
+        GlobalState::in_memory(GenesisConfig::mainnet()).await
     }
 
-    fn new_template(gs: &GlobalState) -> TemplateAddr {
+    async fn new_template(gs: &GlobalState) -> TemplateAddr {
         let template_addr = TemplateAddr::repeat(0x80);
 
         let code_section = CodeSection::new(
@@ -477,17 +500,18 @@ mod test {
         let noncore_sections = Sections::with_capacity(0);
 
         TemplateStorage::create(gs.clone(), &template_addr, core_sections, noncore_sections)
+            .await
             .unwrap();
 
         template_addr
     }
 
-    #[test]
-    fn immutable_metadata() {
-        let gs = new_gs();
+    #[tokio::test]
+    async fn immutable_metadata() {
+        let gs = new_gs().await;
 
         let address = Address::repeat(0xff);
-        let template_addr = new_template(&gs);
+        let template_addr = new_template(&gs).await;
         let name = "@name";
         let balance = 42;
         let counter = 0;
@@ -500,20 +524,21 @@ mod test {
             balance,
             counter,
         )
+        .await
         .unwrap();
 
-        assert_eq!(account.name().unwrap(), name);
-        assert_eq!(account.template_addr().unwrap(), template_addr);
-        assert_eq!(account.balance().unwrap(), balance);
-        assert_eq!(account.counter().unwrap(), counter);
+        assert_eq!(account.name().await.unwrap(), name);
+        assert_eq!(account.template_addr().await.unwrap(), template_addr);
+        assert_eq!(account.balance().await.unwrap(), balance);
+        assert_eq!(account.counter().await.unwrap(), counter);
     }
 
-    #[test]
-    fn mutable_metadata() {
-        let gs = new_gs();
+    #[tokio::test]
+    async fn mutable_metadata() {
+        let gs = new_gs().await;
 
         let address = Address::repeat(0xff);
-        let template_addr = new_template(&gs);
+        let template_addr = new_template(&gs).await;
         let name = "@name";
         let balance = 42;
         let counter = 0;
@@ -526,31 +551,32 @@ mod test {
             balance,
             counter,
         )
+        .await
         .unwrap();
 
-        assert_eq!(account.balance().unwrap(), balance);
-        assert_eq!(account.counter().unwrap(), counter);
+        assert_eq!(account.balance().await.unwrap(), balance);
+        assert_eq!(account.counter().await.unwrap(), counter);
 
-        account.set_balance(1000).unwrap();
+        account.set_balance(1000).await.unwrap();
 
-        assert_eq!(account.balance().unwrap(), 1000);
-        assert_eq!(account.counter().unwrap(), counter);
+        assert_eq!(account.balance().await.unwrap(), 1000);
+        assert_eq!(account.counter().await.unwrap(), counter);
 
-        account.set_counter(10).unwrap();
-        assert_eq!(account.balance().unwrap(), 1000);
-        assert_eq!(account.counter().unwrap(), 10);
+        account.set_counter(10).await.unwrap();
+        assert_eq!(account.balance().await.unwrap(), 1000);
+        assert_eq!(account.counter().await.unwrap(), 10);
 
-        account.set_counter(100).unwrap();
-        assert_eq!(account.balance().unwrap(), 1000);
-        assert_eq!(account.counter().unwrap(), 100);
+        account.set_counter(100).await.unwrap();
+        assert_eq!(account.balance().await.unwrap(), 1000);
+        assert_eq!(account.counter().await.unwrap(), 100);
     }
 
     #[tokio::test]
     async fn account_byte_vars() {
-        let gs = new_gs();
+        let gs = new_gs().await;
 
         let address = Address::repeat(0xff);
-        let template_addr = new_template(&gs);
+        let template_addr = new_template(&gs).await;
         let name = "@name";
         let balance = 42;
         let counter = 0;
@@ -563,31 +589,32 @@ mod test {
             balance,
             counter,
         )
+        .await
         .unwrap();
 
-        account.set_var_bytes(0, &[1; 10]).unwrap();
-        account.set_var_bytes(1, &[2; 20]).unwrap();
-        account.set_var_bytes(2, &[3; 4]).unwrap();
-        account.set_var_bytes(3, &[4; 30]).unwrap();
-        account.set_var_bytes(4, &[5; 64]).unwrap();
-        account.set_var_bytes(5, &[6; 31]).unwrap();
-        account.set_var_bytes(6, &[7; 100]).unwrap();
+        account.set_var_bytes(0, &[1; 10]).await.unwrap();
+        account.set_var_bytes(1, &[2; 20]).await.unwrap();
+        account.set_var_bytes(2, &[3; 4]).await.unwrap();
+        account.set_var_bytes(3, &[4; 30]).await.unwrap();
+        account.set_var_bytes(4, &[5; 64]).await.unwrap();
+        account.set_var_bytes(5, &[6; 31]).await.unwrap();
+        account.set_var_bytes(6, &[7; 100]).await.unwrap();
 
-        assert_eq!(account.get_var_vec(6).unwrap(), &[7; 100]);
-        assert_eq!(account.get_var_vec(5).unwrap(), &[6; 31]);
-        assert_eq!(account.get_var_vec(4).unwrap(), &[5; 64]);
-        assert_eq!(account.get_var_vec(3).unwrap(), &[4; 30]);
-        assert_eq!(account.get_var_vec(2).unwrap(), &[3; 4]);
-        assert_eq!(account.get_var_vec(1).unwrap(), &[2; 20]);
-        assert_eq!(account.get_var_vec(0).unwrap(), &[1; 10]);
+        assert_eq!(account.get_var_vec(6).await.unwrap(), &[7; 100]);
+        assert_eq!(account.get_var_vec(5).await.unwrap(), &[6; 31]);
+        assert_eq!(account.get_var_vec(4).await.unwrap(), &[5; 64]);
+        assert_eq!(account.get_var_vec(3).await.unwrap(), &[4; 30]);
+        assert_eq!(account.get_var_vec(2).await.unwrap(), &[3; 4]);
+        assert_eq!(account.get_var_vec(1).await.unwrap(), &[2; 20]);
+        assert_eq!(account.get_var_vec(0).await.unwrap(), &[1; 10]);
     }
 
     #[tokio::test]
     async fn account_numeric_vars() {
-        let gs = new_gs();
+        let gs = new_gs().await;
 
         let address = Address::repeat(0xff);
-        let template_addr = new_template(&gs);
+        let template_addr = new_template(&gs).await;
         let name = "@name";
         let balance = 42;
         let counter = 0;
@@ -600,23 +627,24 @@ mod test {
             balance,
             counter,
         )
+        .await
         .unwrap();
 
-        account.set_var_i32(7, -20414).unwrap();
-        account.set_var_i64(8, 1337).unwrap();
-        account.set_var_i64(9, i64::MAX).unwrap();
+        account.set_var_i32(7, -20414).await.unwrap();
+        account.set_var_i64(8, 1337).await.unwrap();
+        account.set_var_i64(9, i64::MAX).await.unwrap();
 
-        assert_eq!(account.get_var_i32(7).unwrap(), -20414);
-        assert_eq!(account.get_var_i64(8).unwrap(), 1337);
-        assert_eq!(account.get_var_i64(9).unwrap(), i64::MAX);
+        assert_eq!(account.get_var_i32(7).await.unwrap(), -20414);
+        assert_eq!(account.get_var_i64(8).await.unwrap(), 1337);
+        assert_eq!(account.get_var_i64(9).await.unwrap(), i64::MAX);
     }
 
     #[tokio::test]
     async fn create_then_load() {
-        let gs = new_gs();
+        let gs = new_gs().await;
 
         let address = Address::repeat(0xff);
-        let template_addr = new_template(&gs);
+        let template_addr = new_template(&gs).await;
         let name = "@name";
         let balance = 42;
         let counter = 0;
@@ -629,15 +657,22 @@ mod test {
             balance,
             counter,
         )
+        .await
         .unwrap();
 
         let new_account = AccountStorage::load(gs, &address).await.unwrap();
 
-        assert_eq!(account.name().unwrap(), new_account.name().unwrap());
         assert_eq!(
-            account.template_addr().unwrap(),
-            new_account.template_addr().unwrap()
+            account.name().await.unwrap(),
+            new_account.name().await.unwrap()
         );
-        assert_eq!(account.balance().unwrap(), new_account.balance().unwrap());
+        assert_eq!(
+            account.template_addr().await.unwrap(),
+            new_account.template_addr().await.unwrap()
+        );
+        assert_eq!(
+            account.balance().await.unwrap(),
+            new_account.balance().await.unwrap()
+        );
     }
 }
