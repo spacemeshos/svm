@@ -1,0 +1,42 @@
+[package]
+name = "svm-runtime-ffi"
+version = "0.0.0"
+authors = ["Spacemesh SVM Team"]
+license = "MIT"
+edition = "2021"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+log = "0.4.14"
+lazy_static = "1.4.0"
+svm-runtime = { path = "../runtime", default-features = false }
+svm-gas = { path = "../gas" }
+svm-genesis-config = { path = "../genesis-config" }
+svm-types = { path = "../types" }
+svm-codec = { path = "../codec" }
+svm-layout = { path = "../layout" }
+svm-state = { path = "../state", default-features = false }
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1.29"
+tracing-appender = "0.2.0"
+tracing-subscriber = { version = "0.3.4", features = ["fmt", "std", "json", "ansi"] }
+wasmer = { version = "2.1.1", features = ["default-singlepass", "default-universal"], default-features = false }
+
+[dev-dependencies]
+wat = "1.0.40"
+serde_json = "1.0.74"
+maplit = "1.0.2"
+svm-abi-encoder = { path = "../../wasm/abi-encoder", features = ["dynamic-alloc"], default-features = false }
+svm-runtime-testing = { path = "../runtime-testing" }
+svm-sdk-mock = { path = "../../wasm/sdk-mock", features = ["dynamic-alloc"], default-features = false }
+svm-types = { path = "../types", default-features = false }
+
+[build-dependencies]
+cbindgen = "0.20.0"

@@ -1,13 +1,10 @@
 [package]
-name = "simple-coin-transfer-template"
+name = "svm-runtime-examples-failure"
 version = "0.0.0"
 authors = ["Spacemesh SVM Team"]
 license = "MIT"
 edition = "2021"
 readme = "README.md"
-repository = "https://github.com/spacemeshos/svm"
-homepage = "https://github.com/spacemeshos/svm"
-description = "Spacemesh Virtual Machine"
 publish = false
 
 [lib]
@@ -24,6 +21,6 @@ incremental = false
 rpath = false
 
 [dependencies]
-svm-sdk = { path = "../crates/wasm/sdk", features = ["static-alloc"] }
+svm-sdk = { path = "../../../../../wasm/sdk", features = ["static-alloc"] }
 
 [workspace]
