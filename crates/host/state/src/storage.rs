@@ -73,6 +73,9 @@ impl Storage {
                 changes_xor_fingerprint: INITIAL_LAYER_STATE,
             },
         };
+        storage
+            .insert_layer(INITIAL_LAYER_ID - 1, INITIAL_LAYER_STATE, true)
+            .await?;
 
         storage.delete_bad_layers().await?;
 
@@ -253,7 +256,7 @@ impl Storage {
 
         tracing::trace!(layer_id = layer_id, "Fingerpriting...");
         dbg!("fingerprinting", layer_id);
-        let mut fingerprint = self.layer_fingerprint(layer_id, true).await?;
+        let mut fingerprint = self.layer_fingerprint(layer_id - 1, true).await?;
         xor_fingerprint(&mut fingerprint, &self.next_layer.changes_xor_fingerprint);
         tracing::trace!("Fingerpriting done.");
         dbg!("fingerprinting done");
@@ -333,10 +336,6 @@ impl Storage {
 
     /// Queries the current [`State`] value of `layer_id`.
     async fn layer_fingerprint(&self, layer_id: i64, complete: bool) -> Result<State> {
-        if layer_id == INITIAL_LAYER_ID {
-            return Ok(INITIAL_LAYER_STATE);
-        }
-
         let bytes: (Vec<u8>,) = sqlx::query_as(
             r#"
             SELECT "fingerprint"
