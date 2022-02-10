@@ -4,7 +4,6 @@ use wasmer::{imports, FromToNativeWasmType, NativeFunc};
 use std::ops::AddAssign;
 use std::sync::Arc;
 
-use std::thread;
 use svm_genesis_config::GenesisConfig;
 use svm_layout::FixedLayout;
 use svm_runtime::{vmcalls, AccessMode, FuncEnv};
@@ -124,275 +123,265 @@ fn vmcalls_empty_wasm() {
     wasmer_instantiate(&store, &import_object, wasm);
 }
 
-#[tokio::test]
-async fn vmcalls_get32_set32() {
-    thread::spawn(|| {
-        let template_addr = TemplateAddr::repeat(0xAB);
-        let target_addr = Address::repeat(0xCD);
-        let layout = FixedLayout::from_byte_sizes(0, &[4, 2]);
+#[test]
+fn vmcalls_get32_set32() {
+    let template_addr = TemplateAddr::repeat(0xAB);
+    let target_addr = Address::repeat(0xCD);
+    let layout = FixedLayout::from_byte_sizes(0, &[4, 2]);
 
-        let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
-        let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
-        let store = wasmer_store();
-        let storage = tokio_rt.block_on(create_account(gs, &target_addr, &template_addr, layout));
-        let envelope = Envelope::default();
-        let context = Context::default();
-        let func_env = FuncEnv::new(
-            tokio_rt.clone(),
-            storage,
-            &envelope,
-            &context,
-            template_addr,
-            target_addr,
-            AccessMode::FullAccess,
-        );
+    let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
+    let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
+    let store = wasmer_store();
+    let storage = tokio_rt.block_on(create_account(gs, &target_addr, &template_addr, layout));
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let func_env = FuncEnv::new(
+        tokio_rt.clone(),
+        storage,
+        &envelope,
+        &context,
+        template_addr,
+        target_addr,
+        AccessMode::FullAccess,
+    );
 
-        let import_object = imports! {
-            "svm" => {
-                "svm_get32" => func!(store, func_env, vmcalls::get32),
-                "svm_set32" => func!(store, func_env, vmcalls::set32),
-            }
-        };
-
-        let instance = wasmer_instantiate(
-            &store,
-            &import_object,
-            WasmFile::Text(include_str!("wasm/get32_set32.wast")),
-        );
-
-        assert_var_eq(&instance, 0, 0u32);
-        assert_var_eq(&instance, 1, 0u32);
-
-        var_add(&instance, 0, 5u32);
-        var_add(&instance, 1, 10u32);
-
-        assert_var_eq(&instance, 0, 5u32);
-        assert_var_eq(&instance, 1, 10u32);
-
-        tokio_rt.block_on(assert_storage(&func_env, 0, [5, 0, 0, 0]));
-        tokio_rt.block_on(assert_storage(&func_env, 1, [10, 0]));
-    });
-}
-
-#[tokio::test]
-async fn vmcalls_get64_set64() {
-    thread::spawn(|| {
-        let template_addr = TemplateAddr::repeat(0xAB);
-        let target_addr = Address::repeat(0xCD);
-        let layout = FixedLayout::from_byte_sizes(0, &[4, 2]);
-
-        let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
-        let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
-        let store = wasmer_store();
-        let storage = tokio_rt.block_on(create_account(gs, &target_addr, &template_addr, layout));
-        let envelope = Envelope::default();
-        let context = Context::default();
-        let func_env = FuncEnv::new(
-            tokio_rt.clone(),
-            storage,
-            &envelope,
-            &context,
-            template_addr,
-            target_addr,
-            AccessMode::FullAccess,
-        );
-
-        let import_object = imports! {
-            "svm" => {
-                "svm_get64" => func!(store, func_env, vmcalls::get64),
-                "svm_set64" => func!(store, func_env, vmcalls::set64),
-            },
-        };
-
-        let instance = wasmer_instantiate(
-            &store,
-            &import_object,
-            WasmFile::Text(include_str!("wasm/get64_set64.wast")),
-        );
-
-        assert_var_eq(&instance, 0, 0u64);
-        assert_var_eq(&instance, 1, 0u64);
-
-        var_add(&instance, 0, 5u64);
-        var_add(&instance, 1, 10u64);
-
-        assert_var_eq(&instance, 0, 5u64);
-        assert_var_eq(&instance, 1, 10u64);
-
-        tokio_rt.block_on(assert_storage(&func_env, 0, [5, 0, 0, 0]));
-        tokio_rt.block_on(assert_storage(&func_env, 1, [10, 0]));
-    });
-}
-
-#[tokio::test]
-async fn vmcalls_load160() {
-    thread::spawn(|| {
-        let template_addr = TemplateAddr::repeat(0xAB);
-        let target_addr = Address::repeat(0xCD);
-        let layout = FixedLayout::from_byte_sizes(0, &[20]);
-
-        let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
-        let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
-        let store = wasmer_store();
-        let memory = wasmer_memory(&store);
-        let storage = tokio_rt.block_on(create_account(gs, &target_addr, &template_addr, layout));
-        let envelope = Envelope::default();
-        let context = Context::default();
-        let func_env = FuncEnv::new_with_memory(
-            tokio_rt.clone(),
-            memory.clone(),
-            storage,
-            &envelope,
-            &context,
-            template_addr,
-            target_addr.clone(),
-            AccessMode::FullAccess,
-        );
-
-        let import_object = imports! {
-            "svm" => {
-                "memory" => memory.clone(),
-                "svm_load160" => func!(store, func_env, vmcalls::load160),
-                "svm_store160" => func!(store, func_env, vmcalls::store160),
-            },
-        };
-
-        let instance = wasmer_instantiate(
-            &store,
-            &import_object,
-            WasmFile::Text(include_str!("wasm/load160_store160.wast")),
-        );
-
-        {
-            let mut borrow = func_env.borrow_mut();
-            let storage = borrow.storage_mut();
-            tokio_rt
-                .block_on(storage.set_var_bytes(0, target_addr.as_slice()))
-                .unwrap();
+    let import_object = imports! {
+        "svm" => {
+            "svm_get32" => func!(store, func_env, vmcalls::get32),
+            "svm_set32" => func!(store, func_env, vmcalls::set32),
         }
+    };
 
-        let func: NativeFunc<(u32, u32)> = instance.exports.get_native_function("load").unwrap();
-        let ptr = 0;
-        let var_id = 0;
+    let instance = wasmer_instantiate(
+        &store,
+        &import_object,
+        WasmFile::Text(include_str!("wasm/get32_set32.wast")),
+    );
 
-        func.call(var_id, ptr).expect("function has failed");
+    assert_var_eq(&instance, 0, 0u32);
+    assert_var_eq(&instance, 1, 0u32);
 
-        let view = &memory.view::<u8>()[ptr as usize..(ptr as usize + 20)];
-        let bytes: Vec<u8> = view.iter().map(|cell| cell.get()).collect();
+    var_add(&instance, 0, 5u32);
+    var_add(&instance, 1, 10u32);
 
-        assert_eq!(target_addr, Address::new(&bytes[..]));
-    });
+    assert_var_eq(&instance, 0, 5u32);
+    assert_var_eq(&instance, 1, 10u32);
+
+    tokio_rt.block_on(assert_storage(&func_env, 0, [5, 0, 0, 0]));
+    tokio_rt.block_on(assert_storage(&func_env, 1, [10, 0]));
 }
 
-#[tokio::test]
-async fn vmcalls_store160() {
-    thread::spawn(|| {
-        let template_addr = TemplateAddr::repeat(0xAB);
-        let target_addr = Address::repeat(0xCD);
-        let layout = FixedLayout::from_byte_sizes(0, &[20]);
+#[test]
+fn vmcalls_get64_set64() {
+    let template_addr = TemplateAddr::repeat(0xAB);
+    let target_addr = Address::repeat(0xCD);
+    let layout = FixedLayout::from_byte_sizes(0, &[4, 2]);
 
-        let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
-        let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
-        let store = wasmer_store();
-        let memory = wasmer_memory(&store);
-        let storage = tokio_rt.block_on(create_account(gs, &target_addr, &template_addr, layout));
-        let envelope = Envelope::default();
-        let context = Context::default();
-        let func_env = FuncEnv::new_with_memory(
-            tokio_rt.clone(),
-            memory.clone(),
-            storage,
-            &envelope,
-            &context,
-            template_addr,
-            target_addr.clone(),
-            AccessMode::FullAccess,
-        );
+    let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
+    let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
+    let store = wasmer_store();
+    let storage = tokio_rt.block_on(create_account(gs, &target_addr, &template_addr, layout));
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let func_env = FuncEnv::new(
+        tokio_rt.clone(),
+        storage,
+        &envelope,
+        &context,
+        template_addr,
+        target_addr,
+        AccessMode::FullAccess,
+    );
 
-        let import_object = imports! {
-            "svm" => {
-                "memory" => memory.clone(),
-                "svm_load160" => func!(store, func_env, vmcalls::load160),
-                "svm_store160" => func!(store, func_env, vmcalls::store160),
-            },
-        };
+    let import_object = imports! {
+        "svm" => {
+            "svm_get64" => func!(store, func_env, vmcalls::get64),
+            "svm_set64" => func!(store, func_env, vmcalls::set64),
+        },
+    };
 
-        let instance = wasmer_instantiate(
-            &store,
-            &import_object,
-            WasmFile::Text(include_str!("wasm/load160_store160.wast")),
-        );
+    let instance = wasmer_instantiate(
+        &store,
+        &import_object,
+        WasmFile::Text(include_str!("wasm/get64_set64.wast")),
+    );
 
-        for (cell, byte) in memory.view::<u8>().iter().zip(target_addr.as_slice()) {
-            cell.set(*byte);
-        }
+    assert_var_eq(&instance, 0, 0u64);
+    assert_var_eq(&instance, 1, 0u64);
 
-        let func: NativeFunc<(u32, u32)> = instance.exports.get_native_function("store").unwrap();
-        let ptr = 0;
-        let var_id = 0;
+    var_add(&instance, 0, 5u64);
+    var_add(&instance, 1, 10u64);
 
-        func.call(var_id, ptr).expect("function has failed");
+    assert_var_eq(&instance, 0, 5u64);
+    assert_var_eq(&instance, 1, 10u64);
 
-        tokio_rt.block_on(assert_storage(&func_env, 0, target_addr.as_slice()));
-    });
+    tokio_rt.block_on(assert_storage(&func_env, 0, [5, 0, 0, 0]));
+    tokio_rt.block_on(assert_storage(&func_env, 1, [10, 0]));
 }
 
-#[tokio::test]
-async fn vmcalls_log() {
-    thread::spawn(|| {
-        let template_addr = TemplateAddr::repeat(0xAB);
-        let target_addr = Address::repeat(0xCD);
-        let layout = FixedLayout::default();
+#[test]
+fn vmcalls_load160() {
+    let template_addr = TemplateAddr::repeat(0xAB);
+    let target_addr = Address::repeat(0xCD);
+    let layout = FixedLayout::from_byte_sizes(0, &[20]);
 
-        let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
-        let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
-        let store = wasmer_store();
-        let memory = wasmer_memory(&store);
-        let storage = tokio_rt.block_on(create_account(gs, &target_addr, &template_addr, layout));
-        let envelope = Envelope::default();
-        let context = Context::default();
-        let func_env = FuncEnv::new_with_memory(
-            tokio_rt,
-            memory.clone(),
-            storage,
-            &envelope,
-            &context,
-            template_addr,
-            target_addr,
-            AccessMode::AccessDenied,
-        );
+    let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
+    let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
+    let store = wasmer_store();
+    let memory = wasmer_memory(&store);
+    let storage = tokio_rt.block_on(create_account(gs, &target_addr, &template_addr, layout));
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let func_env = FuncEnv::new_with_memory(
+        tokio_rt.clone(),
+        memory.clone(),
+        storage,
+        &envelope,
+        &context,
+        template_addr,
+        target_addr.clone(),
+        AccessMode::FullAccess,
+    );
 
-        let import_object = imports! {
-            "svm" => {
-                "memory" => memory.clone(),
-                "svm_log" => func!(store, func_env, vmcalls::log),
-            },
-        };
+    let import_object = imports! {
+        "svm" => {
+            "memory" => memory.clone(),
+            "svm_load160" => func!(store, func_env, vmcalls::load160),
+            "svm_store160" => func!(store, func_env, vmcalls::store160),
+        },
+    };
 
-        let instance = wasmer_instantiate(
-            &store,
-            &import_object,
-            WasmFile::Text(include_str!("wasm/log.wast")),
-        );
+    let instance = wasmer_instantiate(
+        &store,
+        &import_object,
+        WasmFile::Text(include_str!("wasm/load160_store160.wast")),
+    );
 
-        let data = b"Hello World";
+    {
+        let mut borrow = func_env.borrow_mut();
+        let storage = borrow.storage_mut();
+        tokio_rt
+            .block_on(storage.set_var_bytes(0, target_addr.as_slice()))
+            .unwrap();
+    }
 
-        for (cell, byte) in memory.view::<u8>().iter().zip(data) {
-            cell.set(*byte);
-        }
+    let func: NativeFunc<(u32, u32)> = instance.exports.get_native_function("load").unwrap();
+    let ptr = 0;
+    let var_id = 0;
 
-        let logs = func_env.borrow_mut().take_logs();
-        assert!(logs.is_empty());
+    func.call(var_id, ptr).expect("function has failed");
 
-        let func = instance.exports.get_function("sayHello").unwrap();
-        let _ = func.call(&[]).unwrap();
+    let view = &memory.view::<u8>()[ptr as usize..(ptr as usize + 20)];
+    let bytes: Vec<u8> = view.iter().map(|cell| cell.get()).collect();
 
-        let logs = func_env.borrow_mut().take_logs();
-        assert_eq!(logs, vec![ReceiptLog::new(b"Hello World".to_vec(),)]);
-    });
+    assert_eq!(target_addr, Address::new(&bytes[..]));
 }
 
-async fn setup_svm_transfer_test() -> (
+#[test]
+fn vmcalls_store160() {
+    let template_addr = TemplateAddr::repeat(0xAB);
+    let target_addr = Address::repeat(0xCD);
+    let layout = FixedLayout::from_byte_sizes(0, &[20]);
+
+    let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
+    let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
+    let store = wasmer_store();
+    let memory = wasmer_memory(&store);
+    let storage = tokio_rt.block_on(create_account(gs, &target_addr, &template_addr, layout));
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let func_env = FuncEnv::new_with_memory(
+        tokio_rt.clone(),
+        memory.clone(),
+        storage,
+        &envelope,
+        &context,
+        template_addr,
+        target_addr.clone(),
+        AccessMode::FullAccess,
+    );
+
+    let import_object = imports! {
+        "svm" => {
+            "memory" => memory.clone(),
+            "svm_load160" => func!(store, func_env, vmcalls::load160),
+            "svm_store160" => func!(store, func_env, vmcalls::store160),
+        },
+    };
+
+    let instance = wasmer_instantiate(
+        &store,
+        &import_object,
+        WasmFile::Text(include_str!("wasm/load160_store160.wast")),
+    );
+
+    for (cell, byte) in memory.view::<u8>().iter().zip(target_addr.as_slice()) {
+        cell.set(*byte);
+    }
+
+    let func: NativeFunc<(u32, u32)> = instance.exports.get_native_function("store").unwrap();
+    let ptr = 0;
+    let var_id = 0;
+
+    func.call(var_id, ptr).expect("function has failed");
+
+    tokio_rt.block_on(assert_storage(&func_env, 0, target_addr.as_slice()));
+}
+
+#[test]
+fn vmcalls_log() {
+    let template_addr = TemplateAddr::repeat(0xAB);
+    let target_addr = Address::repeat(0xCD);
+    let layout = FixedLayout::default();
+
+    let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
+    let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
+    let store = wasmer_store();
+    let memory = wasmer_memory(&store);
+    let storage = tokio_rt.block_on(create_account(gs, &target_addr, &template_addr, layout));
+    let envelope = Envelope::default();
+    let context = Context::default();
+    let func_env = FuncEnv::new_with_memory(
+        tokio_rt,
+        memory.clone(),
+        storage,
+        &envelope,
+        &context,
+        template_addr,
+        target_addr,
+        AccessMode::AccessDenied,
+    );
+
+    let import_object = imports! {
+        "svm" => {
+            "memory" => memory.clone(),
+            "svm_log" => func!(store, func_env, vmcalls::log),
+        },
+    };
+
+    let instance = wasmer_instantiate(
+        &store,
+        &import_object,
+        WasmFile::Text(include_str!("wasm/log.wast")),
+    );
+
+    let data = b"Hello World";
+
+    for (cell, byte) in memory.view::<u8>().iter().zip(data) {
+        cell.set(*byte);
+    }
+
+    let logs = func_env.borrow_mut().take_logs();
+    assert!(logs.is_empty());
+
+    let func = instance.exports.get_function("sayHello").unwrap();
+    let _ = func.call(&[]).unwrap();
+
+    let logs = func_env.borrow_mut().take_logs();
+    assert_eq!(logs, vec![ReceiptLog::new(b"Hello World".to_vec(),)]);
+}
+
+fn setup_svm_transfer_test() -> (
     Arc<TokioRuntime>,
     NativeFunc<(u32, u32, i64)>,
     u32,
@@ -408,13 +397,18 @@ async fn setup_svm_transfer_test() -> (
     let tokio_rt = Arc::new(TokioRuntime::new().unwrap());
     let store = wasmer_store();
     let memory = wasmer_memory(&store);
-    let gs = GlobalState::in_memory(GenesisConfig::mainnet()).await;
+    let gs = tokio_rt.block_on(GlobalState::in_memory(GenesisConfig::mainnet()));
 
-    let mut src_account = create_account(gs.clone(), &src_addr, &template, layout.clone()).await;
-    src_account.set_balance(1000).await.unwrap();
-    assert_eq!(src_account.balance().await.unwrap(), 1000);
+    let mut src_account = tokio_rt.block_on(create_account(
+        gs.clone(),
+        &src_addr,
+        &template,
+        layout.clone(),
+    ));
+    tokio_rt.block_on(src_account.set_balance(1000)).unwrap();
+    assert_eq!(tokio_rt.block_on(src_account.balance()).unwrap(), 1000);
 
-    let dst_account = create_account(gs, &dst_addr, &template, layout).await;
+    let dst_account = tokio_rt.block_on(create_account(gs, &dst_addr, &template, layout));
 
     let envelope = Envelope::default();
     let context = Context::default();
@@ -474,26 +468,24 @@ async fn setup_svm_transfer_test() -> (
     )
 }
 
-#[tokio::test]
-async fn vmcalls_svm_transfer() {
+#[test]
+fn vmcalls_svm_transfer() {
     let (tokio_rt, func, src_addr_ptr, dst_addr_ptr, src_account, dst_account) =
-        setup_svm_transfer_test().await;
+        setup_svm_transfer_test();
 
-    tokio_rt.block_on(async {
-        func.call(src_addr_ptr, dst_addr_ptr, 100).unwrap();
-        assert_eq!(src_account.balance().await.unwrap(), 900);
-        assert_eq!(dst_account.balance().await.unwrap(), 100);
+    func.call(src_addr_ptr, dst_addr_ptr, 100).unwrap();
+    assert_eq!(tokio_rt.block_on(src_account.balance()).unwrap(), 900);
+    assert_eq!(tokio_rt.block_on(dst_account.balance()).unwrap(), 100);
 
-        func.call(src_addr_ptr, dst_addr_ptr, 900).unwrap();
-        assert_eq!(src_account.balance().await.unwrap(), 0);
-        assert_eq!(dst_account.balance().await.unwrap(), 1000);
-    });
+    func.call(src_addr_ptr, dst_addr_ptr, 900).unwrap();
+    assert_eq!(tokio_rt.block_on(src_account.balance()).unwrap(), 0);
+    assert_eq!(tokio_rt.block_on(dst_account.balance()).unwrap(), 1000);
 }
 
-#[tokio::test]
+#[test]
 #[should_panic]
-async fn vmcalls_svm_transfer_insufficient_funds() {
-    let (_tokio_rt, func, src_addr_ptr, dst_addr_ptr, _, _) = setup_svm_transfer_test().await;
+fn vmcalls_svm_transfer_insufficient_funds() {
+    let (_tokio_rt, func, src_addr_ptr, dst_addr_ptr, _, _) = setup_svm_transfer_test();
 
     func.call(src_addr_ptr, dst_addr_ptr, 1001).ok();
 }

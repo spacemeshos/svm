@@ -239,5 +239,7 @@ fn svm_transfer_success() {
 
         assert_eq!(src.balance, 900);
         assert_eq!(dst.balance, 100);
+
+        api::svm_runtime_destroy(runtime).unwrap();
     }
 }

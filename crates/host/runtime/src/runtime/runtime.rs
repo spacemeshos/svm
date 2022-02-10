@@ -457,14 +457,14 @@ impl Runtime {
         gas_left: GasTank,
     ) -> Call<'a> {
         let target = tx.target();
+        let account_storage = self
+            .tokio_rt
+            .block_on(AccountStorage::load(self.gs.clone(), target))
+            .unwrap();
+
         let template = self
             .tokio_rt
-            .block_on(async {
-                AccountStorage::load(self.gs.clone(), target)
-                    .await?
-                    .template_addr()
-                    .await
-            })
+            .block_on(account_storage.template_addr())
             .unwrap();
 
         Call {
@@ -488,19 +488,20 @@ impl Runtime {
 
     /// Increases the balance by a given amount associated with `account_addr`.
     pub fn increase_balance(&mut self, account_addr: &Address, amount: u64) -> Result<()> {
-        self.tokio_rt.block_on(async {
-            let mut account = AccountStorage::load(self.gs.clone(), account_addr)
-                .await
-                .unwrap();
-            let balance = account.balance().await.unwrap();
+        let mut account = self
+            .tokio_rt
+            .block_on(AccountStorage::load(self.gs.clone(), account_addr))
+            .unwrap();
+        let balance = self.tokio_rt.block_on(account.balance()).unwrap();
 
-            let new_balance = balance
-                .checked_add(amount)
-                .expect("Overflow when increasing balance.");
+        let new_balance = balance
+            .checked_add(amount)
+            .expect("Overflow when increasing balance.");
 
-            account.set_balance(new_balance).await.unwrap();
-            Ok(())
-        })
+        self.tokio_rt
+            .block_on(account.set_balance(new_balance))
+            .unwrap();
+        Ok(())
     }
 
     /// Creates a new `Genesis Account`.
@@ -742,15 +743,19 @@ impl Runtime {
     ///
     /// from the database layer.
     pub fn get_account(&self, account_addr: &Address) -> Option<(u64, u128, TemplateAddr)> {
-        self.tokio_rt.block_on(async {
-            let account_storage = AccountStorage::load(self.gs.clone(), account_addr)
-                .await
-                .ok()?;
-            let balance = account_storage.balance().await.ok()?;
-            let counter = account_storage.counter().await.ok()?;
-            let template_addr = account_storage.template_addr().await.ok()?;
-            Some((balance, counter, template_addr))
-        })
+        let account_storage = self
+            .tokio_rt
+            .block_on(AccountStorage::load(self.gs.clone(), account_addr))
+            .ok()?;
+
+        let balance = self.tokio_rt.block_on(account_storage.balance()).ok()?;
+        let counter = self.tokio_rt.block_on(account_storage.counter()).ok()?;
+        let template_addr = self
+            .tokio_rt
+            .block_on(account_storage.template_addr())
+            .ok()?;
+
+        Some((balance, counter, template_addr))
     }
 
     /// Sends coins from the current executing account to a destination account.
@@ -759,35 +764,31 @@ impl Runtime {
     ///
     /// Panics when the destination account does not exist.
     pub fn transfer(&self, src_addr: &Address, dst_addr: &Address, amount: u64) {
-        self.tokio_rt.block_on(async {
-            let mut src_account = AccountStorage::load(self.gs.clone(), src_addr)
-                .await
-                .unwrap();
+        let mut src_account = self
+            .tokio_rt
+            .block_on(AccountStorage::load(self.gs.clone(), src_addr))
+            .unwrap();
 
-            let mut dst_account = if let Some((_bal, _counter, _addr)) = self.get_account(dst_addr)
-            {
-                AccountStorage::load(self.gs.clone(), dst_addr)
-                    .await
-                    .unwrap()
-            } else {
-                panic!("Destination account does not exist")
-            };
+        let mut dst_account = if let Some((_bal, _counter, _addr)) = self.get_account(dst_addr) {
+            self.tokio_rt
+                .block_on(AccountStorage::load(self.gs.clone(), dst_addr))
+                .unwrap()
+        } else {
+            panic!("Destination account does not exist")
+        };
 
-            let src_bal = src_account.balance().await.unwrap();
-            let dst_bal = dst_account.balance().await.unwrap();
+        let src_bal = self.tokio_rt.block_on(src_account.balance()).unwrap();
+        let dst_bal = self.tokio_rt.block_on(dst_account.balance()).unwrap();
 
-            if src_bal < amount {
-                panic!("Not enough balance to execute transfer");
-            }
-            src_account
-                .set_balance(src_bal.checked_sub(amount).unwrap())
-                .await
-                .unwrap();
-            dst_account
-                .set_balance(dst_bal.checked_add(amount).unwrap())
-                .await
-                .unwrap();
-        });
+        if src_bal < amount {
+            panic!("Not enough balance to execute transfer");
+        }
+        self.tokio_rt
+            .block_on(src_account.set_balance(src_bal.checked_sub(amount).unwrap()))
+            .unwrap();
+        self.tokio_rt
+            .block_on(dst_account.set_balance(dst_bal.checked_add(amount).unwrap()))
+            .unwrap();
     }
 }
 
