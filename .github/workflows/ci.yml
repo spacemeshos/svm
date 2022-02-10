@@ -28,10 +28,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         profile: [release]
-        include:
-          - os: ubuntu-latest
-          - os: macos-latest
-          - os: windows-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -39,6 +35,7 @@ jobs:
           fetch-depth: 1
       - uses: actions-rs/toolchain@v1
         with:
+          target: aarch64-apple-darwin
           toolchain: nightly
           override: true
       - uses: actions/cache@v2
@@ -55,11 +52,18 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --${{ matrix.profile }} -p svm-runtime-ffi -p svm-cli --no-default-features
-      - name: List Cargo artifacts
-        run: ls target/${{ matrix.profile }}
+          args: --release -p svm-runtime-ffi -p svm-cli --no-default-features
+      - name: Cargo Build (Apple Silicon)
+        if: matrix.os == 'macos-latest'
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target aarch64-apple-darwin --release -p svm-runtime-ffi -p svm-cli --no-default-features
       - name: Prepare Artifacts
-        run: ./.github/copy-artifacts.sh
+        run: |
+          ls target
+          ls target/release
+          ./.github/copy-artifacts.sh
         env:
           OS: ${{ matrix.os }}
       - uses: msys2/setup-msys2@v2
@@ -226,9 +230,11 @@ jobs:
           zip -r ../svm-linux-v${{ env.VERSION }}.zip *
           cd ../bins-Windows-release
           zip -r ../svm-windows-v${{ env.VERSION }}.zip *
-          cd ../bins-macOS-release
-          zip -r ../svm-macos-v${{ env.VERSION }}.zip *
-          cd ..
+          cd ../bins-macOS-release/x86_64
+          zip -r ../../svm-macos-v${{ env.VERSION }}.zip *
+          cd ../aarch64
+          zip -r ../../svm-macos-m1-v${{ env.VERSION }}.zip *
+          cd ../..
           cp svm_codec.wasm/svm_codec.wasm svm_codec_v${{ env.VERSION }}.wasm
       - uses: softprops/action-gh-release@v1
         with:
@@ -237,6 +243,7 @@ jobs:
             svm-linux-v${{ env.VERSION }}.zip
             svm-windows-v${{ env.VERSION }}.zip
             svm-macos-v${{ env.VERSION }}.zip
+            svm-macos-m1-v${{ env.VERSION }}.zip
             svm_codec_v${{ env.VERSION }}.wasm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

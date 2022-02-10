@@ -29,7 +29,7 @@ fn gas_to_json(gas: &Gas) -> i64 {
 fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Json> {
     logs.iter()
         .map(|log| {
-            let data = unsafe { String::from_utf8_unchecked(log.as_bytes().to_vec()) };
+            let data = std::str::from_utf8(log.as_bytes()).expect("Invalid UTF-8");
 
             json!({
                 "data": data,
