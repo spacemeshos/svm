@@ -118,7 +118,7 @@ impl Storage {
     /// Returns the [`Layer`] and [`State`] of the last ever committed
     /// layer; i.e. persisted changes without dirty and saved changes.
     pub async fn last_layer(&self) -> Result<(i64, State)> {
-        assert!(self.next_layer.id > INITIAL_LAYER_ID);
+        debug_assert!(self.next_layer.id > INITIAL_LAYER_ID);
 
         let layer_id = self.next_layer.id - 1;
         let fingerprint = self.layer_fingerprint(layer_id, true).await?;
@@ -308,7 +308,7 @@ impl Storage {
             WHERE "id" = ?1 AND "complete" = 1
             "#,
         )
-        .bind(INITIAL_LAYER_ID)
+        .bind(INITIAL_LAYER_ID + 1)
         .fetch_optional(&self.sqlite)
         .await?;
 
