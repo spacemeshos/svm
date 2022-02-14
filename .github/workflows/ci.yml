@@ -165,7 +165,7 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-${{ github.job }}
       - name: Test svm-codec
-        working-directory: crates/codec/examples
+        working-directory: crates/host/codec/examples
         run: |
           set -e
           ./run.sh
