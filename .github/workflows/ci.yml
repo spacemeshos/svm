@@ -118,13 +118,13 @@ jobs:
             cargo-${{ runner.os }}-${{ github.job }}
       - name: Compile some .wasm
         run: |
-          cd crates/runtime/tests/wasm/calldata
+          cd crates/host/runtime/tests/wasm/calldata
           ./build.sh
-          cd ../../../../..
-          cd crates/runtime-ffi/tests/wasm/counter
+          cd ../../../../../..
+          cd crates/host/runtime-ffi/tests/wasm/counter
           ./build.sh
-          cd ../../../../..
-          cd crates/runtime-ffi/tests/wasm/failure
+          cd ../../../../../..
+          cd crates/host/runtime-ffi/tests/wasm/failure
           ./build.sh
       - name: Cargo Test
         uses: actions-rs/cargo@v1
