@@ -30,8 +30,9 @@ const STATE_ONES: State = State([std::u8::MAX; 32]);
 
 const SQL_SCHEMA: &str = include_str!("resources/schema.sql");
 
-// The first ever actual layer ID is 0, but genesis data sits at -1.
-const INITIAL_LAYER_ID: i64 = -1;
+// The first ever actual layer ID is 0, but genesis data sits at -1. Thus, the
+// root state fingerprint sits at -2.
+const INITIAL_LAYER_ID: i64 = -2;
 const INITIAL_LAYER_STATE: State = STATE_ZEROS;
 
 #[derive(Debug)]
@@ -68,13 +69,13 @@ impl Storage {
             sqlite,
             dirty_changes: HashMap::new(),
             next_layer: NextLayer {
-                id: next_layer_id.unwrap_or(INITIAL_LAYER_ID),
+                id: next_layer_id.unwrap_or(INITIAL_LAYER_ID + 1),
                 changes: HashMap::new(),
                 changes_xor_fingerprint: INITIAL_LAYER_STATE,
             },
         };
         storage
-            .insert_layer(INITIAL_LAYER_ID - 1, INITIAL_LAYER_STATE, true)
+            .insert_layer(INITIAL_LAYER_ID, INITIAL_LAYER_STATE, true)
             .await?;
 
         storage.delete_bad_layers().await?;
