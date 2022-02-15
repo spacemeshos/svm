@@ -1,4 +1,5 @@
-//! Storage data structure that back the Spacemesh [`GlobalState`](crate::GlobalState).
+//! Storage data structure that back the Spacemesh
+//! [`GlobalState`](crate::GlobalState).
 //!
 //! At the time of writing, [`Storage`] is a "LinkedHashX", as explained in
 //! <https://eprint.iacr.org/2021/773.pdf>, pg. 5-6. This enables fast root
