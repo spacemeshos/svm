@@ -487,11 +487,22 @@ mod test {
         let mut storage = new_storage().await;
 
         for (key, value) in items.iter().take(UPPER_LIMIT) {
-            storage.upsert(&key[..], &value[..]).await;
+            storage
+                .upsert(
+                    key.get(..UPPER_LIMIT).unwrap_or(&key[..]),
+                    value.get(..UPPER_LIMIT).unwrap_or(&value[..]),
+                )
+                .await;
         }
 
         for key in items.keys().take(UPPER_LIMIT) {
-            let stored_value = storage.get(&key, Some(INITIAL_LAYER_ID)).await.unwrap();
+            let stored_value = storage
+                .get(
+                    key.get(..UPPER_LIMIT).unwrap_or(&key[..]),
+                    Some(INITIAL_LAYER_ID),
+                )
+                .await
+                .unwrap();
             if stored_value.is_some() {
                 return false;
             }
