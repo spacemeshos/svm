@@ -525,15 +525,26 @@ mod test {
         let mut storage = new_storage().await;
 
         for (key, value) in items.iter().take(UPPER_LIMIT) {
-            storage.upsert(&key[..], &value[..]).await;
+            storage
+                .upsert(
+                    key.get(..UPPER_LIMIT).unwrap_or(&key[..]),
+                    value.get(..UPPER_LIMIT).unwrap_or(&value[..]),
+                )
+                .await;
         }
 
         storage.checkpoint().await.unwrap();
         let layer_id = storage.commit().await.unwrap().0;
 
         for key in items.keys().take(UPPER_LIMIT) {
-            let val_1 = storage.get(&key, Some(layer_id)).await.unwrap();
-            let val_2 = storage.get(&key, None).await.unwrap();
+            let val_1 = storage
+                .get(key.get(..UPPER_LIMIT).unwrap_or(&key[..]), Some(layer_id))
+                .await
+                .unwrap();
+            let val_2 = storage
+                .get(key.get(..UPPER_LIMIT).unwrap_or(&key[..]), None)
+                .await
+                .unwrap();
             if val_1 != val_2 || val_1.is_none() {
                 return false;
             }
