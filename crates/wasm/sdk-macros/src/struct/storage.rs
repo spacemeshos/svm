@@ -311,7 +311,7 @@ fn setter_ast(var: &Var, must_mock: bool) -> TokenStream {
                         svm_sdk::storage::ops::set_addr::<StorageImpl>(#id, value);
                     }
                 },
-                ty => unreachable!(format!("Type `{}` is not supported", ty)),
+                ty => panic!("Type `{}` is not supported", ty),
             }
         }
         Var::Array {
@@ -369,7 +369,7 @@ fn setter_ast(var: &Var, must_mock: bool) -> TokenStream {
                         }
                     }
                 }
-                ty => unreachable!(format!("Type `{}` is not supported", ty)),
+                ty => panic!("Type `{}` is not supported", ty),
             }
         }
     }
