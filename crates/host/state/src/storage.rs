@@ -93,7 +93,7 @@ impl Storage {
     #[cfg(test)]
     async fn in_memory() -> Result<Self> {
         let sqlite = sqlx::sqlite::SqlitePoolOptions::new()
-            .max_connections(1)
+            .max_connections(64)
             .connect(":memory:")
             .await?;
         Self::new_with_pool(sqlite).await
