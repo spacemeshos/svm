@@ -1,4 +1,7 @@
 use svm_sdk::{template, Address};
 
 #[template]
-mod Template {}
+mod Template {
+    #[storage]
+    struct Storage {}
+}
