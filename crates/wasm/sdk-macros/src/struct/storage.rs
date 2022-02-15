@@ -202,7 +202,7 @@ fn getter_ast(var: &Var, must_mock: bool) -> TokenStream {
                         }
                     }
                 }
-                ty => unreachable!(format!("Type `{}` is not supported", ty)),
+                ty => unreachable!("{}", format!("Type `{}` is not supported", ty)),
             }
         }
         Var::Array {
