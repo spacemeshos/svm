@@ -202,7 +202,7 @@ fn getter_ast(var: &Var, must_mock: bool) -> TokenStream {
                         }
                     }
                 }
-                ty => unreachable!("{}", format!("Type `{}` is not supported", ty)),
+                ty => panic!("Type `{}` is not supported", ty),
             }
         }
         Var::Array {
@@ -258,7 +258,7 @@ fn getter_ast(var: &Var, must_mock: bool) -> TokenStream {
                         svm_sdk::storage::ops::array_get_addr::<StorageImpl>(#id, index, #length)
                     }
                 },
-                ty => unreachable!(format!("Type `{}` is not supported", ty)),
+                ty => panic!("Type `{}` is not supported", ty),
             }
         }
     }
