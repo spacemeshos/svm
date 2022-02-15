@@ -11,7 +11,7 @@
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 
-use sqlx::SqlitePool;
+use sqlx::{Pool, Sqlite, SqlitePool};
 
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -62,6 +62,10 @@ impl Storage {
     /// then it will be initialized with the appropriate schema.
     pub async fn new(sqlite_uri: &str) -> Result<Self> {
         let sqlite = sqlx::SqlitePool::connect(sqlite_uri).await?;
+        Self::new_with_pool(sqlite).await
+    }
+
+    async fn new_with_pool(sqlite: Pool<Sqlite>) -> Result<Self> {
         sqlx::query(SQL_SCHEMA).execute(&sqlite).await?;
 
         let next_layer_id = max_layer_id(&sqlite).await?;
@@ -82,6 +86,17 @@ impl Storage {
         storage.delete_bad_layers().await?;
 
         Ok(storage)
+    }
+
+    /// Creates a new, empty [`Storage`] with no persisted state at all. All
+    /// state will be kept in an in-memory SQLite instance.
+    #[cfg(test)]
+    async fn in_memory() -> Result<Self> {
+        let sqlite = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(":memory:")
+            .await?;
+        Self::new_with_pool(sqlite).await
     }
 
     async fn delete_bad_layers(&self) -> Result<u64> {
@@ -107,13 +122,6 @@ impl Storage {
         }
 
         Ok(count_rows)
-    }
-
-    /// Creates a new, empty [`Storage`] with no persisted state at all. All
-    /// state will be kept in an in-memory SQLite instance.
-    #[cfg(test)]
-    async fn in_memory() -> Result<Self> {
-        Self::new(":memory:").await
     }
 
     /// Returns the [`Layer`] and [`State`] of the last ever committed
