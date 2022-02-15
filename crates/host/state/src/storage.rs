@@ -415,6 +415,10 @@ fn xor_fingerprint(sig_1: &mut State, sig_2: &State) {
 mod test {
     use super::*;
 
+    /// Most database-based tests will blow up if we feed too much data all at
+    /// once.
+    const UPPER_LIMIT: usize = 100;
+
     async fn new_storage() -> Storage {
         Storage::in_memory().await.unwrap()
     }
@@ -423,11 +427,11 @@ mod test {
     async fn get_after_dirty_changes(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut storage = new_storage().await;
 
-        for (key, value) in items.iter() {
+        for (key, value) in items.iter().take(UPPER_LIMIT) {
             storage.upsert(&key[..], &value[..]).await;
         }
 
-        for (key, value) in items {
+        for (key, value) in items.into_iter().take(UPPER_LIMIT) {
             let stored_value = storage.get(&key, None).await.unwrap().unwrap();
             if stored_value != value {
                 return false;
@@ -441,13 +445,13 @@ mod test {
     async fn get_after_checkpoint(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut storage = new_storage().await;
 
-        for (key, value) in items.iter() {
+        for (key, value) in items.iter().take(UPPER_LIMIT) {
             storage.upsert(&key[..], &value[..]).await;
         }
 
         storage.checkpoint().await.unwrap();
 
-        for (key, value) in items {
+        for (key, value) in items.into_iter().take(UPPER_LIMIT) {
             let stored_value = storage.get(&key, None).await.unwrap().unwrap();
             if stored_value != value {
                 return false;
@@ -461,14 +465,14 @@ mod test {
     async fn get_after_commit(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut storage = new_storage().await;
 
-        for (key, value) in items.iter() {
+        for (key, value) in items.iter().take(UPPER_LIMIT) {
             storage.upsert(&key[..], &value[..]).await;
         }
 
         storage.checkpoint().await.unwrap();
         storage.commit().await.unwrap();
 
-        for (key, value) in items {
+        for (key, value) in items.into_iter().take(UPPER_LIMIT) {
             let stored_value = storage.get(&key, None).await.unwrap().unwrap();
             if stored_value != value {
                 return false;
@@ -482,11 +486,11 @@ mod test {
     async fn get_historical_after_dirty_changes(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut storage = new_storage().await;
 
-        for (key, value) in items.iter() {
+        for (key, value) in items.iter().take(UPPER_LIMIT) {
             storage.upsert(&key[..], &value[..]).await;
         }
 
-        for key in items.keys() {
+        for key in items.keys().take(UPPER_LIMIT) {
             let stored_value = storage.get(&key, Some(INITIAL_LAYER_ID)).await.unwrap();
             if stored_value.is_some() {
                 return false;
@@ -500,13 +504,13 @@ mod test {
     async fn get_historical_after_checkpoint(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut storage = new_storage().await;
 
-        for (key, value) in items.iter() {
+        for (key, value) in items.iter().take(UPPER_LIMIT) {
             storage.upsert(&key[..], &value[..]).await;
         }
 
         storage.checkpoint().await.unwrap();
 
-        for key in items.keys() {
+        for key in items.keys().take(UPPER_LIMIT) {
             let stored_value = storage.get(&key, Some(INITIAL_LAYER_ID)).await.unwrap();
             if stored_value.is_some() {
                 return false;
@@ -520,14 +524,14 @@ mod test {
     async fn get_and_get_historical_might_be_the_same(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
         let mut storage = new_storage().await;
 
-        for (key, value) in items.iter() {
+        for (key, value) in items.iter().take(UPPER_LIMIT) {
             storage.upsert(&key[..], &value[..]).await;
         }
 
         storage.checkpoint().await.unwrap();
         let layer_id = storage.commit().await.unwrap().0;
 
-        for key in items.keys() {
+        for key in items.keys().take(UPPER_LIMIT) {
             let val_1 = storage.get(&key, Some(layer_id)).await.unwrap();
             let val_2 = storage.get(&key, None).await.unwrap();
             if val_1 != val_2 || val_1.is_none() {
