@@ -1,0 +1,21 @@
+[package]
+name = "svm-genesis-tests"
+version = "0.0.0"
+authors = ["Spacemesh SVM Team"]
+license = "MIT"
+edition = "2021"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[dependencies]
+svm-codec = { path = "../../crates/host/codec" }
+svm-genesis-config = { path = "../../crates/host/genesis-config" }
+svm-runtime = { path = "../../crates/host/runtime" }
+svm-state = { path = "../../crates/host/state" }
+svm-types = { path = "../../crates/host/types" }
+tokio = { version = "1", features = ["full"] }
+
+[features]

@@ -7,6 +7,9 @@ name: SVM CI
 # nightly and it throws away intermediate compilation artifacts, which might
 # result in linkage bugs...
 
+env:
+  QUICKCHECK_MAX_TESTS: 16
+
 on:
   push:
     branches:
@@ -48,6 +51,10 @@ jobs:
           key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-${{ github.job }}
+      - name: Compile some .wasm
+        run: |
+          cd simple-coin-transfer-template
+          ./build.sh
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
@@ -118,19 +125,22 @@ jobs:
             cargo-${{ runner.os }}-${{ github.job }}
       - name: Compile some .wasm
         run: |
-          cd crates/runtime/tests/wasm/calldata
+          cd simple-coin-transfer-template
           ./build.sh
-          cd ../../../../..
-          cd crates/runtime-ffi/tests/wasm/counter
+          cd ..
+          cd crates/host/runtime/tests/wasm/calldata
           ./build.sh
-          cd ../../../../..
-          cd crates/runtime-ffi/tests/wasm/failure
+          cd ../../../../../..
+          cd crates/host/runtime-ffi/tests/wasm/counter
+          ./build.sh
+          cd ../../../../../..
+          cd crates/host/runtime-ffi/tests/wasm/failure
           ./build.sh
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all --no-default-features -- --nocapture
+          args: --all --no-default-features --jobs 2 -- --nocapture
   wasm_codec:
     runs-on: ubuntu-latest
     strategy:
@@ -165,7 +175,7 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-${{ github.job }}
       - name: Test svm-codec
-        working-directory: crates/codec/examples
+        working-directory: crates/host/codec/examples
         run: |
           set -e
           ./run.sh
@@ -196,6 +206,7 @@ jobs:
       - name: Install Rust
         run: |
           rustup update nightly
+          rustup target add wasm32-unknown-unknown --toolchain nightly
           rustup default nightly
       - uses: actions/cache@v2
         with:
@@ -207,6 +218,10 @@ jobs:
           key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-${{ github.job }}
+      - name: Compile some .wasm
+        run: |
+          cd simple-coin-transfer-template
+          ./build.sh
       - name: Run `cargo doc`
         uses: actions-rs/cargo@v1
         with:

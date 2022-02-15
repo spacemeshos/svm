@@ -1,0 +1,34 @@
+[package]
+name = "svm-runtime"
+version = "0.0.0"
+authors = ["Spacemesh SVM Team"]
+license = "MIT"
+edition = "2021"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[dependencies]
+byteorder = "1.4.3"
+futures = "0.3.19"
+log = "0.4.14"
+lazy_static = "1.4.0"
+thiserror = "1.0.30"
+wasmer = { version = "2.1.1", features = ["default-singlepass", "default-universal"], default-features = false }
+wat = "1.0.40"
+svm-codec = { path = "../codec" }
+svm-hash = { path = "../hash" }
+svm-genesis-config = { path = "../genesis-config" }
+svm-layout = { path = "../layout" }
+svm-state = { path = "../state" }
+svm-types = { path = "../types" }
+svm-gas = { path = "../gas" }
+svm-program = { path = "../program" }
+tokio = { version = "1", features = ["full"] }
+
+[dev-dependencies]
+maplit = "1.0.2"
+svm-runtime-testing = { path = "../runtime-testing" }
+svm-sdk-mock = { path = "../../wasm/sdk-mock", features = ["dynamic-alloc"], default-features = false }

@@ -1,0 +1,26 @@
+[package]
+name = "svm-runtime-examples-calldata"
+version = "0.0.0"
+authors = ["Spacemesh SVM Team"]
+license = "MIT"
+edition = "2021"
+readme = "README.md"
+publish = false
+
+[lib]
+crate-type = ['cdylib']
+
+[profile.release]
+opt-level = "z"
+panic = "abort"
+lto = true
+debug = false
+overflow-checks = false
+debug-assertions = false
+incremental = false
+rpath = false
+
+[dependencies]
+svm-sdk = { path = "../../../../../wasm/sdk", features = ["static-alloc", "meta"] }
+
+[workspace]
