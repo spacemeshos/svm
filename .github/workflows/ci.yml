@@ -48,6 +48,10 @@ jobs:
           key: cargo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-${{ github.job }}
+      - name: Compile some .wasm
+        run: |
+          cd simple-coin-transfer-template
+          ./build.sh
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
@@ -118,6 +122,9 @@ jobs:
             cargo-${{ runner.os }}-${{ github.job }}
       - name: Compile some .wasm
         run: |
+          cd simple-coin-transfer-template
+          ./build.sh
+          cd ..
           cd crates/host/runtime/tests/wasm/calldata
           ./build.sh
           cd ../../../../../..
