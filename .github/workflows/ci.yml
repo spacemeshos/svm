@@ -203,6 +203,7 @@ jobs:
       - name: Install Rust
         run: |
           rustup update nightly
+          rustup target add wasm32-unknown-unknown --toolchain nightly
           rustup default nightly
       - uses: actions/cache@v2
         with:
