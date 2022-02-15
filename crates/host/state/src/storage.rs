@@ -256,36 +256,27 @@ impl Storage {
         }
 
         let layer_id = self.next_layer.id;
-
-        // Note: SQLx 0.5 doesn't support bulk inserts. While tempting,
-        // inserting one by one and `.await`-ing after every operation is
-        // terribly slow. Rather, we store operation futures in a [`Vec`] and we
-        // then use [`futures`] magic.
-        let mut inserts = vec![];
         let layer_changes = std::mem::take(&mut self.next_layer.changes);
-
-        tracing::trace!(layer_id = layer_id, "Fingerpriting...");
         let mut fingerprint = self.layer_fingerprint(layer_id - 1, true).await?;
         xor_fingerprint(&mut fingerprint, &self.next_layer.changes_xor_fingerprint);
-
         self.insert_layer(layer_id, fingerprint, false).await?;
 
+        // Note: SQLx 0.5 doesn't support bulk inserts. So, performance here is
+        // really bad, but I imagine it can be widly improved with some
+        // detective work into "futures" magic or SQLx features.
         for (key_hash, value) in layer_changes {
-            inserts.push(
-                sqlx::query(
-                    r#"
+            sqlx::query(
+                r#"
                     INSERT INTO "values" ("key_hash", "value", "layer_id")
                     VALUES (?1, ?2, ?3)
                     "#,
-                )
-                .bind(key_hash.0.to_vec())
-                .bind(value)
-                .bind(layer_id)
-                .execute(&self.sqlite),
             )
+            .bind(key_hash.0.to_vec())
+            .bind(value)
+            .bind(layer_id)
+            .execute(&self.sqlite)
+            .await?;
         }
-
-        futures::future::try_join_all(inserts).await?;
 
         sqlx::query(
             r#"
