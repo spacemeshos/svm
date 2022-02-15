@@ -93,7 +93,7 @@ impl Storage {
     #[cfg(test)]
     async fn in_memory() -> Result<Self> {
         let sqlite = sqlx::sqlite::SqlitePoolOptions::new()
-            .max_connections(64)
+            .max_connections(1)
             .connect(":memory:")
             .await?;
         Self::new_with_pool(sqlite).await
@@ -261,22 +261,25 @@ impl Storage {
         xor_fingerprint(&mut fingerprint, &self.next_layer.changes_xor_fingerprint);
         self.insert_layer(layer_id, fingerprint, false).await?;
 
-        // Note: SQLx 0.5 doesn't support bulk inserts. So, performance here is
-        // really bad, but I imagine it can be widly improved with some
-        // detective work into "futures" magic or SQLx features.
+        // Note: SQLx 0.5 doesn't support bulk inserts. So, we must resort to
+        // "futures" magic instead.
+        let mut inserts = Vec::with_capacity(layer_changes.len());
         for (key_hash, value) in layer_changes {
-            sqlx::query(
-                r#"
+            inserts.push(
+                sqlx::query(
+                    r#"
                     INSERT INTO "values" ("key_hash", "value", "layer_id")
                     VALUES (?1, ?2, ?3)
                     "#,
-            )
-            .bind(key_hash.0.to_vec())
-            .bind(value)
-            .bind(layer_id)
-            .execute(&self.sqlite)
-            .await?;
+                )
+                .bind(key_hash.0.to_vec())
+                .bind(value)
+                .bind(layer_id)
+                .execute(&self.sqlite),
+            );
         }
+
+        futures::future::try_join_all(inserts).await?;
 
         sqlx::query(
             r#"
@@ -466,24 +469,15 @@ mod test {
         let mut storage = new_storage().await;
 
         for (key, value) in items.iter().take(UPPER_LIMIT) {
-            storage
-                .upsert(
-                    key.get(..UPPER_LIMIT).unwrap_or(&key[..]),
-                    value.get(..UPPER_LIMIT).unwrap_or(&value[..]),
-                )
-                .await;
+            storage.upsert(&key[..], &value[..]).await;
         }
 
         storage.checkpoint().await.unwrap();
         storage.commit().await.unwrap();
 
         for (key, value) in items.into_iter().take(UPPER_LIMIT) {
-            let stored_value = storage
-                .get(key.get(..UPPER_LIMIT).unwrap_or(&key[..]), None)
-                .await
-                .unwrap()
-                .unwrap();
-            if stored_value != value.get(..UPPER_LIMIT).unwrap_or(&value[..]) {
+            let stored_value = storage.get(&key[..], None).await.unwrap().unwrap();
+            if stored_value != &value[..] {
                 return false;
             }
         }
@@ -496,22 +490,11 @@ mod test {
         let mut storage = new_storage().await;
 
         for (key, value) in items.iter().take(UPPER_LIMIT) {
-            storage
-                .upsert(
-                    key.get(..UPPER_LIMIT).unwrap_or(&key[..]),
-                    value.get(..UPPER_LIMIT).unwrap_or(&value[..]),
-                )
-                .await;
+            storage.upsert(&key[..], &value[..]).await;
         }
 
         for key in items.keys().take(UPPER_LIMIT) {
-            let stored_value = storage
-                .get(
-                    key.get(..UPPER_LIMIT).unwrap_or(&key[..]),
-                    Some(INITIAL_LAYER_ID),
-                )
-                .await
-                .unwrap();
+            let stored_value = storage.get(&key[..], Some(INITIAL_LAYER_ID)).await.unwrap();
             if stored_value.is_some() {
                 return false;
             }
@@ -542,29 +525,19 @@ mod test {
 
     #[quickcheck_async::tokio]
     async fn get_and_get_historical_might_be_the_same(items: HashMap<Vec<u8>, Vec<u8>>) -> bool {
+        println!("new test");
         let mut storage = new_storage().await;
 
         for (key, value) in items.iter().take(UPPER_LIMIT) {
-            storage
-                .upsert(
-                    key.get(..UPPER_LIMIT).unwrap_or(&key[..]),
-                    value.get(..UPPER_LIMIT).unwrap_or(&value[..]),
-                )
-                .await;
+            storage.upsert(&key[..], &value[..]).await;
         }
 
         storage.checkpoint().await.unwrap();
         let layer_id = storage.commit().await.unwrap().0;
 
         for key in items.keys().take(UPPER_LIMIT) {
-            let val_1 = storage
-                .get(key.get(..UPPER_LIMIT).unwrap_or(&key[..]), Some(layer_id))
-                .await
-                .unwrap();
-            let val_2 = storage
-                .get(key.get(..UPPER_LIMIT).unwrap_or(&key[..]), None)
-                .await
-                .unwrap();
+            let val_1 = storage.get(&key[..], Some(layer_id)).await.unwrap();
+            let val_2 = storage.get(&key[..], None).await.unwrap();
             if val_1 != val_2 || val_1.is_none() {
                 return false;
             }
@@ -573,7 +546,7 @@ mod test {
         true
     }
 
-    #[quickcheck_async::tokio]
+    #[quickcheck_async::tokio(flavor = "multi_thread")]
     async fn consistent_layer_information_after_commits() -> bool {
         let mut storage = new_storage().await;
 
@@ -629,6 +602,7 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
+
     async fn rewind_fails_with_dirty_changes() -> bool {
         let mut storage = new_storage().await;
 
@@ -656,6 +630,7 @@ mod test {
     }
 
     #[quickcheck_async::tokio]
+
     async fn rewind_effectively_deletes_data(key: Vec<u8>, value: Vec<u8>) -> bool {
         let mut storage = new_storage().await;
 

@@ -7,6 +7,9 @@ name: SVM CI
 # nightly and it throws away intermediate compilation artifacts, which might
 # result in linkage bugs...
 
+env:
+  QUICKCHECK_MAX_TESTS: 16
+
 on:
   push:
     branches:
