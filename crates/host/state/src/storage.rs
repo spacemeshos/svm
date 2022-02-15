@@ -256,11 +256,8 @@ impl Storage {
         let layer_changes = std::mem::take(&mut self.next_layer.changes);
 
         tracing::trace!(layer_id = layer_id, "Fingerpriting...");
-        dbg!("fingerprinting", layer_id);
         let mut fingerprint = self.layer_fingerprint(layer_id - 1, true).await?;
         xor_fingerprint(&mut fingerprint, &self.next_layer.changes_xor_fingerprint);
-        tracing::trace!("Fingerpriting done.");
-        dbg!("fingerprinting done");
 
         self.insert_layer(layer_id, fingerprint, false).await?;
 
