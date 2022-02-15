@@ -466,15 +466,24 @@ mod test {
         let mut storage = new_storage().await;
 
         for (key, value) in items.iter().take(UPPER_LIMIT) {
-            storage.upsert(&key[..], &value[..]).await;
+            storage
+                .upsert(
+                    key.get(..UPPER_LIMIT).unwrap_or(&key[..]),
+                    value.get(..UPPER_LIMIT).unwrap_or(&value[..]),
+                )
+                .await;
         }
 
         storage.checkpoint().await.unwrap();
         storage.commit().await.unwrap();
 
         for (key, value) in items.into_iter().take(UPPER_LIMIT) {
-            let stored_value = storage.get(&key, None).await.unwrap().unwrap();
-            if stored_value != value {
+            let stored_value = storage
+                .get(key.get(..UPPER_LIMIT).unwrap_or(&key[..]), None)
+                .await
+                .unwrap()
+                .unwrap();
+            if stored_value != value.get(..UPPER_LIMIT).unwrap_or(&value[..]) {
                 return false;
             }
         }
