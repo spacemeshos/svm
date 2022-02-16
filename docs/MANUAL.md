@@ -1,6 +1,12 @@
-# SVM Introduction
+# The SVM manual
 
-## Motivation
+The SVM (Spacemesh Virtual Machine) is the engine that drives smart contracts execution inside `go-spacemesh`. It is written in Rust and communicates with the node -which is written in Golang- using FFI.
+
+## Notes about architecture
+
+The only way to interact with the SVM is with a **runtime**. An SVM runtime exposes an API for all supported operations and is backed by a single SQLite instance. The FFI adopted by `go-spacemesh` is but a thin wrapper around the Rust interface to the SVM runtime. 
+
+### Motivation
 
 The SVM component exists to serve as the transaction executor.
 Each transaction selected to execute by the Full-Node is passed to SVM that runs it and returns a receipt as a result.
@@ -19,7 +25,7 @@ Sometimes the ending `State` will be the same as the starting one. For example, 
 Other times, the transaction didn't have enough gas to execute fully, and any uncommitted changes will be discarded.
 The `State` of the system will remain the same, and the Account sending the transaction (the principal) will have to pay for the failed running.
 
-## High-level Description
+### High-level Description
 
 - **Runtime**
   The Runtime is the piece that orchestrates both validation and execution of transactions.
@@ -95,7 +101,7 @@ Golang has the `cgo` package that makes calling C code possible.
 To make life easier for the `go-spacemesh` project, we've created a library called `go-svm`(link: [https://github.com/spacemeshos/go-svm](https://github.com/spacemeshos/go-svm))
 that does the heavy lifting of using `cgo` against the SVM objects files. The end-user of `go-svm` should enjoy an excellent ergonomic Golang API.
 
-## Guidelines
+### Guidelines
 
 - **Fast**
   It's crucial that SVM will execute as fast as we can.
@@ -107,3 +113,95 @@ that does the heavy lifting of using `cgo` against the SVM objects files. The en
 
 - **Portable**
   Since Spacemesh Full-Node is targeted for the mass, it must work on any of the three popular Operating-Systems: macOS, Linux, and Windows.
+
+
+## A quick tour
+
+Most of the SVM code sits inside `crates/`, where it's partitioned in two groups of Rust crates:
+
+- Crates that define tooling, some testing infrastructure and most of the SVM implementation. All of this code is designed to run on the host side, i.e. natively (x86, ARM). These crates sit under `crates/host/`.
+- Crates that compile down to WebAssembly, the code of which is intented to run inside the actual SVM. These crates sit under `crates/wasm/`.
+
+---
+
+`crates/host/runtime` is the entry point of the project. It brings together (almost) all the other crates, importing them either directly or undirectly, and defines a straightforward Rust API to run smart contracts inside the SVM. `crates/host/runtime-ffi` works similarly, but with FFI.
+
+---
+
+`crates/host/query/` is outdated. It can and should be removed. It's not even used
+anywhere inside the project, so the removal is as easy as deleting a directory.
+
+---
+
+`crates/host/types/` defines some common types used throughout the whole SVM project. Here's some examples:
+
+- `Account`- represents an account in the system.
+- `Address` - the address of an account.
+- `Receipt types` - each transaction type has a Receipt type.
+- `Template` - a reusable definition of a smart contract. Each template is made up by many "sections". Some of these are mandatory (like `CodeSection`, i.e. the WebAssembly code of the smart contract), others are optional (like `SchemaSection`, which documents on-chain how to interact with the contract with 3rd party calls).
+- `Envelope` - for the transactions' envelope.
+- `Context` - for the transaction's executing context.
+- `Transaction` - contains the `Call Message` data.
+
+---
+
+`crates/host/state` encapsulates logic around disk persistence of all SVM data. This includes account balances, account nonces, account metadata, template code, other template sections, etc.. After each successful smart contract execution, users can *checkpoint* and finally *commit* at layer finalization. Upon commitment, a "fingerprint" is returned, which serves the same purpose as e.g. Bitcoin and Ethereum's root signature. Please note that it's not an actual cryptographic signature, so the current design does *not* accomodate for light clients and Merkle proofs.
+
+---
+
+`crates/host/gas` and `crates/host/program` perform smart contract code verification.
+
+`svm-gas` performs, like the name suggests, gas-related verification tasks:
+
+- Given a Wasm program, `svm-gas` determined whether Fixed-Gas compliant or not.
+- Given a Fixed-Gas compliant Wasm program, `svm-gas` computes its gas price for each function. Gas price of each function is defined as the cost of its most expensive execution path. This calculation relies on call graph static analysis.
+
+`svm-program` performs all other forms of static analysis, validation, and inspection over WebAssembly code that the SVM is interested in.
+
+Code that is fully validated by both `svm-gas` and `svm-program` is called smWasm (Spacemesh WebAssembly). Please note that smWasm is a strict subset of WebAssembly.
+
+---
+
+`crates/host/codec` defines a compact encoding for all SVM-related data that needs to be either stored on disk or sent via wire to other nodes. Please note that different entities **must** map to different byte sequences, and different byte sequences **must** map to different entities.
+
+The only notable entities that adopt `crates/host/codec` are:
+
+1. Templates' sections (stored on disk).
+2. Smart contract execution receipts (sent to other nodes).
+
+This crate exposes three APIs:
+
+- Rust API - used internally by SVM.
+- Wasm API - for use by blockchain explorers, Spacemesh node GUI, etc.. Available as a CI artifact named `svm_codec.wasm` for every Git-tagged release of SVM.
+- JSON API - closely related to the Wasm API. Defines a direct mapping between  encoded data and JSON objects.
+
+---
+
+`svm-layout` implements layout specification of templates' persistent storage - as in, what variables a template stores and what their sizes are.
+
+---
+
+`crates/wasm/abi-*` defines the default SVM ABI. Unlike the EVM, SVM does *not* mandate the usage of a single ABI and smart contract authors can define their own ABIs. Note that ABIs effectively define the calling convention for interacting with smart contracts, so they are subject to space requirements as well as UX considerations. The default SVM ABI is compact, well-documented, and supports a lot of common types e.g. integers, booleans, account addresses, etc..
+
+Usages:
+
+- Encoding of functions inputs (e.g., `calldata`, `verifydata`)
+- Decoding the functions returns (e.g. `returndata`
+
+---
+
+`crates/wasm/sdk` makes it easy to write SVM templates using Rust that will compile to SVM-compliant WebAssembly modules. It's deeply integrated with the default SVM ABI (`crates/wasm/abi-*`).
+
+- `svm-sdk-alloc`. Implements dynamic allocation using a straightforward "bump allocator".
+- `svm-sdk-std`. Defines common types and `std`-like components that are Fixed-Gas compliant.
+- `svm-sdk-types`. Defines some more common types. Fixed-Gas compliant, just like `svm-sdk-std`.
+- `svm-sdk-storage`. Implements an API that exposes smart contract storage getters and setters via host calls.
+- `svm-sdk-host`. Similarly to `svm-sdk-storage`, it introduces an API that exposes functionalities provide by the host via host calls.
+- `svm-sdk-macros`. Rust procedural macros to define SVM templates.
+- `svm-sdk`. The SDK prelude crate. Glues together all the other SDK crates.
+
+Please note that mocks are available for some of these crates; although such mock crates are found inside `crates/wasm/`, they technically don't target WebAssembly because basic testing of smart contracts happens by entirely mocking all host calls. **This is not a long-term solution. Tests should spin up separate instances of the SVM `Runtime`.**
+
+---
+
+`crates/host/cli` is special in the sense that it's not part of the actual SVM, but rather it's a complementary tool that is designed to assist smart contract authors. It integrates deeply with the SDK (e.g. smart contract "schema data" output by the SDK can be processed by this CLI). It can take JSON descriptions of transactions and output their binary representation; it also exposes Fixed-Gas validation logic.
